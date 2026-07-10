@@ -46,6 +46,19 @@ The script automatically selects Apple MPS on Apple Silicon, CUDA when added to 
 
 The current script is a demonstration inference path. It uses a mean-normalized atmospheric input when a matching live ERA5 patch is unavailable. For real research evaluation, replace that input with a correctly time-aligned ERA5 patch using the same variables, grid, normalization statistics, and storm-centered coordinates used during training.
 
+## Minimum system requirements
+
+For local inference with the included checkpoint:
+
+- Operating system: macOS, Linux, or Windows
+- Python: 3.10 or newer
+- Processor: 64-bit CPU with four cores or more
+- Memory: 8 GB RAM minimum; 16 GB recommended
+- Storage: 2 GB free space for the repository, virtual environment, checkpoint, and generated forecasts
+- GPU: not required; CPU inference is supported. Apple Silicon can use MPS when available.
+
+For faster experimentation, training, or batch inference, use a CUDA-capable NVIDIA GPU with at least 16 GB VRAM. An A100 or H100 is suitable for the full training workflow, but is not required to run the released checkpoint.
+
 ## Output and visualization
 
 The inference script writes JSON containing the ensemble mean and percentile bounds. `forecast_world_map.html` is an example Leaflet visualization of one generated result; it is not part of the model architecture and can be replaced with a generic forecast viewer.
