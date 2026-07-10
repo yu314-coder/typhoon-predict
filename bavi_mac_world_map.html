@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bavi Mac Model Forecast</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    html, body, #map { height: 100%; margin: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .panel { position: absolute; z-index: 1000; top: 16px; left: 16px; width: min(360px, calc(100vw - 32px)); padding: 14px 16px; background: rgba(255,255,255,.96); border: 1px solid #d5d9df; box-shadow: 0 3px 14px rgba(0,0,0,.18); }
+    h1 { margin: 0 0 7px; font-size: 20px; }
+    p { margin: 5px 0; font-size: 13px; line-height: 1.4; color: #374151; }
+    .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 9px; font-size: 12px; color: #374151; }
+    .key { display: inline-flex; align-items: center; gap: 5px; }
+    .swatch { width: 20px; height: 3px; display: inline-block; }
+    .mean { background: #d7263d; }
+    .actual { background: #111827; }
+    .corridor { width: 20px; height: 10px; background: rgba(245,158,11,.32); border: 1px solid #d97706; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <section class="panel">
+    <h1>Bavi: Mac checkpoint prediction</h1>
+    <p><b>Initial fix:</b> 10 Jul 2026 06:00 UTC, 21.9°N 126.9°E</p>
+    <p><b>Run:</b> local Mac Apple MPS, 50 ensemble members, 120-hour horizon</p>
+    <p><b>Important:</b> this is a research proxy using a mean-normalized atmospheric field because the matching 2026 ERA5 field is not available locally. It is not an operational warning forecast.</p>
+    <div class="legend">
+      <span class="key"><i class="swatch actual"></i>official initial fix</span>
+      <span class="key"><i class="swatch mean"></i>model mean</span>
+      <span class="key"><i class="swatch corridor"></i>10–90% corridor</span>
+    </div>
+  </section>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const initial = [21.9, 126.9];
+    const forecast = [
+      {h: 6, lat: 22.4336, lon: 126.5818, la: 22.3279, lb: 22.5795, oa: 126.4390, ob: 126.7272},
+      {h: 12, lat: 22.7873, lon: 126.3022, la: 22.5105, lb: 23.0514, oa: 126.0263, ob: 126.6464},
+      {h: 24, lat: 23.8919, lon: 125.4258, la: 23.5613, lb: 24.3624, oa: 124.9874, ob: 125.9527},
+      {h: 48, lat: 25.6544, lon: 124.6313, la: 24.6905, lb: 26.3908, oa: 123.1265, ob: 126.0750},
+      {h: 72, lat: 26.4361, lon: 123.5473, la: 24.9631, lb: 28.2892, oa: 120.7869, ob: 125.8778},
+      {h: 96, lat: 26.6257, lon: 121.9343, la: 24.2808, lb: 28.4809, oa: 118.0243, ob: 126.7538},
+      {h: 120, lat: 28.6126, lon: 121.8454, la: 26.2118, lb: 30.8639, oa: 117.2112, ob: 126.6462}
+    ];
+    const map = L.map('map', {worldCopyJump: true}).setView([25, 126], 4);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 18, attribution: '&copy; OpenStreetMap contributors'}).addTo(map);
+    L.marker(initial).addTo(map).bindPopup('<b>Official initial fix</b><br>21.9°N, 126.9°E<br>10 Jul 2026 06:00 UTC').openPopup();
+    const meanLine = [initial];
+    forecast.forEach(p => {
+      meanLine.push([p.lat, p.lon]);
+      L.rectangle([[p.la, p.oa], [p.lb, p.ob]], {color:'#d97706', weight:1, fillColor:'#f59e0b', fillOpacity:.18}).addTo(map).bindTooltip('+' + p.h + 'h model 10–90% box');
+      L.circleMarker([p.lat, p.lon], {radius: 5, color:'#d7263d', fillColor:'#d7263d', fillOpacity:1}).addTo(map).bindTooltip('+' + p.h + 'h: ' + p.lat.toFixed(2) + '°N, ' + p.lon.toFixed(2) + '°E');
+    });
+    L.polyline(meanLine, {color:'#d7263d', weight:4, opacity:.9}).addTo(map);
+    L.polyline([initial, [21.9,126.9]], {color:'#111827', weight:5}).addTo(map);
+    map.fitBounds(L.latLngBounds(meanLine), {padding: [45, 45]});
+  </script>
+</body>
+</html>
