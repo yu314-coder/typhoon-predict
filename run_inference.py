@@ -8,7 +8,7 @@ from torch import nn
 ROOT = Path(__file__).resolve().parent
 parser = argparse.ArgumentParser(description="Run the Bavi typhoon checkpoint locally.")
 parser.add_argument("--checkpoint", type=Path, default=ROOT / "best.pt")
-parser.add_argument("--output", type=Path, default=ROOT / "bavi_mac_proxy_forecast.json")
+parser.add_argument("--output", type=Path, default=ROOT / "forecast.json")
 parser.add_argument("--device", choices=["auto", "mps", "cpu"], default="auto")
 args = parser.parse_args()
 CKPT = args.checkpoint.expanduser().resolve()

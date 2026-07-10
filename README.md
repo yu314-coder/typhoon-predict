@@ -1,48 +1,80 @@
-# Bavi Typhoon Track Research Model
+# Typhoon Predict
 
-This repository contains a local inference package for a research typhoon-track model trained from an ERA5-conditioned CNN-GRU ensemble checkpoint. It runs on Apple Silicon with PyTorch MPS, on CPU, or on CUDA.
+Typhoon Predict is an ERA5-conditioned tropical-cyclone track research model. It combines recent storm-track history with a local atmospheric reanalysis patch and produces a probabilistic forecast at multiple lead times.
 
-## Important limitation
+This repository contains a trained PyTorch checkpoint and a portable inference script. It is a research project, not an operational warning system.
 
-The included Bavi result is a research proxy, not an operational warning product. The checkpoint was trained on historical ERA5 data, but the matching 2026 ERA5 atmospheric field was not available locally. The supplied run therefore uses the latest official track fixes and a mean-normalized atmospheric input. Do not use it for safety, evacuation, shipping, or aviation decisions.
+## Model
 
-## Files
+The model is an ensemble neural network with three parts:
 
-- `best.pt`: trained PyTorch checkpoint.
-- `run_bavi_mac.py`: portable local inference script.
-- `bavi_mac_proxy_forecast.json`: generated forecast output.
-- `bavi_mac_world_map.html`: interactive Leaflet world map.
+1. A convolutional field encoder processes the ERA5 patch. It uses convolution, GELU activations, batch normalization, strided downsampling, and global average pooling.
+2. A bidirectional GRU encodes the recent cyclone track history.
+3. A fusion MLP combines the atmospheric and track embeddings. Separate heads predict the output mean and log scale, while a latent projection adds correlated ensemble variation.
 
-## Run locally on macOS
+The checkpoint uses four historical track steps and predicts seven lead times: 6, 12, 24, 48, 72, 96, and 120 hours. Each output step contains latitude and longitude displacement plus additional track variables used by the training target.
+
+## Training configuration
+
+The included checkpoint was trained with:
+
+- Western Pacific basin data (`WP`)
+- ERA5 data beginning in 1979
+- 8 degree atmospheric patches at 0.5 degree resolution
+- Four historical track steps
+- 1,024 maximum training windows
+- Batch size 64
+- Learning rate `2e-4`
+- Weight decay `1e-4`
+- Up to 80 epochs with early stopping patience 12
+- 50 ensemble members at inference time
+- Random seed 42
+
+The checkpoint stores the model weights, training configuration, feature scalers, and ERA5 normalization statistics required for inference.
+
+## Local inference
 
 ```bash
 cd /Volumes/D/typhoon_predict
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-python run_bavi_mac.py --checkpoint best.pt --output bavi_mac_proxy_forecast.json
+python run_inference.py --checkpoint best.pt --output forecast.json
 ```
 
-The script automatically uses Apple MPS when available. Use `--device cpu` to force CPU execution. Open `bavi_mac_world_map.html` through a local web server to view the route.
+The script automatically selects Apple MPS on Apple Silicon, CUDA when added to the script for a compatible environment, or CPU otherwise. Use `--device cpu` to force CPU execution.
 
-## Run on Linux/CUDA
+The current script is a demonstration inference path. It uses a mean-normalized atmospheric input when a matching live ERA5 patch is unavailable. For real research evaluation, replace that input with a correctly time-aligned ERA5 patch using the same variables, grid, normalization statistics, and storm-centered coordinates used during training.
 
-Install a CUDA-compatible PyTorch build, then run the same command with `--device auto` or `--device cpu`. The checkpoint is a standard PyTorch state dictionary and does not require Colab.
+## Output and visualization
 
-## Model format and GGUF
+The inference script writes JSON containing the ensemble mean and percentile bounds. `forecast_world_map.html` is an example Leaflet visualization of one generated result; it is not part of the model architecture and can be replaced with a generic forecast viewer.
 
-GGUF is designed primarily for llama.cpp-style language and compatible tensor models. This checkpoint is a custom convolutional field encoder plus bidirectional GRU and probabilistic ensemble head, so converting it to GGUF would not make it runnable in llama.cpp and would risk changing the forecast behavior.
+## Data pipeline
 
-The supported portable format is the original PyTorch checkpoint (`best.pt`). For deployment, use PyTorch on MPS/CPU/CUDA or add a carefully validated ONNX/TorchScript export for a fixed deterministic member. The scaler objects and normalization arrays stored in `best.pt` must remain with the model.
+Training requires:
 
-## Reproducibility
+- Tropical-cyclone best-track fixes for the target basin
+- ERA5 atmospheric variables on a regular grid
+- Storm-centered patch extraction
+- Time-aligned history/target windows
+- Train/validation/test splits separated by time to avoid leakage
 
-The checkpoint includes the model weights, input/output scalers, field normalization statistics, and training configuration. Results are stochastic because the ensemble samples latent noise. The map displays the ensemble mean and the 10th-to-90th percentile boxes.
+ERA5 is produced by the Copernicus Climate Change Service implemented by ECMWF. Users must obtain the required track and ERA5 data under their own access and licensing terms.
 
-## Data and attribution
+## Model formats
 
-The current Bavi initialization uses official tropical-cyclone track fixes. ERA5 is a product of the Copernicus Climate Change Service implemented by ECMWF. OpenStreetMap data is used for the map background.
+The supported format is the original PyTorch checkpoint (`best.pt`). GGUF is intended mainly for llama.cpp-compatible language and tensor models; it is not a compatible runtime format for this custom convolutional encoder, GRU, and probabilistic ensemble head. Converting it to GGUF would not make it runnable in llama.cpp.
 
-## License
+For production deployment, use PyTorch on CPU, Apple MPS, or CUDA. An ONNX or TorchScript export could be added for a fixed deterministic member, but it must preserve preprocessing, scaler state, output decoding, and ensemble sampling behavior and should be validated against the PyTorch implementation.
 
-This research package is provided without operational guarantees. Check the source-data and model-training licenses before redistributing derived datasets or deploying the model.
+## Limitations
+
+- The included checkpoint is a research baseline, not an operational forecast system.
+- Forecast quality depends strongly on correct ERA5 inputs and track preprocessing.
+- The supplied demonstration run may use a mean-normalized atmospheric proxy when live ERA5 data is absent.
+- Probabilistic spread is model-generated uncertainty, not a calibrated warning cone.
+
+## License and safety
+
+Check the licenses for the source datasets and derived products before redistribution. Do not use this repository for evacuation, aviation, maritime, emergency-management, or other safety-critical decisions.
