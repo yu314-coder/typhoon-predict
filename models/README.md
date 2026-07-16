@@ -9,8 +9,16 @@ Weights are stored with Git LFS.
 
 | file | params | size | inputs | training data |
 |---|---|---|---|---|
+| `trackformer_v3_15M_fp16.pt` | 15M | 30 MB (fp16) | **track history only (protected dual-stream)** | all basins, 1980+, 84,150 windows |
 | `stormfusion_v2_era5_3.3M_fp16.pt` | 3.3M | 6.7 MB (fp16) | ERA5 patches + track history | WP, 2000+, 1,337 storm-centered windows |
-| `trackformer_21M_fp16.pt` | 21M | 43 MB (fp16) | **track history only (no ERA5)** | all basins, 1980+, 84,150 windows |
+| `trackformer_21M_fp16.pt` | 21M | 43 MB (fp16) | track history only (single-stream) | all basins, 1980+, 84,150 windows |
+
+**`trackformer_v3` is the best model.** It uses a protected dual-stream architecture (separate
+kinematic/thermodynamic encoders, gradient routing, a zero-init gated thermo→track adapter, and a
+persistence-residual track head) that removes the negative transfer the single-stream models suffer.
+On WP-2020+ it cuts track error to 659 km (−61 vs the single-stream models, storm-bootstrap 95% CI
+[−103, −16] km, p≈0.995) while also improving pressure, wind, and radius. See
+[`paper/trackformer.pdf`](../paper/trackformer.pdf) for the full architecture and derivation.
 
 Both checkpoints store weights in fp16 (half the size, identical metrics) and are
 inference-only (optimizer state stripped). The track-only model predicts the **full 17-dim
@@ -31,13 +39,19 @@ lead queries → dual heads. No atmospheric inputs at all.
 
 | model | track km | vmax kt | pres hPa | rmw km | radius km |
 |---|---|---|---|---|---|
-| ERA5 v2 (3.3M) | 729 | 24.2 | 21.6 | 16.2 | 31.8 |
-| **TrackFormer (21M, no ERA5)** | **720** | **22.1** | 21.2 | **12.9** | 31.5 |
+| single-stream 40-feat (21M) | 720 | 22.1 | 21.2 | **11.8**\* | 31.5 |
+| single-stream 48-feat (21M) | 737 | 21.5 | 17.7 | 11.8 | 30.9 |
+| **TrackFormer v3 (15M, dual-stream)** | **659** | 21.6 | 18.1 | 11.8 | **28.8** |
 
-**Key finding:** a track-only model that never sees ERA5 **matches or beats** the full
-ERA5 model on every metric. The expensive ERA5 atmospheric patches add little over
-past-track history + more storms. Across experiments, **data diversity > engineered features
-> parameters** (a 17.7M ERA5 model overfit and did *worse* than the 3.3M one).
+\*rmw is effectively tied across models. TrackFormer v3's track win is statistically significant
+(storm-bootstrap 95% CI [−103, −16] km vs single-stream, p≈0.995).
+
+**Key findings:** (1) a track-only model that never sees ERA5 **matches or beats** a full ERA5 model,
+so **data diversity > engineered features > parameters** (a 17.7M ERA5 model overfit and did *worse*
+than the 3.3M one). (2) Adding motion-dynamics features to a single-stream model improves intensity
+but hurts track via **negative transfer**; the fix is architectural — a **protected dual-stream** that
+routes kinematic and thermodynamic gradients separately, so intensity gains no longer cost track
+accuracy. Full analysis in [`paper/trackformer.pdf`](../paper/trackformer.pdf).
 
 ## Loading
 

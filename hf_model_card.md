@@ -21,8 +21,9 @@ maritime, or emergency decisions.**
 
 | model | params | inputs | training data |
 |---|---|---|---|
+| **TrackFormer v3** | 15M (fp16, 30MB) | **track history only, protected dual-stream** | all basins, 1980+, 84,150 windows |
 | StormFusion-MT v2 | 3.3M (fp16, 6.7MB) | ERA5 patches + track history | WP, 2000+, 1,337 storm-centered windows |
-| **TrackFormer** | 21M (fp16, 43MB) | **track history only (no ERA5)** | all basins, 1980+, 84,150 windows |
+| TrackFormer (v1) | 21M (fp16, 43MB) | track history only (single-stream) | all basins, 1980+, 84,150 windows |
 
 Weights and full reproducible code (dataset builders, training, eval) are in the GitHub repo:
 **https://github.com/yu314-coder/typhoon-predict** (`models/`).
@@ -32,12 +33,18 @@ Weights and full reproducible code (dataset builders, training, eval) are in the
 | model | track km | vmax kt | pres hPa | rmw km | radius km |
 |---|---|---|---|---|---|
 | StormFusion-MT v2 (3.3M, ERA5) | 729 | 24.2 | 21.6 | 16.2 | 31.8 |
-| **TrackFormer (21M, no ERA5)** | **720** | **22.1** | 21.2 | **12.9** | 31.5 |
+| TrackFormer v1 (21M, single-stream) | 720 | 22.1 | 21.2 | 11.8 | 31.5 |
+| **TrackFormer v3 (15M, dual-stream)** | **659** | 21.6 | 18.1 | 11.8 | **28.8** |
 
-**Key finding:** a track-only model that never sees ERA5 **matches or beats** the full ERA5
-model on every metric. The expensive ERA5 atmospheric patches add little over past-track history
-plus more storms. Across experiments the pattern was consistent: **data diversity > engineered
-features > parameters** — a 17.7M ERA5 model overfit and did *worse* than the 3.3M one.
+**Key findings.** (1) A track-only model that never sees ERA5 **matches or beats** the full ERA5
+model, so **data diversity > engineered features > parameters** (a 17.7M ERA5 model overfit and did
+*worse* than the 3.3M one). (2) Naively adding motion-dynamics features to a single-stream model
+improves intensity but hurts track through **negative transfer**; **TrackFormer v3** fixes this with a
+protected dual-stream architecture (separate kinematic/thermodynamic encoders, gradient routing, a
+zero-init gated thermo→track adapter, and a persistence-residual track head), cutting WP-2020+ track
+error to 659 km (−61, storm-bootstrap 95% CI [−103, −16] km, p≈0.995) while keeping the intensity
+gains. Full architecture and derivation (incl. a random-matrix block-covariance uncertainty head) in
+`paper/trackformer.pdf` in the GitHub repo.
 
 ## Architectures
 

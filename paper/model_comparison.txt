@@ -1,0 +1,18 @@
+Three-way comparison (identical test windows; MPS-trained; metrics = mean over 20 leads).
+
+ALL-BASIN TEST (9994 windows)
+model                track_km  vmax_kt  pres_hpa  rmw_km  radius_km
+old 21M (40-feat)      638.63    20.32     18.01    15.28     29.99
+v2 21M (48-feat)       644.22    19.55     15.38    14.18     29.31
+v2 track-weighted x3   703.89    20.46     14.97    14.78     30.70
+
+WP-2020+ TEST (2698 windows)
+model                track_km  vmax_kt  pres_hpa  rmw_km  radius_km
+old 21M (40-feat)      719.98    22.08     21.24    12.85     31.54
+v2 21M (48-feat)       737.31    21.49     17.68    11.77     30.94
+v2 track-weighted x3   806.59    22.45     16.95    12.18     31.19
+
+Finding: motion-dynamics features (heading/speed/turn/intensity trends) markedly improve
+intensity/pressure/structure but slightly worsen track; track is near its data-limited floor.
+Loss-upweighting track backfired. Next: architecture redesign (persistence-anchored track head,
+kinematic/thermodynamic stream separation, RMT structured-covariance uncertainty head).
