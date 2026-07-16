@@ -30,6 +30,8 @@ The included checkpoint was trained with:
 - 50 ensemble members at inference time
 - Random seed 42
 
+The replacement StormFusion-MT retraining workflow is provided in [typhoon_stormfusion_mt_colab.ipynb](typhoon_stormfusion_mt_colab.ipynb). It downloads IBTrACS, requests real ERA5 patches through the CDS API, builds storm-level train/validation/test windows, trains on A100/H100 with BF16, and saves checkpoints and artifacts to Google Drive.
+
 The checkpoint stores the model weights, training configuration, feature scalers, and ERA5 normalization statistics required for inference.
 
 ## Local inference
@@ -81,6 +83,30 @@ The supported format is the original PyTorch checkpoint (`best.pt`). GGUF is int
 
 For production deployment, use PyTorch on CPU, Apple MPS, or CUDA. An ONNX or TorchScript export could be added for a fixed deterministic member, but it must preserve preprocessing, scaler state, output decoding, and ensemble sampling behavior and should be validated against the PyTorch implementation.
 
+## Forecast-error covariance experiment
+
+`covariance_denoise.py` applies the generalized two-point spectral-support method as a post-processing experiment for forecast residuals. It compares raw covariance, diagonal covariance, Ledoit-Wolf shrinkage, classical Marcenko-Pastur/PCA cleaning, and the generalized two-point cleaner.
+
+Residual input must be a matrix with shape `[independent_storm_cases, features]`. Features can be flattened lead-time and target variables, such as track, maximum wind, pressure, and wind-radius errors. Use independent storm cases or storm blocks; do not count overlapping windows or the 50 samples from one neural network as independent validation cases.
+
+Run the mathematical and synthetic smoke test:
+
+```bash
+python covariance_denoise.py --demo --a 10 --beta 0.05
+```
+
+Run it on a residual matrix saved as `.npy`, `.npz`, `.csv`, or `.txt`:
+
+```bash
+python covariance_denoise.py \
+  --residuals validation_residuals.npy \
+  --a 2.0 \
+  --beta 0.25 \
+  --output covariance_results.npz
+```
+
+The script writes covariance estimates to the `.npz` file and diagnostics to the matching `.json` file. The two-point parameters `a` and `beta` are explicit because the research paper gives the limiting distribution but does not define a validated estimator for them. Estimate them on training storms and validate them on held-out storms. This module does not replace the forecaster and cannot compensate for missing or incorrectly aligned ERA5 input.
+
 ## Limitations
 
 - The included checkpoint is a research baseline, not an operational forecast system.
@@ -91,3 +117,19 @@ For production deployment, use PyTorch on CPU, Apple MPS, or CUDA. An ONNX or To
 ## License and safety
 
 Check the licenses for the source datasets and derived products before redistribution. Do not use this repository for evacuation, aviation, maritime, emergency-management, or other safety-critical decisions.
+
+## Trained models (2026)
+
+Two trained checkpoints are released in [`models/`](models/) (Git LFS), with full details in the
+[model card](models/README.md):
+
+- **`models/stormfusion_v2_era5_3.3M.pt`** — StormFusion-MT v2 (3.3M params, ERA5 + track).
+- **`models/trackformer_21M.pt`** — TrackFormer (21M params, **track-only, no ERA5**), trained on
+  84,150 all-basin IBTrACS windows.
+
+On a WP-2020+ held-out test, the **track-only** model matches or beats the ERA5 model on every
+metric (track 720 vs 729 km; vmax 22.1 vs 24.2 kt; RMW 12.9 vs 16.2 km) — evidence that ERA5
+patches add little over past-track history plus more storms. See [MODEL_COMPARISON](models/README.md#results--wp-2020-held-out-test-lower-is-better).
+
+Reproducible pipeline: `build_windows.py` / `build_track_only.py` (dataset), `fix_windows.py`
+(NaN-fill + normalization), `model_v2.py` / `train_track.py` (models + training), `eval_compare.py`.

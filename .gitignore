@@ -1,5 +1,16 @@
-.venv/
+# large data / build artifacts (never commit)
+typhoon_build/
+typhoon_build_smoke/
+track_build/
+tmp/
+.venv-build/
+# nested HuggingFace Space repo (separate git remote)
+hf-space/
+# caches, logs, working notes
 __pycache__/
 *.pyc
-.DS_Store
 *.log
+watchdog.sh
+watchdog_status.log
+memory.md
+.cdsapirc
