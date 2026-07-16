@@ -9,11 +9,12 @@ Weights are stored with Git LFS.
 
 | file | params | size | inputs | training data |
 |---|---|---|---|---|
-| `stormfusion_v2_era5_3.3M.pt` | 3.3M | 38 MB | ERA5 patches + track history | WP, 2000+, 1,337 storm-centered windows |
+| `stormfusion_v2_era5_3.3M_fp16.pt` | 3.3M | 6.7 MB (fp16) | ERA5 patches + track history | WP, 2000+, 1,337 storm-centered windows |
 | `trackformer_21M_fp16.pt` | 21M | 43 MB (fp16) | **track history only (no ERA5)** | all basins, 1980+, 84,150 windows |
 
-The track-only model predicts the **full 17-dim state** (motion, wind, pressure, RMW, all 12
-wind radii) — not just track. Its weights are stored in fp16 (half the size, identical metrics).
+Both checkpoints store weights in fp16 (half the size, identical metrics) and are
+inference-only (optimizer state stripped). The track-only model predicts the **full 17-dim
+state** (motion, wind, pressure, RMW, all 12 wind radii) — not just track.
 
 ## Architectures
 
@@ -54,9 +55,9 @@ model.eval()
 import importlib.util
 spec = importlib.util.spec_from_file_location("m", "model_v2.py")
 m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
-ckpt = torch.load("models/stormfusion_v2_era5_3.3M.pt", map_location="cpu", weights_only=False)
+ckpt = torch.load("models/stormfusion_v2_era5_3.3M_fp16.pt", map_location="cpu", weights_only=False)
 model = m.StormFusionMT("recommended", lead_count=20)
-model.load_state_dict(ckpt["model"]); model.eval()
+model.load_state_dict({k: v.float() for k, v in ckpt["model"].items()}); model.eval()  # fp16 -> fp32
 ```
 
 Inputs must be normalized with the stored stats (ERA5: the `*_mean`/`*_std` keys saved in the
