@@ -7,10 +7,13 @@ storm motion (km), max wind (kt), central pressure (hPa), radius of max wind (km
 
 Weights are stored with Git LFS.
 
-| file | params | inputs | training data |
-|---|---|---|---|
-| `stormfusion_v2_era5_3.3M.pt` | 3.3M | ERA5 patches + track history | WP, 2000+, 1,337 storm-centered windows |
-| `trackformer_21M.pt` | 21M | **track history only (no ERA5)** | all basins, 1980+, 84,150 windows |
+| file | params | size | inputs | training data |
+|---|---|---|---|---|
+| `stormfusion_v2_era5_3.3M.pt` | 3.3M | 38 MB | ERA5 patches + track history | WP, 2000+, 1,337 storm-centered windows |
+| `trackformer_21M_fp16.pt` | 21M | 43 MB (fp16) | **track history only (no ERA5)** | all basins, 1980+, 84,150 windows |
+
+The track-only model predicts the **full 17-dim state** (motion, wind, pressure, RMW, all 12
+wind radii) — not just track. Its weights are stored in fp16 (half the size, identical metrics).
 
 ## Architectures
 
@@ -41,8 +44,10 @@ past-track history + more storms. Across experiments, **data diversity > enginee
 import torch, numpy as np
 # --- TrackFormer (track-only) ---
 from train_track import TrackModel          # class defined at module import
-ckpt = torch.load("models/trackformer_21M.pt", map_location="cpu", weights_only=False)
-model = TrackModel(); model.load_state_dict(ckpt["model"]); model.eval()
+ckpt = torch.load("models/trackformer_21M_fp16.pt", map_location="cpu", weights_only=False)
+model = TrackModel()
+model.load_state_dict({k: v.float() for k, v in ckpt["model"].items()})  # fp16 -> fp32 for CPU
+model.eval()
 # ckpt["track_mean"], ckpt["track_std"] are the per-feature standardization stats.
 
 # --- StormFusion-MT v2 (ERA5) ---

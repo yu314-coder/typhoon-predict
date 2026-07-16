@@ -124,7 +124,7 @@ Two trained checkpoints are released in [`models/`](models/) (Git LFS), with ful
 [model card](models/README.md):
 
 - **`models/stormfusion_v2_era5_3.3M.pt`** — StormFusion-MT v2 (3.3M params, ERA5 + track).
-- **`models/trackformer_21M.pt`** — TrackFormer (21M params, **track-only, no ERA5**), trained on
+- **`models/trackformer_21M_fp16.pt`** — TrackFormer (21M params, fp16 ~43MB, **track-only, no ERA5**), trained on
   84,150 all-basin IBTrACS windows.
 
 On a WP-2020+ held-out test, the **track-only** model matches or beats the ERA5 model on every
