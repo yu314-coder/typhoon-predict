@@ -1,0 +1,311 @@
+<title>TrackFormer v8 — Probabilistic Ensemble</title>
+<style>
+  :root{
+    --ink:#0a141f; --panel:#0f1d2b; --panel-2:#12233340; --line:#1e3547;
+    --fg:#e7eef3; --fg-dim:#93a7b6; --fg-faint:#5f7789;
+    --route:#3fb6c6; --route-line:rgba(63,182,198,.16); --cone:#3fb6c6;
+    --truth:#f5a03d; --mean:#a8ecf3; --warn:#e2705f; --good:#4fc48a;
+    --grid:rgba(120,160,185,.10); --axis:rgba(150,190,210,.28);
+    --card:#0f1d2b; --card-line:#20374a;
+    --shadow:0 1px 0 rgba(255,255,255,.02), 0 10px 30px rgba(0,0,0,.35);
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --ink:#eef2f5; --panel:#ffffff; --panel-2:#f4f8fa; --line:#dbe4ea;
+      --fg:#132330; --fg-dim:#48606f; --fg-faint:#7d94a3;
+      --route:#1a8ea0; --route-line:rgba(26,142,160,.14); --cone:#1a8ea0;
+      --truth:#d97a17; --mean:#0f7a88; --warn:#c8503d; --good:#2e9e6b;
+      --grid:rgba(30,80,105,.08); --axis:rgba(30,80,110,.22);
+      --card:#ffffff; --card-line:#e2eaef;
+      --shadow:0 1px 0 rgba(0,0,0,.02), 0 10px 30px rgba(30,60,80,.10);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#0a141f; --panel:#0f1d2b; --panel-2:#12233340; --line:#1e3547;
+    --fg:#e7eef3; --fg-dim:#93a7b6; --fg-faint:#5f7789;
+    --route:#3fb6c6; --route-line:rgba(63,182,198,.16); --cone:#3fb6c6;
+    --truth:#f5a03d; --mean:#a8ecf3; --warn:#e2705f; --good:#4fc48a;
+    --grid:rgba(120,160,185,.10); --axis:rgba(150,190,210,.28);
+    --card:#0f1d2b; --card-line:#20374a;
+  }
+  :root[data-theme="light"]{
+    --ink:#eef2f5; --panel:#ffffff; --panel-2:#f4f8fa; --line:#dbe4ea;
+    --fg:#132330; --fg-dim:#48606f; --fg-faint:#7d94a3;
+    --route:#1a8ea0; --route-line:rgba(26,142,160,.14); --cone:#1a8ea0;
+    --truth:#d97a17; --mean:#0f7a88; --warn:#c8503d; --good:#2e9e6b;
+    --grid:rgba(30,80,105,.08); --axis:rgba(30,80,110,.22);
+    --card:#ffffff; --card-line:#e2eaef;
+  }
+
+  *{box-sizing:border-box}
+  .wrap{
+    max-width:1080px;margin:0 auto;padding:clamp(20px,4vw,44px);
+    color:var(--fg);
+    font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:
+      radial-gradient(1200px 600px at 70% -10%, color-mix(in srgb,var(--route) 8%, transparent), transparent 60%),
+      var(--ink);
+    line-height:1.55;
+  }
+  .eyebrow{
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--route);
+    display:flex;align-items:center;gap:10px;margin:0 0 14px;
+  }
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--route);opacity:.7}
+  h1{
+    font-size:clamp(28px,5vw,46px);line-height:1.04;margin:0 0 12px;font-weight:650;
+    letter-spacing:-.02em;text-wrap:balance;
+  }
+  h1 em{font-style:normal;color:var(--route)}
+  .lede{max-width:64ch;color:var(--fg-dim);font-size:clamp(15px,1.6vw,17px);margin:0}
+  .meta{
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:12.5px;
+    color:var(--fg-faint);margin:16px 0 0;display:flex;flex-wrap:wrap;gap:6px 22px;
+  }
+  .meta b{color:var(--fg-dim);font-weight:600}
+
+  .plot-card{
+    margin:26px 0 0;background:var(--card);border:1px solid var(--card-line);
+    border-radius:16px;box-shadow:var(--shadow);overflow:hidden;
+  }
+  .plot-head{
+    display:flex;flex-wrap:wrap;gap:12px 20px;align-items:baseline;justify-content:space-between;
+    padding:16px 20px;border-bottom:1px solid var(--card-line);
+  }
+  .plot-title{font-weight:600;font-size:15px;letter-spacing:-.01em}
+  .plot-sub{font-family:ui-monospace,monospace;font-size:12px;color:var(--fg-faint)}
+  .legend{display:flex;flex-wrap:wrap;gap:16px;padding:12px 20px 0}
+  .lg{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--fg-dim)}
+  .lg .sw{width:22px;height:0;border-top-width:2.5px;border-top-style:solid;border-radius:2px}
+  .lg .dot{width:9px;height:9px;border-radius:50%}
+  canvas{display:block;width:100%;height:auto;padding:8px 12px 14px}
+
+  .grid2{display:grid;grid-template-columns:1.05fr 1fr;gap:16px;margin-top:16px}
+  @media (max-width:720px){.grid2{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--card-line);border-radius:14px;padding:18px 20px}
+  .card h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-faint);
+    margin:0 0 14px;font-weight:600;font-family:ui-monospace,monospace}
+  .card p{margin:0 0 10px;color:var(--fg-dim);font-size:14px}
+  .card p b{color:var(--fg);font-weight:600}
+
+  .rank{display:flex;flex-direction:column;gap:10px}
+  .row{display:grid;grid-template-columns:118px 1fr auto;align-items:center;gap:12px}
+  .row .nm{font-size:13px;color:var(--fg-dim)}
+  .row .nm.win{color:var(--route);font-weight:600}
+  .bar{height:10px;border-radius:6px;background:color-mix(in srgb,var(--route) 16%, transparent);position:relative;overflow:hidden}
+  .bar>span{position:absolute;inset:0 auto 0 0;border-radius:6px;background:color-mix(in srgb,var(--route) 45%, transparent)}
+  .row.win .bar>span{background:var(--route)}
+  .val{font-family:ui-monospace,monospace;font-size:12.5px;color:var(--fg);font-variant-numeric:tabular-nums;min-width:52px;text-align:right}
+  .cov{display:flex;align-items:center;gap:7px;font-family:ui-monospace,monospace;font-size:12px;font-variant-numeric:tabular-nums}
+  .chip{padding:1px 7px;border-radius:20px;font-size:11px;font-weight:600}
+  .chip.ok{color:var(--good);background:color-mix(in srgb,var(--good) 15%,transparent)}
+  .chip.bad{color:var(--warn);background:color-mix(in srgb,var(--warn) 16%,transparent)}
+  .cov-head{display:flex;justify-content:space-between;font-size:11px;color:var(--fg-faint);
+    font-family:ui-monospace,monospace;letter-spacing:.04em;margin:2px 0 2px}
+
+  ol.steps{margin:0;padding:0;list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:12px}
+  ol.steps li{counter-increment:s;position:relative;padding-left:30px;font-size:14px;color:var(--fg-dim)}
+  ol.steps li::before{content:counter(s);position:absolute;left:0;top:0;width:20px;height:20px;
+    border-radius:6px;background:color-mix(in srgb,var(--route) 15%,transparent);color:var(--route);
+    font-family:ui-monospace,monospace;font-size:11px;font-weight:700;display:grid;place-items:center}
+  ol.steps li b{color:var(--fg);font-weight:600}
+
+  .foot{margin-top:22px;padding-top:16px;border-top:1px solid var(--line);
+    font-size:12px;color:var(--fg-faint);display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between}
+  .foot code{font-family:ui-monospace,monospace;color:var(--fg-dim)}
+</style>
+
+<div class="wrap">
+  <p class="eyebrow">TrackFormer&nbsp;v8 · probabilistic ensemble</p>
+  <h1>Fifty possible paths, <em>one storm</em>.</h1>
+  <p class="lede">Instead of one forecast line, the model draws many coherent routes by sampling its own
+  cross-lead error distribution — then reports the <em>distribution</em>: an ensemble-mean track, a growing
+  cone of uncertainty, and strike probability. The point estimate never changes; the value is the spread.</p>
+  <p class="meta">
+    <span><b>Storm</b> <span id="m-storm">—</span></span>
+    <span><b>Members</b> <span id="m-n">—</span> routes</span>
+    <span><b>Horizon</b> 6–120&nbsp;h (20 leads)</span>
+    <span><b>Sampler</b> generalized&#8209;MP covariance (RMT)</span>
+    <span><b>Data</b> IBTrACS best&#8209;track only</span>
+  </p>
+
+  <div class="plot-card">
+    <div class="plot-head">
+      <div class="plot-title">Ensemble routes &amp; cone of uncertainty</div>
+      <div class="plot-sub">displacement from forecast start · kilometres</div>
+    </div>
+    <div class="legend">
+      <span class="lg"><span class="sw" style="border-top-color:var(--route);opacity:.7"></span>50 sampled routes</span>
+      <span class="lg"><span class="sw" style="border-top-color:var(--mean);border-top-style:dashed"></span>ensemble mean</span>
+      <span class="lg"><span class="sw" style="border-top-color:var(--truth);border-top-width:3px"></span>observed track</span>
+      <span class="lg"><span class="dot" style="background:var(--fg)"></span>forecast start</span>
+      <span class="lg"><span class="sw" style="border-top-color:var(--cone);border-top-style:dotted"></span>90% cone @ 24/48/72/96/120&nbsp;h</span>
+    </div>
+    <canvas id="plot" aria-label="Ensemble of 50 tropical-cyclone tracks with cone of uncertainty and observed path"></canvas>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>How it reads</h2>
+      <ol class="steps">
+        <li><b>Sample the error field.</b> Draw noise from the 40-dim (20 leads × 2 axes) forecast-error
+          covariance and add it to v8's per-step motion — <b>correlated across leads</b>, so each route stays smooth.</li>
+        <li><b>Integrate to routes.</b> Cumulative-sum each sample into a full 120&nbsp;h path. Fifty draws → fifty coherent tracks.</li>
+        <li><b>Aggregate as a distribution.</b> The mean path is the point forecast; the member spread is the
+          cone; the fraction of routes passing a location is its <b>strike probability</b> — a mean of indicators, not of positions.</li>
+        <li><b>Score properly.</b> Rank samplers by the <b>energy score</b> (multivariate CRPS), not by error of the mean.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h2>Which covariance makes the best ensemble?</h2>
+      <p>Same routes, four ways to model the error correlations. Lower energy score is better; 90% coverage should sit near 0.90.</p>
+      <div class="cov-head"><span>energy score (CRPS ↓)</span><span>90% cone coverage</span></div>
+      <div class="rank" id="rank"></div>
+      <p style="margin-top:14px">Cross-lead correlation is decisive: the <b>diagonal</b> sampler leaves the truth inside its
+      cone only <b>20%</b> of the time. Any correlated covariance jumps to ~82% — and your <b>generalized-MP edge
+      wins outright</b> on the proper score.</p>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span>Research model — <b>not</b> an operational warning system. Do not use for evacuation or safety decisions.</span>
+    <span><code>ensemble_v8.py</code> · <code>trackformer_v8_15M_fp16.pt</code></span>
+  </div>
+</div>
+
+<script>
+const DATA = {"storm": "2021102N06144", "cov": "generalized_mp", "N": 50, "routes": [[[0.0, 0.0], [28.1, 27.6], [53.4, 48.3], [67.4, 59.1], [59.5, 97.0], [24.1, 131.8], [-30.1, 182.6], [-93.9, 217.9], [-144.6, 238.8], [-184.5, 259.9], [-223.2, 291.7], [-273.9, 295.8], [-249.4, 281.0], [-206.6, 234.7], [-131.1, 181.7], [-43.8, 139.5], [58.5, 104.9], [111.0, 12.4], [143.5, -111.5], [121.2, -233.4], [166.0, -367.3]], [[0.0, 0.0], [-36.1, 39.2], [-90.6, 78.6], [-126.3, 129.1], [-169.3, 215.0], [-216.1, 322.4], [-270.7, 418.2], [-291.4, 504.9], [-305.5, 556.8], [-328.1, 572.2], [-380.9, 563.6], [-461.6, 541.4], [-476.3, 481.5], [-505.4, 436.6], [-523.9, 458.6], [-528.4, 525.1], [-515.4, 600.6], [-496.7, 697.1], [-434.1, 852.1], [-391.8, 1008.4], [-367.9, 1183.2]], [[0.0, 0.0], [-8.7, 48.7], [-60.0, 89.6], [-92.1, 131.5], [-80.6, 157.5], [-24.7, 154.0], [24.1, 174.9], [72.4, 234.1], [108.2, 296.7], [159.5, 349.7], [259.6, 384.8], [321.1, 414.6], [386.6, 489.2], [424.3, 559.5], [450.3, 640.9], [430.5, 681.7], [373.5, 726.6], [280.2, 727.7], [198.9, 712.4], [47.8, 658.0], [-122.1, 574.2]], [[0.0, 0.0], [-14.7, 34.7], [-29.4, 49.8], [-60.8, 83.3], [-127.1, 132.5], [-197.3, 172.9], [-249.5, 201.7], [-265.9, 235.5], [-264.2, 286.4], [-258.4, 362.7], [-299.9, 405.7], [-263.3, 428.3], [-158.2, 497.0], [-77.8, 633.4], [19.5, 761.3], [78.5, 950.4], [112.6, 1161.2], [161.5, 1369.1], [125.8, 1547.3], [30.0, 1715.6], [-85.0, 1828.5]], [[0.0, 0.0], [-17.3, 56.3], [-21.4, 99.8], [-61.7, 112.7], [-120.7, 67.6], [-186.4, 39.4], [-204.4, 73.1], [-195.4, 134.9], [-181.2, 215.2], [-159.9, 341.3], [-103.6, 472.6], [-65.8, 619.1], [-76.2, 760.6], [-69.9, 898.5], [-53.3, 1012.3], [-16.4, 1190.2], [23.6, 1382.9], [62.7, 1599.7], [112.5, 1771.3], [162.6, 1939.8], [290.1, 2147.0]], [[0.0, 0.0], [0.1, 54.0], [-3.9, 115.7], [-39.2, 169.5], [-96.5, 188.5], [-152.8, 192.6], [-210.1, 230.3], [-277.1, 265.7], [-343.5, 314.0], [-401.3, 409.4], [-440.8, 508.7], [-454.1, 593.3], [-454.2, 685.3], [-461.5, 750.7], [-476.8, 823.6], [-468.7, 898.7], [-491.4, 966.3], [-569.6, 1038.1], [-625.2, 1097.0], [-782.5, 1204.8], [-956.6, 1303.8]], [[0.0, 0.0], [-29.4, 59.9], [-52.2, 71.0], [-92.0, 92.9], [-100.8, 127.0], [-90.8, 188.1], [-70.0, 235.6], [-53.2, 222.8], [-55.5, 149.6], [-73.5, 55.3], [-48.1, -7.0], [7.3, -20.6], [140.6, -59.8], [314.3, -108.1], [445.6, -98.4], [592.4, -110.4], [745.3, -176.1], [837.4, -224.3], [922.7, -256.6], [1000.5, -327.7], [1038.7, -396.4]], [[0.0, 0.0], [-1.4, 43.3], [-6.3, 144.2], [25.8, 231.2], [32.1, 325.7], [94.7, 416.4], [141.7, 508.3], [216.5, 589.6], [251.9, 673.3], [368.8, 755.2], [462.8, 821.5], [548.4, 877.4], [650.2, 941.3], [779.4, 1022.2], [884.2, 1116.7], [1010.9, 1244.4], [1158.6, 1337.8], [1269.2, 1441.0], [1382.7, 1547.4], [1581.2, 1669.1], [1795.0, 1812.3]], [[0.0, 0.0], [8.5, 23.4], [37.3, 55.5], [62.8, 102.7], [21.9, 154.2], [-10.8, 232.3], [-28.3, 311.5], [-2.9, 417.3], [56.1, 541.8], [155.9, 682.1], [259.1, 806.7], [327.4, 925.5], [429.5, 1056.0], [545.8, 1162.2], [632.8, 1283.7], [748.0, 1436.4], [867.8, 1560.4], [998.2, 1695.0], [1101.1, 1770.5], [1216.8, 1825.3], [1328.1, 1892.7]], [[0.0, 0.0], [-2.8, 95.3], [-21.4, 164.6], [-49.9, 204.5], [-81.3, 262.2], [-43.9, 287.4], [45.7, 299.1], [134.0, 292.2], [179.8, 328.1], [256.0, 367.4], [318.6, 415.3], [347.2, 438.9], [353.3, 443.8], [385.7, 468.6], [401.1, 532.3], [386.3, 634.9], [394.3, 716.6], [388.4, 799.8], [391.6, 842.1], [372.5, 856.6], [393.5, 869.7]], [[0.0, 0.0], [-11.7, 33.9], [-12.6, 68.2], [-10.6, 107.6], [27.3, 166.3], [75.3, 245.5], [129.6, 315.2], [193.4, 384.1], [244.9, 444.6], [306.3, 507.9], [365.6, 559.8], [398.1, 626.1], [440.9, 689.8], [489.6, 711.5], [541.4, 708.1], [637.6, 698.5], [744.7, 734.0], [792.6, 757.0], [836.5, 767.9], [887.2, 772.1], [994.6, 827.0]], [[0.0, 0.0], [-27.4, 15.4], [-97.2, 5.6], [-167.3, -14.1], [-286.5, -52.8], [-382.9, -125.7], [-455.6, -221.7], [-540.4, -328.1], [-625.6, -432.0], [-683.3, -523.5], [-766.6, -620.4], [-840.4, -707.9], [-925.5, -779.6], [-1011.3, -833.4], [-1100.2, -904.3], [-1155.8, -949.3], [-1167.4, -968.2], [-1175.9, -998.0], [-1162.7, -1031.8], [-1193.1, -1052.9], [-1216.6, -1059.5]], [[0.0, 0.0], [2.6, 66.5], [46.4, 150.6], [87.7, 249.3], [84.0, 344.3], [65.8, 475.4], [-28.0, 591.3], [-145.4, 699.3], [-252.8, 779.9], [-323.9, 834.4], [-387.8, 877.5], [-412.8, 930.1], [-397.8, 1015.1], [-374.9, 1070.0], [-348.4, 1107.2], [-243.7, 1136.4], [-133.6, 1170.2], [3.4, 1209.5], [92.9, 1276.6], [193.2, 1394.7], [305.7, 1491.7]], [[0.0, 0.0], [-29.3, 37.1], [-56.9, 111.8], [-107.9, 168.2], [-159.6, 229.9], [-252.2, 349.5], [-330.5, 461.7], [-425.8, 539.9], [-502.8, 616.3], [-584.1, 713.3], [-639.0, 780.5], [-662.3, 848.6], [-658.4, 927.0], [-639.9, 1018.2], [-633.0, 1090.4], [-621.3, 1111.1], [-616.9, 1111.2], [-623.7, 1124.3], [-541.6, 1140.7], [-446.4, 1177.5], [-401.0, 1240.9]], [[0.0, 0.0], [-22.7, 31.4], [-33.9, 45.9], [-69.2, 20.7], [-108.9, -8.8], [-100.1, -19.4], [-111.3, -16.6], [-99.6, -54.0], [-58.5, -144.3], [25.0, -211.6], [119.4, -245.1], [201.4, -275.1], [308.3, -288.7], [434.9, -328.8], [606.5, -351.9], [736.8, -387.8], [812.1, -382.6], [862.8, -341.1], [841.3, -315.7], [816.8, -248.6], [794.1, -219.6]], [[0.0, 0.0], [19.8, 43.5], [65.4, 72.2], [107.8, 94.4], [130.3, 91.9], [130.5, 77.7], [85.0, 71.2], [20.6, 60.7], [-36.3, 95.1], [-86.9, 152.0], [-123.2, 173.1], [-169.7, 181.5], [-240.0, 196.0], [-298.2, 248.7], [-387.2, 311.7], [-501.9, 446.2], [-582.5, 615.4], [-669.4, 795.7], [-710.6, 973.9], [-767.7, 1115.8], [-766.4, 1268.7]], [[0.0, 0.0], [5.8, 53.6], [34.2, 123.7], [116.8, 181.0], [245.5, 255.7], [404.3, 354.7], [571.5, 438.2], [770.8, 513.8], [1017.3, 580.3], [1245.8, 653.2], [1479.6, 737.4], [1681.8, 802.6], [1880.1, 826.3], [2089.1, 880.4], [2310.1, 964.7], [2509.1, 1062.7], [2675.2, 1198.9], [2832.3, 1380.1], [2971.9, 1531.9], [3095.8, 1623.6], [3230.4, 1699.8]], [[0.0, 0.0], [-10.3, 53.6], [-29.4, 133.2], [-81.5, 224.7], [-147.8, 273.9], [-174.0, 296.1], [-205.7, 315.7], [-198.1, 353.1], [-207.5, 422.3], [-276.7, 481.3], [-326.4, 538.0], [-412.7, 610.5], [-468.8, 710.9], [-468.4, 796.3], [-391.1, 858.4], [-272.7, 935.7], [-158.4, 1055.9], [-9.6, 1188.2], [97.9, 1276.6], [267.9, 1321.1], [433.1, 1373.2]], [[0.0, 0.0], [12.8, 45.6], [30.4, 98.6], [49.3, 169.1], [88.6, 229.0], [149.8, 268.7], [257.5, 325.4], [388.2, 421.5], [489.5, 568.2], [558.7, 711.5], [598.7, 851.7], [631.6, 962.6], [681.2, 1090.7], [718.0, 1219.2], [777.4, 1346.4], [822.6, 1478.9], [800.8, 1596.1], [773.7, 1643.8], [719.6, 1660.7], [689.6, 1761.7], [685.4, 1880.7]], [[0.0, 0.0], [-3.5, 71.4], [-52.2, 92.8], [-71.1, 104.8], [-103.3, 111.2], [-102.9, 93.4], [-113.6, 87.8], [-105.2, 135.5], [-125.8, 212.8], [-151.7, 290.3], [-178.3, 357.3], [-194.8, 416.0], [-145.6, 455.7], [-112.4, 465.6], [-66.0, 521.0], [7.7, 645.1], [50.7, 783.5], [134.1, 900.9], [294.5, 1016.7], [537.8, 1154.2], [773.9, 1306.1]], [[0.0, 0.0], [-9.7, 72.1], [2.3, 141.7], [8.3, 240.2], [3.9, 366.9], [-52.4, 521.9], [-129.9, 663.7], [-219.4, 793.0], [-327.3, 927.3], [-426.0, 1037.3], [-491.1, 1122.5], [-582.3, 1170.1], [-646.1, 1208.0], [-721.2, 1246.2], [-757.7, 1278.3], [-750.3, 1315.7], [-668.0, 1363.5], [-563.8, 1390.2], [-410.7, 1409.5], [-300.8, 1422.6], [-179.2, 1460.2]], [[0.0, 0.0], [27.4, 56.5], [101.3, 59.5], [156.7, 43.2], [197.3, 36.8], [209.1, 51.8], [196.4, 76.8], [190.5, 123.4], [196.3, 170.2], [156.2, 203.1], [98.1, 186.6], [48.0, 205.4], [3.5, 207.8], [-31.6, 215.2], [-26.0, 237.1], [44.9, 292.5], [144.9, 382.9], [232.3, 503.9], [334.7, 593.1], [479.5, 701.6], [593.0, 787.3]], [[0.0, 0.0], [-36.7, 44.5], [-69.1, 81.2], [-127.3, 92.3], [-200.9, 101.4], [-275.1, 105.2], [-306.3, 111.9], [-294.8, 124.8], [-309.7, 197.2], [-341.7, 280.9], [-367.0, 366.2], [-401.6, 434.0], [-425.9, 515.7], [-439.0, 582.4], [-476.8, 604.5], [-517.2, 613.5], [-490.2, 599.0], [-489.1, 589.6], [-513.3, 540.0], [-528.0, 544.0], [-549.5, 501.5]], [[0.0, 0.0], [20.5, 44.0], [56.1, 113.0], [95.3, 202.0], [140.6, 279.2], [183.0, 354.1], [224.1, 466.6], [276.6, 593.7], [287.9, 703.1], [244.0, 845.4], [185.6, 992.4], [87.0, 1108.3], [-29.9, 1206.2], [-138.3, 1336.9], [-203.6, 1466.2], [-208.8, 1647.6], [-216.7, 1852.3], [-209.7, 2026.1], [-212.2, 2170.8], [-222.4, 2299.3], [-191.7, 2432.8]], [[0.0, 0.0], [-18.0, 43.3], [-33.1, 72.4], [-20.5, 97.4], [0.9, 137.3], [10.6, 190.2], [6.6, 225.7], [-31.4, 293.6], [-86.8, 398.0], [-124.6, 496.5], [-165.3, 600.5], [-212.9, 713.4], [-304.7, 823.0], [-373.1, 920.6], [-466.6, 1018.4], [-601.8, 1113.7], [-689.9, 1218.6], [-687.3, 1270.7], [-716.5, 1340.2], [-717.0, 1417.8], [-719.6, 1523.5]], [[0.0, 0.0], [23.9, 30.8], [69.8, 47.4], [85.7, 78.2], [68.2, 123.5], [18.9, 133.6], [-45.1, 141.1], [-110.7, 164.9], [-179.8, 161.6], [-221.5, 160.3], [-219.9, 165.6], [-235.5, 171.5], [-282.2, 203.4], [-291.1, 237.8], [-297.0, 229.6], [-308.7, 198.9], [-295.3, 203.8], [-267.3, 169.7], [-186.2, 85.8], [-71.7, -6.1], [71.6, -73.4]], [[0.0, 0.0], [-11.9, 30.1], [-46.3, 22.0], [-79.4, 68.0], [-98.5, 150.2], [-128.8, 263.7], [-145.0, 360.3], [-124.9, 472.7], [-119.3, 568.3], [-98.3, 653.1], [-99.7, 726.0], [-136.3, 803.0], [-151.8, 910.7], [-155.4, 1034.9], [-197.1, 1125.8], [-281.4, 1220.4], [-377.1, 1309.8], [-512.2, 1402.9], [-655.1, 1491.1], [-782.5, 1567.7], [-897.7, 1676.0]], [[0.0, 0.0], [-39.3, 19.2], [-55.8, 49.7], [-28.0, 92.5], [19.6, 120.7], [48.9, 111.4], [81.0, 78.9], [114.8, 37.6], [139.1, 36.5], [120.6, 37.5], [119.2, 47.9], [99.1, 72.1], [52.7, 125.5], [-11.6, 157.9], [-7.7, 154.3], [9.2, 163.7], [-12.5, 153.5], [-27.4, 146.8], [-37.3, 138.3], [-69.1, 90.6], [-82.7, 6.8]], [[0.0, 0.0], [-13.7, 39.4], [-46.1, 77.3], [-87.8, 115.7], [-127.5, 150.8], [-151.4, 192.6], [-159.3, 241.9], [-134.2, 324.6], [-70.3, 421.6], [-2.2, 523.7], [78.6, 634.4], [205.1, 724.3], [293.9, 820.1], [453.6, 953.0], [639.4, 1093.8], [841.2, 1268.6], [1024.8, 1435.2], [1256.6, 1591.8], [1451.6, 1739.3], [1702.9, 1855.4], [1994.7, 1949.5]], [[0.0, 0.0], [-4.0, 23.3], [15.9, 56.3], [-5.9, 94.3], [-63.0, 105.0], [-142.9, 81.3], [-233.9, 49.4], [-320.4, 4.8], [-402.8, -21.9], [-541.1, -78.4], [-633.9, -144.1], [-713.6, -161.6], [-781.5, -115.1], [-848.5, 10.9], [-905.4, 152.7], [-927.4, 313.1], [-962.2, 522.9], [-1071.2, 752.5], [-1172.8, 916.8], [-1139.0, 1088.6], [-1148.2, 1263.1]], [[0.0, 0.0], [-19.3, 22.8], [-61.2, 37.8], [-94.6, 44.7], [-137.9, 42.0], [-169.9, 60.9], [-196.9, 83.4], [-212.2, 98.4], [-244.7, 158.5], [-301.1, 244.8], [-383.4, 314.1], [-443.4, 383.4], [-493.7, 458.7], [-541.0, 530.8], [-573.1, 636.1], [-611.5, 734.9], [-625.6, 800.2], [-588.3, 834.6], [-550.4, 871.7], [-481.5, 932.5], [-390.0, 966.0]], [[0.0, 0.0], [53.8, 52.7], [97.9, 107.1], [145.4, 184.6], [201.4, 264.9], [266.2, 340.6], [302.8, 424.3], [381.9, 517.3], [419.0, 609.6], [459.4, 725.7], [486.8, 858.8], [553.3, 1014.6], [604.0, 1185.7], [636.8, 1364.4], [662.1, 1519.8], [650.8, 1680.5], [588.9, 1845.4], [536.1, 1956.4], [545.6, 2034.5], [534.2, 2079.7], [552.1, 2091.4]], [[0.0, 0.0], [-11.2, 59.4], [57.5, 122.9], [153.8, 200.1], [231.3, 286.7], [303.7, 363.8], [336.2, 421.7], [390.8, 471.9], [428.7, 523.0], [458.7, 623.1], [470.6, 731.4], [490.7, 843.3], [532.3, 948.5], [607.8, 1065.6], [671.9, 1238.3], [717.4, 1443.8], [769.8, 1642.7], [886.9, 1817.4], [1067.7, 2034.1], [1228.8, 2244.8], [1398.5, 2474.2]], [[0.0, 0.0], [35.6, 33.1], [58.8, 93.8], [59.7, 165.4], [30.7, 205.6], [13.7, 263.0], [15.6, 366.3], [29.1, 489.5], [75.8, 621.0], [169.9, 805.7], [257.7, 1010.5], [342.8, 1244.2], [465.2, 1478.1], [566.3, 1682.5], [678.2, 1861.8], [783.9, 2050.6], [917.2, 2194.7], [1062.9, 2336.1], [1226.2, 2411.2], [1338.9, 2438.9], [1394.8, 2464.0]], [[0.0, 0.0], [5.4, 22.2], [-19.7, 39.5], [-24.6, 16.4], [-28.5, 1.5], [-81.9, -8.8], [-84.5, -23.7], [-109.2, -8.2], [-136.5, 12.9], [-215.7, 63.5], [-293.9, 154.7], [-367.8, 261.6], [-459.4, 302.2], [-569.8, 327.0], [-742.5, 367.5], [-938.2, 413.6], [-1173.7, 473.5], [-1440.3, 572.7], [-1754.3, 668.5], [-2067.5, 775.8], [-2373.1, 904.7]], [[0.0, 0.0], [49.0, 46.1], [113.2, 74.7], [154.4, 82.0], [202.8, 41.7], [260.8, -14.7], [330.1, -52.6], [397.4, -150.5], [488.2, -222.0], [578.0, -256.0], [715.4, -289.1], [883.2, -332.1], [1054.5, -349.2], [1253.1, -369.2], [1455.6, -394.8], [1651.9, -425.0], [1782.3, -466.7], [1889.0, -511.3], [1986.5, -598.8], [2105.2, -728.7], [2245.4, -837.9]], [[0.0, 0.0], [2.3, 25.2], [9.8, 79.8], [0.8, 161.3], [-6.9, 272.1], [-40.2, 358.8], [-77.1, 438.1], [-147.2, 484.6], [-212.7, 491.2], [-286.8, 475.1], [-371.9, 443.8], [-478.1, 445.1], [-586.6, 414.8], [-696.4, 402.9], [-730.9, 416.8], [-734.5, 442.7], [-750.9, 473.2], [-740.8, 537.1], [-764.5, 565.8], [-770.9, 615.6], [-743.9, 682.8]], [[0.0, 0.0], [-1.4, 23.7], [51.6, 43.4], [90.4, 59.7], [169.7, 103.6], [264.9, 115.5], [403.5, 139.4], [546.6, 216.7], [656.6, 301.2], [755.8, 391.5], [904.8, 465.6], [1033.7, 532.9], [1174.1, 621.7], [1274.1, 719.2], [1316.5, 826.7], [1364.6, 925.1], [1422.2, 1004.6], [1478.0, 1082.9], [1560.1, 1183.3], [1706.8, 1315.2], [1883.3, 1420.5]], [[0.0, 0.0], [-0.4, 28.5], [9.9, 89.1], [23.3, 158.3], [46.0, 218.4], [31.4, 263.8], [22.8, 345.0], [24.5, 434.0], [66.6, 518.7], [79.8, 633.2], [78.1, 744.7], [73.8, 891.6], [55.0, 1027.1], [40.3, 1156.4], [88.7, 1272.2], [115.4, 1360.1], [136.4, 1460.6], [189.7, 1541.8], [234.6, 1570.9], [241.9, 1585.2], [319.7, 1657.2]], [[0.0, 0.0], [-3.4, 69.4], [-0.2, 114.0], [9.8, 162.8], [-2.2, 183.2], [20.0, 195.2], [98.1, 190.6], [197.3, 202.4], [316.7, 223.5], [421.3, 231.8], [528.3, 218.6], [650.3, 261.0], [789.9, 309.3], [901.0, 315.1], [992.1, 288.0], [1001.8, 260.8], [1003.7, 191.8], [1012.5, 143.0], [1040.7, 75.0], [1014.8, 3.4], [986.5, -26.9]], [[0.0, 0.0], [15.7, 22.8], [36.7, 50.0], [29.4, 65.8], [29.7, 76.3], [28.2, 54.7], [5.6, 17.6], [18.8, -35.2], [35.3, -53.5], [62.2, -61.6], [97.7, -41.4], [150.7, -10.4], [254.7, 63.4], [394.0, 136.3], [517.7, 230.1], [584.2, 323.8], [571.5, 429.9], [529.8, 571.3], [477.2, 708.7], [399.2, 807.7], [269.8, 925.2]], [[0.0, 0.0], [0.4, 46.7], [47.1, 121.0], [52.5, 240.9], [28.5, 320.4], [-25.3, 375.3], [-89.1, 418.0], [-142.7, 420.3], [-182.4, 434.7], [-255.8, 441.1], [-314.7, 450.2], [-351.2, 498.7], [-441.5, 558.5], [-547.3, 625.1], [-668.2, 656.5], [-844.0, 660.1], [-1020.1, 665.6], [-1219.0, 679.0], [-1478.1, 710.6], [-1673.3, 748.7], [-1853.0, 745.6]], [[0.0, 0.0], [-30.7, 41.1], [-55.8, 85.5], [-74.3, 149.1], [-68.1, 234.3], [-64.7, 326.2], [-49.5, 388.0], [-27.5, 421.6], [-32.1, 438.3], [-29.5, 481.3], [-41.0, 545.3], [-71.9, 629.2], [-49.4, 687.1], [-2.6, 736.0], [14.7, 740.4], [23.6, 770.8], [44.4, 737.5], [108.7, 711.1], [191.7, 668.0], [339.6, 631.4], [514.8, 670.3]], [[0.0, 0.0], [26.4, 17.1], [91.6, 32.8], [175.7, 29.1], [269.2, 49.5], [362.8, 74.6], [462.2, 99.3], [534.5, 122.2], [606.9, 170.6], [709.8, 213.0], [777.3, 308.3], [846.1, 442.0], [919.2, 529.4], [1010.1, 623.3], [1066.1, 736.4], [1148.8, 863.2], [1246.2, 951.1], [1354.5, 1015.9], [1484.3, 1068.6], [1620.6, 1141.6], [1696.5, 1208.1]], [[0.0, 0.0], [19.7, 34.5], [31.3, 70.9], [8.0, 90.2], [-24.7, 112.5], [-30.7, 153.9], [-58.8, 208.2], [-95.5, 221.4], [-141.3, 227.1], [-188.2, 244.1], [-230.3, 231.5], [-268.6, 237.1], [-296.2, 245.0], [-303.2, 284.4], [-332.8, 341.4], [-427.2, 375.0], [-564.2, 402.2], [-597.2, 404.0], [-611.5, 428.1], [-636.0, 513.3], [-610.4, 601.6]], [[0.0, 0.0], [-26.9, 15.7], [-91.8, 48.5], [-161.1, 39.0], [-273.8, 30.4], [-384.9, 61.1], [-519.9, 134.0], [-650.7, 194.9], [-744.2, 260.0], [-778.2, 283.2], [-791.8, 340.0], [-845.7, 374.2], [-886.0, 439.3], [-863.6, 539.7], [-819.8, 684.7], [-716.0, 800.7], [-625.4, 908.1], [-546.2, 1031.7], [-505.6, 1176.0], [-438.1, 1332.7], [-393.5, 1445.6]], [[0.0, 0.0], [-0.2, 100.8], [-17.5, 242.3], [-28.2, 363.7], [-56.9, 455.4], [-86.9, 554.4], [-108.1, 635.3], [-99.4, 701.1], [-69.7, 782.2], [-72.4, 826.0], [-56.3, 872.3], [-29.2, 882.3], [-12.8, 941.4], [-2.3, 1048.3], [17.5, 1164.3], [61.6, 1253.8], [81.0, 1368.0], [79.5, 1477.8], [49.1, 1556.1], [68.2, 1651.7], [99.3, 1778.4]], [[0.0, 0.0], [-13.9, 58.6], [-24.1, 104.1], [-28.1, 179.6], [-5.3, 237.3], [45.0, 309.0], [96.0, 349.9], [151.7, 395.3], [219.2, 463.4], [301.4, 558.9], [388.7, 645.4], [500.7, 689.2], [601.8, 691.5], [756.9, 658.3], [942.9, 679.3], [1105.4, 736.0], [1208.5, 785.0], [1282.5, 820.5], [1363.8, 883.8], [1483.8, 912.6], [1670.7, 935.9]], [[0.0, 0.0], [17.4, -8.6], [25.1, -43.7], [5.8, -70.1], [-9.3, -70.1], [-13.3, -69.2], [3.0, -67.1], [7.5, -64.8], [-7.4, -84.1], [-59.5, -91.4], [-155.1, -93.9], [-316.3, -106.6], [-506.9, -132.6], [-697.3, -137.3], [-917.6, -150.3], [-1165.4, -139.9], [-1363.7, -151.4], [-1606.6, -157.0], [-1835.7, -190.3], [-2063.3, -179.7], [-2278.1, -158.1]], [[0.0, 0.0], [-40.5, 17.6], [-40.4, 44.4], [-46.9, 53.5], [-64.9, 58.8], [-95.5, 42.3], [-120.8, 46.6], [-157.5, 70.0], [-194.9, 85.1], [-232.5, 89.3], [-249.6, 109.0], [-272.3, 147.4], [-322.5, 216.6], [-386.1, 293.2], [-449.9, 345.9], [-557.0, 413.8], [-676.6, 463.5], [-780.5, 490.1], [-867.7, 491.1], [-936.0, 466.5], [-965.6, 440.0]]], "truth": [[0.0, 0.0], [-10.7, 33.4], [-32.2, 66.7], [-42.9, 122.3], [-64.2, 189.0], [-106.7, 244.6], [-128.0, 311.4], [-159.7, 389.2], [-159.7, 444.8], [-159.7, 500.4], [-128.3, 556.0], [-65.7, 622.7], [27.8, 700.6], [131.1, 778.4], [233.9, 867.4], [326.1, 911.8], [397.6, 934.1], [458.8, 911.8], [530.5, 878.5], [612.5, 834.0], [725.8, 767.3]], "mean": [[0.0, 0.0], [-2.4, 41.3], [0.3, 82.0], [-1.3, 122.4], [-8.4, 161.3], [-13.3, 199.6], [-15.9, 239.7], [-10.3, 279.5], [-5.6, 325.3], [-1.9, 376.9], [5.4, 427.8], [9.8, 481.6], [22.9, 539.2], [44.6, 600.1], [69.0, 663.7], [92.5, 737.2], [111.6, 810.3], [130.3, 880.3], [150.0, 936.2], [176.1, 992.1], [212.6, 1051.5]], "energy": {"diagonal": 2919.69, "sample": 2578.88, "ledoit_wolf": 2575.43, "generalized_mp": 2571.94}, "cover90": {"diagonal": 0.199, "sample": 0.818, "ledoit_wolf": 0.82, "generalized_mp": 0.819}, "det_km": 785.2};
+(function(){
+  document.getElementById('m-storm').textContent = DATA.storm;
+  document.getElementById('m-n').textContent = DATA.N;
+
+  // ---- covariance ranking panel ----
+  const order = ["generalized_mp","ledoit_wolf","sample","diagonal"];
+  const labels = {generalized_mp:"generalized-MP", ledoit_wolf:"Ledoit–Wolf", sample:"sample", diagonal:"diagonal"};
+  const es = DATA.energy, cov = DATA.cover90;
+  const emin = Math.min(...Object.values(es)), emax = Math.max(...Object.values(es));
+  const rank = document.getElementById('rank');
+  order.forEach(k=>{
+    const win = (k==="generalized_mp");
+    const frac = (es[k]-emin)/(emax-emin); // 0 best .. 1 worst
+    const w = 100*(1 - 0.72*frac);         // longer bar = better
+    const cv = cov[k], good = Math.abs(cv-0.9) < 0.12;
+    const row = document.createElement('div');
+    row.className = 'row'+(win?' win':'');
+    row.innerHTML = `<div class="nm${win?' win':''}">${labels[k]}${win?' ★':''}</div>
+      <div class="bar"><span style="width:${w.toFixed(1)}%"></span></div>
+      <div style="display:flex;align-items:center;gap:12px;justify-content:flex-end">
+        <span class="val">${es[k].toFixed(0)}</span>
+        <span class="cov"><span class="chip ${good?'ok':'bad'}">${cv.toFixed(2)}</span></span>
+      </div>`;
+    rank.appendChild(row);
+  });
+
+  // ---- canvas plot ----
+  const cv = document.getElementById('plot');
+  const ctx = cv.getContext('2d');
+  const routes = DATA.routes, truth = DATA.truth, mean = DATA.mean;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // data bounds (equal km scale on both axes)
+  let minx=1e9,maxx=-1e9,miny=1e9,maxy=-1e9;
+  routes.concat([truth,mean]).forEach(r=>r.forEach(p=>{
+    minx=Math.min(minx,p[0]);maxx=Math.max(maxx,p[0]);miny=Math.min(miny,p[1]);maxy=Math.max(maxy,p[1]);
+  }));
+  const pad=180; minx-=pad;maxx+=pad;miny-=pad;maxy+=pad;
+
+  function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+  function ringRadius(lead){ // 90th pct member distance from mean at a lead
+    const m=mean[lead]; const ds=routes.map(r=>Math.hypot(r[lead][0]-m[0],r[lead][1]-m[1])).sort((a,b)=>a-b);
+    return ds[Math.floor(0.9*ds.length)];
+  }
+
+  let W=0,H=0,sc=1,ox=0,oy=0;
+  function layout(){
+    const cssW = cv.clientWidth || cv.parentElement.clientWidth;
+    const aspect=(maxy-miny)/(maxx-minx);
+    const cssH = Math.max(360, Math.min(620, cssW*Math.min(1.05,Math.max(0.62,aspect))));
+    const dpr=Math.min(2.5,window.devicePixelRatio||1);
+    cv.width=cssW*dpr; cv.height=cssH*dpr; cv.style.height=cssH+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    W=cssW;H=cssH;
+    const sx=(W-24)/(maxx-minx), sy=(H-24)/(maxy-miny);
+    sc=Math.min(sx,sy);
+    ox=(W-(maxx-minx)*sc)/2 - minx*sc;
+    oy=(H-(maxy-miny)*sc)/2 + maxy*sc; // north up (invert y)
+  }
+  const X=x=>ox+x*sc, Y=y=>oy-y*sc;
+
+  function draw(prog){
+    layout();
+    ctx.clearRect(0,0,W,H);
+    // grid every 500 km
+    ctx.lineWidth=1; ctx.font='11px ui-monospace,monospace'; ctx.textAlign='left';
+    const g=css('--grid'), ax=css('--axis'), faint=css('--fg-faint');
+    for(let kx=Math.ceil(minx/500)*500;kx<=maxx;kx+=500){
+      ctx.strokeStyle=(kx===0)?ax:g; ctx.beginPath();ctx.moveTo(X(kx),0);ctx.lineTo(X(kx),H);ctx.stroke();
+    }
+    for(let ky=Math.ceil(miny/500)*500;ky<=maxy;ky+=500){
+      ctx.strokeStyle=(ky===0)?ax:g; ctx.beginPath();ctx.moveTo(0,Y(ky));ctx.lineTo(W,Y(ky));ctx.stroke();
+      if(ky!==0){ctx.fillStyle=faint;ctx.fillText((ky/1000)+'k',6,Y(ky)-4);}
+    }
+    // cone rings at 24/48/72/96/120h
+    ctx.setLineDash([2,4]); ctx.lineWidth=1.4; ctx.strokeStyle=css('--cone');
+    [4,8,12,16,20].forEach(l=>{
+      if(l/20>prog) return;
+      ctx.globalAlpha=0.45; ctx.beginPath();
+      ctx.arc(X(mean[l][0]),Y(mean[l][1]),ringRadius(l)*sc,0,7); ctx.stroke();
+      ctx.globalAlpha=1;
+    });
+    ctx.setLineDash([]);
+    // routes
+    const rl=css('--route-line');
+    ctx.lineWidth=1.4; ctx.strokeStyle=rl; ctx.lineJoin='round';
+    const upto=Math.max(1,Math.floor(prog*20));
+    routes.forEach(r=>{
+      ctx.beginPath();ctx.moveTo(X(r[0][0]),Y(r[0][1]));
+      for(let i=1;i<=upto;i++) ctx.lineTo(X(r[i][0]),Y(r[i][1]));
+      ctx.stroke();
+    });
+    // ensemble mean (dashed)
+    ctx.setLineDash([7,5]); ctx.lineWidth=2.2; ctx.strokeStyle=css('--mean');
+    ctx.beginPath();ctx.moveTo(X(mean[0][0]),Y(mean[0][1]));
+    for(let i=1;i<=upto;i++) ctx.lineTo(X(mean[i][0]),Y(mean[i][1])); ctx.stroke(); ctx.setLineDash([]);
+    // observed track (amber, bold)
+    ctx.lineWidth=3.4; ctx.strokeStyle=css('--truth'); ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(X(truth[0][0]),Y(truth[0][1]));
+    for(let i=1;i<=upto;i++) ctx.lineTo(X(truth[i][0]),Y(truth[i][1])); ctx.stroke();
+    // end markers + start
+    if(prog>=1){
+      ctx.fillStyle=css('--truth');ctx.beginPath();ctx.arc(X(truth[20][0]),Y(truth[20][1]),5,0,7);ctx.fill();
+      ctx.fillStyle=faint;ctx.font='11px ui-monospace,monospace';
+      ctx.fillText('observed +120 h',X(truth[20][0])+8,Y(truth[20][1])+4);
+      // lead labels on mean path
+      ctx.fillStyle=css('--mean');
+      [[4,'24h'],[12,'72h'],[20,'120h']].forEach(([l,t])=>{
+        ctx.beginPath();ctx.arc(X(mean[l][0]),Y(mean[l][1]),2.6,0,7);ctx.fill();
+        ctx.fillText(t,X(mean[l][0])+6,Y(mean[l][1])-5);
+      });
+    }
+    // start dot
+    ctx.fillStyle=css('--fg');ctx.beginPath();ctx.arc(X(0),Y(0),4.5,0,7);ctx.fill();
+    ctx.strokeStyle=css('--ink');ctx.lineWidth=2;ctx.stroke();
+  }
+
+  let start=null;
+  function anim(t){
+    if(start===null)start=t;
+    const p=reduce?1:Math.min(1,(t-start)/1400);
+    draw(p<1? p*p*(3-2*p) : 1);
+    if(p<1) requestAnimationFrame(anim);
+  }
+  function rerun(){start=null;requestAnimationFrame(anim);}
+  requestAnimationFrame(anim);
+  addEventListener('resize',()=>draw(1));
+  // redraw on theme toggle
+  new MutationObserver(()=>draw(1)).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>draw(1));
+})();
+</script>
