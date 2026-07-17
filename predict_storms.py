@@ -15,6 +15,7 @@ HIST = 9; LEADS = list(range(6, 121, 6))
 STORMS = [
     {"sid": "2025203N20124", "name": "Co-may (2025)", "thr": 64, "label": "first Cat-1", "out": "comay"},
     {"sid": "2026182N09163", "name": "Bavi (2026)",  "thr": 113, "label": "first Cat-4", "out": "bavi"},
+    {"sid": "1986228N19120", "name": "Wayne (1986)", "thr": 64, "label": "first Cat-1", "out": "wayne"},
 ]
 
 
