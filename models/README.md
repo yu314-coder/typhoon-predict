@@ -9,17 +9,18 @@ Weights are stored with Git LFS.
 
 | file | params | size | inputs | training data |
 |---|---|---|---|---|
-| `trackformer_v8_15M_fp16.pt` | 15M | 30 MB (fp16) | **track history only (protected dual-stream)** | all basins, 1980+, 193k partial-lead windows |
+| `trackformer_v9_17M_fp16.pt` | 17M | 33 MB (fp16) | **track history + IBTrACS environment (protected triple-stream)** | all basins, 1980+, 193k partial-lead windows |
+| `trackformer_v8_15M_fp16.pt` | 15M | 30 MB (fp16) | track history only (protected dual-stream) | all basins, 1980+, 193k partial-lead windows |
 | `stormfusion_v2_era5_3.3M_fp16.pt` | 3.3M | 6.7 MB (fp16) | ERA5 patches + track history | WP, 2000+, 1,337 storm-centered windows |
 | `trackformer_21M_fp16.pt` | 21M | 43 MB (fp16) | track history only (single-stream) | all basins, 1980+, 84,150 windows |
 
-**`trackformer_v8` is the best model.** It uses a protected dual-stream architecture (separate
-kinematic/thermodynamic encoders, gradient routing, a zero-init gated thermo→track adapter, and a
-persistence-residual track head) that removes the negative transfer the single-stream models suffer,
-trained on a 2×-larger clean dataset (partial-lead windows kept via target masking, not discarded).
-On WP-2020+ it reaches 649 km track — **−71 vs the single-stream baseline** and −10 vs the same
-architecture on full-lead-only data — while being **best-in-class on every intensity/structure metric
-too**. See [`paper/trackformer.pdf`](../paper/trackformer.pdf) for the full architecture and derivation.
+**`trackformer_v9` is the best model.** It adds a third, **environmental** stream to v8's protected
+architecture — absolute latitude/longitude, distance-to-land, and a lat+month climatological SST
+proxy, all **derived from IBTrACS** (no ERA5, still deployable on a fast CSV). v8 was position-blind
+(translation-invariant); giving it absolute latitude — which drives Coriolis, recurvature, and SST —
+cut WP-2020+ track to **618 km (−31 vs v8)** and all-basin to **543 km (−37)**, with markedly better
+wind (vmax −2 kt). It also **halved the error on the erratic Co-may (2025)** case and improved Bavi
+(2026). See [`paper/trackformer.pdf`](../paper/trackformer.pdf) for the architecture and derivation.
 
 Both checkpoints store weights in fp16 (half the size, identical metrics) and are
 inference-only (optimizer state stripped). The track-only model predicts the **full 17-dim
@@ -43,11 +44,13 @@ lead queries → dual heads. No atmospheric inputs at all.
 | single-stream 40-feat (21M) | 720 | 22.1 | 21.2 | 11.8 | 31.5 |
 | single-stream 48-feat (21M) | 737 | 21.5 | 17.7 | 11.8 | 30.9 |
 | TrackFormer v3 (dual-stream, full-lead data) | 659 | 21.6 | 18.1 | 11.8 | 28.8 |
-| **TrackFormer v8 (dual-stream, +partial-lead data)** | **649** | **20.7** | **15.9** | **11.3** | **27.8** |
+| TrackFormer v8 (dual-stream, +partial-lead data) | 649 | 20.7 | 15.9 | **11.3** | 27.8 |
+| **TrackFormer v9 (triple-stream, +IBTrACS environment)** | **618** | **18.6** | 15.8 | 11.5 | **27.2** |
 
-TrackFormer v8 is **best on every column**. Its WP-2020+ track win over the single-stream baseline is
-significant (storm-bootstrap 95% CI [−103, −16] km, p≈0.995); the −10 km over v3 is near-significant
-(CI [−36, +2], p≈0.95) and the intensity/structure gains are consistent across both WP and all-basin.
+TrackFormer v9 is best on track, wind, and radius. The largest single jump came from making the model
+**position-aware**: v8 saw only relative motion, so it could not use latitude (Coriolis, recurvature,
+SST). Adding absolute lat/lon + distance-to-land + a lat/month SST proxy (all IBTrACS-derived) cut
+track error 649→618 km (WP) / 580→543 km (all-basin) and improved wind by ~2 kt.
 
 **Key findings:** (1) a track-only model that never sees ERA5 **matches or beats** a full ERA5 model,
 so **data diversity > engineered features > parameters** (a 17.7M ERA5 model overfit and did *worse*

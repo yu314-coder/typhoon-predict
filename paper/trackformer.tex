@@ -18,7 +18,9 @@
 \newcommand{\vtwoABtrack}{644.2}\newcommand{\vtwoABvmax}{19.55}\newcommand{\vtwoABpres}{15.38}\newcommand{\vtwoABrmw}{\textbf{14.18}}\newcommand{\vtwoABrad}{29.31}
 \newcommand{\vthreeABtrack}{592.1}\newcommand{\vthreeABvmax}{18.59}\newcommand{\vthreeABpres}{14.61}\newcommand{\vthreeABrmw}{14.87}\newcommand{\vthreeABrad}{27.85}
 \newcommand{\veightWPtrack}{\textbf{648.8}}\newcommand{\veightWPvmax}{\textbf{20.69}}\newcommand{\veightWPpres}{\textbf{15.94}}\newcommand{\veightWPrmw}{\textbf{11.28}}\newcommand{\veightWPrad}{\textbf{27.83}}
-\newcommand{\veightABtrack}{\textbf{580.5}}\newcommand{\veightABvmax}{\textbf{17.90}}\newcommand{\veightABpres}{\textbf{13.34}}\newcommand{\veightABrmw}{\textbf{13.89}}\newcommand{\veightABrad}{\textbf{27.10}}
+\newcommand{\veightABtrack}{580.5}\newcommand{\veightABvmax}{17.90}\newcommand{\veightABpres}{\textbf{13.34}}\newcommand{\veightABrmw}{\textbf{13.89}}\newcommand{\veightABrad}{\textbf{27.10}}
+\newcommand{\vnineWPtrack}{\textbf{618.4}}\newcommand{\vnineWPvmax}{\textbf{18.55}}\newcommand{\vnineWPpres}{15.76}\newcommand{\vnineWPrmw}{11.52}\newcommand{\vnineWPrad}{\textbf{27.15}}
+\newcommand{\vnineABtrack}{\textbf{543.4}}\newcommand{\vnineABvmax}{\textbf{16.73}}\newcommand{\vnineABpres}{14.29}\newcommand{\vnineABrmw}{14.15}\newcommand{\vnineABrad}{27.80}
 
 \title{\textbf{TrackFormer: A Protected Dual-Stream Transformer for\\ Tropical-Cyclone Track, Intensity, and Structure Forecasting}\\[2pt]
 \large with a Random-Matrix Block-Structured Uncertainty Head}
@@ -209,13 +211,15 @@ WP 2020+
  & single-stream, 40-feat      & \oldWPtrack  & \oldWPvmax  & \oldWPpres  & \oldWPrmw  & \oldWPrad\\
  & single-stream, 48-feat (v2) & \vtwoWPtrack & \vtwoWPvmax & \vtwoWPpres & \vtwoWPrmw & \vtwoWPrad\\
  & TrackFormer (v3)            & \vthreeWPtrack & \vthreeWPvmax & \vthreeWPpres & \vthreeWPrmw & \vthreeWPrad\\
- & \textbf{TrackFormer (v8, +data)} & \veightWPtrack & \veightWPvmax & \veightWPpres & \veightWPrmw & \veightWPrad\\
+ & TrackFormer (v8, +data)     & \veightWPtrack & \veightWPvmax & \veightWPpres & \veightWPrmw & \veightWPrad\\
+ & \textbf{TrackFormer (v9, +env)} & \vnineWPtrack & \vnineWPvmax & \vnineWPpres & \vnineWPrmw & \vnineWPrad\\
 \midrule
 all-basin 2020+
  & single-stream, 40-feat      & \oldABtrack  & \oldABvmax  & \oldABpres  & \oldABrmw  & \oldABrad\\
  & single-stream, 48-feat (v2) & \vtwoABtrack & \vtwoABvmax & \vtwoABpres & \vtwoABrmw & \vtwoABrad\\
  & TrackFormer (v3)            & \vthreeABtrack & \vthreeABvmax & \vthreeABpres & \vthreeABrmw & \vthreeABrad\\
- & \textbf{TrackFormer (v8, +data)} & \veightABtrack & \veightABvmax & \veightABpres & \veightABrmw & \veightABrad\\
+ & TrackFormer (v8, +data)     & \veightABtrack & \veightABvmax & \veightABpres & \veightABrmw & \veightABrad\\
+ & \textbf{TrackFormer (v9, +env)} & \vnineABtrack & \vnineABvmax & \vnineABpres & \vnineABrmw & \vnineABrad\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -236,6 +240,19 @@ simultaneous improvements in wind, pressure, RMW, and radius. (Extending further
 helped track marginally but degraded intensity, because pre-satellite intensity labels are
 unreliable; masking those labels while keeping the older \emph{positions} recovered the intensity but
 not a significant track gain --- confirming track is information-limited, not data-quantity-limited.)
+
+\paragraph{Position-awareness is the largest lever within IBTrACS.} The dual-stream model is
+\emph{translation-invariant} --- it sees only relative motion, never where the storm actually is ---
+so it cannot use latitude, which governs the Coriolis force, the climatological recurvature band, and
+(through the seasonal thermal structure) sea-surface temperature. Adding a third \emph{environmental}
+stream of IBTrACS-derived features (absolute latitude/longitude, distance-to-land, and a latitude$+$month
+climatological SST proxy), routed to the track decoder for steering climatology and to the intensity
+decoder for the SST signal, cut WP-2020+ track from $\veightWPtrack$ to $618.4$\,km and all-basin from
+$\veightABtrack$ to $543.4$\,km, with a $\sim$2-kt wind improvement --- all without any reanalysis
+download, so the model stays deployable from a best-track CSV. On out-of-sample case studies it
+\emph{halved} the error on an erratic recurving storm (Co-may 2025) and improved a well-behaved
+super typhoon (Bavi 2026); only a pathological multi-loop storm (Wayne 1986) regressed, where
+climatology cannot substitute for the real-time steering flow.
 
 \section{Discussion}
 The consistent lesson across experiments is \textbf{data diversity $>$ engineered features $>$

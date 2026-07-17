@@ -21,7 +21,8 @@ maritime, or emergency decisions.**
 
 | model | params | inputs | training data |
 |---|---|---|---|
-| **TrackFormer v8** | 15M (fp16, 30MB) | **track history only, protected dual-stream** | all basins, 1980+, 193k partial-lead windows |
+| **TrackFormer v9** | 17M (fp16, 33MB) | **track history + IBTrACS environment, protected triple-stream** | all basins, 1980+, 193k partial-lead windows |
+| TrackFormer v8 | 15M (fp16, 30MB) | track history only, protected dual-stream | all basins, 1980+, 193k partial-lead windows |
 | StormFusion-MT v2 | 3.3M (fp16, 6.7MB) | ERA5 patches + track history | WP, 2000+, 1,337 storm-centered windows |
 | TrackFormer (v1) | 21M (fp16, 43MB) | track history only (single-stream) | all basins, 1980+, 84,150 windows |
 
@@ -35,7 +36,8 @@ Weights and full reproducible code (dataset builders, training, eval) are in the
 | StormFusion-MT v2 (3.3M, ERA5) | 729 | 24.2 | 21.6 | 16.2 | 31.8 |
 | TrackFormer v1 (21M, single-stream) | 720 | 22.1 | 21.2 | 11.8 | 31.5 |
 | TrackFormer v3 (15M, dual-stream) | 659 | 21.6 | 18.1 | 11.8 | 28.8 |
-| **TrackFormer v8 (15M, +partial-lead data)** | **649** | **20.7** | **15.9** | **11.3** | **27.8** |
+| TrackFormer v8 (15M, +partial-lead data) | 649 | 20.7 | 15.9 | **11.3** | 27.8 |
+| **TrackFormer v9 (17M, +IBTrACS environment)** | **618** | **18.6** | 15.8 | 11.5 | **27.2** |
 
 **Key findings.** (1) A track-only model that never sees ERA5 **matches or beats** the full ERA5
 model, so **data diversity > engineered features > parameters** (a 17.7M ERA5 model overfit and did
