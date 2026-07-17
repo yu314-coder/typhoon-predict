@@ -16,7 +16,9 @@
 \newcommand{\vthreeWPtrack}{\textbf{659.0}}\newcommand{\vthreeWPvmax}{21.61}\newcommand{\vthreeWPpres}{18.06}\newcommand{\vthreeWPrmw}{11.81}\newcommand{\vthreeWPrad}{\textbf{28.83}}
 \newcommand{\oldABtrack}{638.6}\newcommand{\oldABvmax}{20.32}\newcommand{\oldABpres}{18.01}\newcommand{\oldABrmw}{15.28}\newcommand{\oldABrad}{29.99}
 \newcommand{\vtwoABtrack}{644.2}\newcommand{\vtwoABvmax}{19.55}\newcommand{\vtwoABpres}{15.38}\newcommand{\vtwoABrmw}{\textbf{14.18}}\newcommand{\vtwoABrad}{29.31}
-\newcommand{\vthreeABtrack}{\textbf{592.1}}\newcommand{\vthreeABvmax}{\textbf{18.59}}\newcommand{\vthreeABpres}{\textbf{14.61}}\newcommand{\vthreeABrmw}{14.87}\newcommand{\vthreeABrad}{\textbf{27.85}}
+\newcommand{\vthreeABtrack}{592.1}\newcommand{\vthreeABvmax}{18.59}\newcommand{\vthreeABpres}{14.61}\newcommand{\vthreeABrmw}{14.87}\newcommand{\vthreeABrad}{27.85}
+\newcommand{\veightWPtrack}{\textbf{648.8}}\newcommand{\veightWPvmax}{\textbf{20.69}}\newcommand{\veightWPpres}{\textbf{15.94}}\newcommand{\veightWPrmw}{\textbf{11.28}}\newcommand{\veightWPrad}{\textbf{27.83}}
+\newcommand{\veightABtrack}{\textbf{580.5}}\newcommand{\veightABvmax}{\textbf{17.90}}\newcommand{\veightABpres}{\textbf{13.34}}\newcommand{\veightABrmw}{\textbf{13.89}}\newcommand{\veightABrad}{\textbf{27.10}}
 
 \title{\textbf{TrackFormer: A Protected Dual-Stream Transformer for\\ Tropical-Cyclone Track, Intensity, and Structure Forecasting}\\[2pt]
 \large with a Random-Matrix Block-Structured Uncertainty Head}
@@ -206,12 +208,14 @@ split & model & track (km) & vmax (kt) & pres (hPa) & RMW (km) & radius (km)\\
 WP 2020+
  & single-stream, 40-feat      & \oldWPtrack  & \oldWPvmax  & \oldWPpres  & \oldWPrmw  & \oldWPrad\\
  & single-stream, 48-feat (v2) & \vtwoWPtrack & \vtwoWPvmax & \vtwoWPpres & \vtwoWPrmw & \vtwoWPrad\\
- & \textbf{TrackFormer (v3)}   & \vthreeWPtrack & \vthreeWPvmax & \vthreeWPpres & \vthreeWPrmw & \vthreeWPrad\\
+ & TrackFormer (v3)            & \vthreeWPtrack & \vthreeWPvmax & \vthreeWPpres & \vthreeWPrmw & \vthreeWPrad\\
+ & \textbf{TrackFormer (v8, +data)} & \veightWPtrack & \veightWPvmax & \veightWPpres & \veightWPrmw & \veightWPrad\\
 \midrule
 all-basin 2020+
  & single-stream, 40-feat      & \oldABtrack  & \oldABvmax  & \oldABpres  & \oldABrmw  & \oldABrad\\
  & single-stream, 48-feat (v2) & \vtwoABtrack & \vtwoABvmax & \vtwoABpres & \vtwoABrmw & \vtwoABrad\\
- & \textbf{TrackFormer (v3)}   & \vthreeABtrack & \vthreeABvmax & \vthreeABpres & \vthreeABrmw & \vthreeABrad\\
+ & TrackFormer (v3)            & \vthreeABtrack & \vthreeABvmax & \vthreeABpres & \vthreeABrmw & \vthreeABrad\\
+ & \textbf{TrackFormer (v8, +data)} & \veightABtrack & \veightABvmax & \veightABpres & \veightABrmw & \veightABrad\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -222,6 +226,16 @@ MAE. The same paired storm-level bootstrap that found the v2 change insignifican
 gain is real: $\widehat\Delta_{\text{track}}=-59.9$\,km, 95\% CI $[-103.2,\,-16.0]$\,km,
 $\Pr(\text{v3 better})=0.995$. Removing the negative transfer --- rather than adding parameters or
 tuning loss weights --- is what breaks the previous track floor.
+
+\paragraph{Data, not architecture, drove the final gain.} With the architecture fixed, we enlarged
+the training set by keeping \emph{partial-lead} windows --- storm-end and short-storm fixes that lack
+a full 120\,h future are retained with their missing leads masked rather than discarded --- which
+doubled the clean 1980+ training windows ($84$k$\,\to\,153$k). The resulting model (v8) is best on
+\emph{every} metric of Table~\ref{tab:results}: WP-2020+ track $\vthreeWPtrack\,\to\,648.8$\,km and
+simultaneous improvements in wind, pressure, RMW, and radius. (Extending further to pre-1980 storms
+helped track marginally but degraded intensity, because pre-satellite intensity labels are
+unreliable; masking those labels while keeping the older \emph{positions} recovered the intensity but
+not a significant track gain --- confirming track is information-limited, not data-quantity-limited.)
 
 \section{Discussion}
 The consistent lesson across experiments is \textbf{data diversity $>$ engineered features $>$
