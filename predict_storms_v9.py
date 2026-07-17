@@ -6,9 +6,9 @@ import numpy as np, pandas as pd, torch, torch.nn as nn
 R = 111.2; RN = [f"r{t}_{q}" for t in (34, 50, 64) for q in ("ne", "se", "sw", "nw")]
 HIST = 9; LEADS = list(range(6, 121, 6))
 STORMS = [
-    {"sid": "2026182N09163", "name": "Bavi (2026)",  "thr": 113, "label": "first Cat-4"},
-    {"sid": "1986228N19120", "name": "Wayne (1986)", "thr": 64,  "label": "first Cat-1"},
-    {"sid": "2025203N20124", "name": "Co-may (2025)","thr": 64,  "label": "first Cat-1"},
+    {"sid": "2026182N09163", "name": "Bavi (2026)",  "thr": 113, "label": "first Cat-4", "out": "bavi"},
+    {"sid": "1986228N19120", "name": "Wayne (1986)", "thr": 64,  "label": "first Cat-1", "out": "wayne"},
+    {"sid": "2025203N20124", "name": "Co-may (2025)","thr": 64,  "label": "first Cat-1", "out": "comay"},
 ]
 V8 = {"Bavi (2026)": {24:185,48:316,72:314,96:201,120:448},
       "Wayne (1986)": {24:115,48:567,72:904,96:1012,120:1024},
@@ -107,6 +107,21 @@ def build(storm):
     v8 = V8[storm["name"]]
     row = " ".join(f"{h_}h v9 {errs.get(h_,'-'):>5} v8 {v8.get(h_,'-'):>5}" for h_ in (24,48,72,96,120))
     print(f"{storm['name']:14s} @{fx['vmax'][base]:.0f}kt | {row}")
+    # geo dump for maps
+    rng = np.random.RandomState(7)
+    ens = [latlon((motion.reshape(40) + L @ rng.standard_normal(40)).reshape(20, 2)) for _ in range(50)]
+    history = [[round(float(fx["lat"][i]), 2), round(float(fx["lon"][i]), 2)] for i in hidx]
+    observed = [[round(float(fx["lat"][base]), 2), round(float(fx["lon"][base]), 2)]] + \
+               [[round(float(fx["lat"][i]), 2), round(float(fx["lon"][i]), 2)] if i != -1 else None for i in fidx]
+    pts = fc + [q for q in observed if q] + history
+    la = [p[0] for p in pts]; lo = [p[1] for p in pts]
+    ext = [math.floor(min(lo) - 3), math.ceil(max(lo) + 3), math.floor(min(la) - 2), math.ceil(max(la) + 3)]
+    d = {"storm": storm["name"], "issue_label": storm["label"], "issue_time": str(h["t"].iloc[base]),
+         "issue": [round(float(fx["lat"][base]), 2), round(float(fx["lon"][base]), 2)], "issue_wind": float(fx["vmax"][base]),
+         "extent": ext, "history": history, "forecast": [[round(a, 2), round(b, 2)] for a, b in fc],
+         "observed": observed, "ensemble": [[[round(a, 2), round(b, 2)] for a, b in e] for e in ens],
+         "errors": errs, "errors_v8": v8}
+    json.dump(d, open(f"track_build/{storm['out']}_v9_geo.json", "w"))
     return errs
 
 print("=== v9 (triple-stream + env) vs v8 forecast error (km) by lead ===")
