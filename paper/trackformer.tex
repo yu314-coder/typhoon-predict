@@ -254,6 +254,18 @@ download, so the model stays deployable from a best-track CSV. On out-of-sample 
 super typhoon (Bavi 2026); only a pathological multi-loop storm (Wayne 1986) regressed, where
 climatology cannot substitute for the real-time steering flow.
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{storms_v9.pdf}
+\caption{TrackFormer v9 (triple-stream) on three case studies, each a 120-hour forecast (teal, dashed)
+issued from an early fix (star) against the observed track (orange), with the 50-member RMT ensemble
+(faint). Absolute latitude sharpens the well-behaved \emph{Bavi} (2026) and \emph{halves} the error on
+the erratic \emph{Co-may} (2025), but cannot tame \emph{Wayne}'s (1986) five loops, where climatology
+is no substitute for the real-time steering flow. Bavi and Co-may are out-of-sample ($\ge$2020); Wayne
+(1986) is in the training window and shown as a stress test.}
+\label{fig:storms}
+\end{figure}
+
 \section{Discussion}
 The consistent lesson across experiments is \textbf{data diversity $>$ engineered features $>$
 parameters}: a $17.7$M single-stream model overfit and did worse than a $3.3$M one, and a track-only
