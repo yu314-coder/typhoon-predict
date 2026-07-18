@@ -1,16 +1,22 @@
+# caches, logs, working notes
 # large data / build artifacts (never commit)
+# nested HuggingFace Space repo (separate git remote)
+*.log
+*.pyc
+.cdsapirc
+.pipcache/
+.pylibs/
+.venv-build/
+__pycache__/
+_bavi_fix_test.py
+_diag_*.py
+_mk_v16.py
+colab_upload/
+hf-space/
+memory.md
+tmp/
+track_build/
 typhoon_build/
 typhoon_build_smoke/
-track_build/
-tmp/
-.venv-build/
-# nested HuggingFace Space repo (separate git remote)
-hf-space/
-# caches, logs, working notes
-__pycache__/
-*.pyc
-*.log
 watchdog.sh
 watchdog_status.log
-memory.md
-.cdsapirc
