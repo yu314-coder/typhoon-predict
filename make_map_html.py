@@ -117,16 +117,19 @@ def panel(tag, rec, obs_lat, obs_lon, storm=None, W=520, H=380):
     for a in range(len(LAT)):
         d = "M" + " L".join(f"{PX(lo):.1f},{PY(la):.1f}" for la, lo in zip(LAT[a], LON[a]))
         o.append(f'<path class="spag" d="{d}"/>')
-    mla, mlo = mean_by_valid_time(BT, LAT, LON)
-    o.append('<path class="meanline" d="M' +
-             " L".join(f"{PX(lo):.1f},{PY(la):.1f}" for la, lo in zip(mla, mlo)) + '"/>')
-    labels = [(PY(mla[-1]), PX(mlo[-1]), "mean")]
+    labels = []
     cc = CONS.get(tag, {}).get(storm)
     if cc:
+        # the equal-weight mean lost on all 4 storms x 3 models, by ~55%. Draw the winner.
         pts_w = cc.get("smooth") or cc["rmt"]
-        o.append('<path class="rmtline" d="M' +
+        o.append('<path class="meanline" d="M' +
                  " L".join(f"{PX(p[1]):.1f},{PY(p[0]):.1f}" for p in pts_w) + '"/>')
-        labels.append((PY(pts_w[-1][0]), PX(pts_w[-1][1]), "weighted"))
+        labels.append((PY(pts_w[-1][0]), PX(pts_w[-1][1]), "consensus"))
+    else:
+        mla, mlo = mean_by_valid_time(BT, LAT, LON)
+        o.append('<path class="meanline" d="M' +
+                 " L".join(f"{PX(lo):.1f},{PY(la):.1f}" for la, lo in zip(mla, mlo)) + '"/>')
+        labels.append((PY(mla[-1]), PX(mlo[-1]), "mean"))
     # push apart so the two endpoint labels never overlap
     labels.sort()
     for i in range(1, len(labels)):
@@ -239,8 +242,7 @@ footer{{border-top:1px solid var(--line);padding-top:20px;font-size:13px;color:v
   tracks never have to be told apart by colour alone.</p>
   <div class="legend">
    <span class="lg"><svg width="26" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="var(--c-v16)" stroke-width="1" opacity=".45"/></svg>one forecast</span>
-   <span class="lg"><svg width="26" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="var(--c-v16)" stroke-width="2.8" stroke-linecap="round"/></svg>mean by valid time (solid)</span>
-   <span class="lg"><svg width="26" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="var(--c-v17)" stroke-width="2.6" stroke-dasharray="7 3.5" stroke-linecap="round"/></svg>lead-weighted consensus (dashed)</span>
+   <span class="lg"><svg width="26" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="var(--c-v17)" stroke-width="2.8" stroke-linecap="round"/></svg>consensus (lead-weighted, smoothed)</span>
    <span class="lg"><svg width="26" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="var(--obs)" stroke-width="2.4" stroke-dasharray="1.4 2.6" stroke-linecap="round"/></svg>observed</span>
   </div>
  </header>
@@ -249,6 +251,11 @@ footer{{border-top:1px solid var(--line);padding-top:20px;font-size:13px;color:v
   <p>Coastlines are Natural Earth 50&nbsp;m land polygons, simplified to the resolution each panel can
   actually show. Projection is equirectangular with longitude scaled by cos(latitude), so shapes are
   locally true at the centre of each panel.</p>
+  <p><strong>Why the weighted consensus and not the plain mean.</strong> Averaged over the four
+  storms the equal-weight mean scores 302 / 229 / 235&nbsp;km for v10 / v17 / v18, against
+  134 / 99 / 112&nbsp;km for the weighted-and-smoothed consensus &mdash; better on every storm and
+  every model, by about 55%. There is no case where the plain mean wins, so only the winner is
+  drawn; each caption still quotes what the mean would have scored.</p>
   <p>The weighted consensus is additionally passed through a constant-velocity Kalman/RTS
   smoother. Solving every valid time independently makes the track jump whenever the short-lead
   membership rotates, producing turns no storm makes &mdash; on Co-may the point-wise solve swung

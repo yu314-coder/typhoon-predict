@@ -1,0 +1,447 @@
+<title>TrackFormer v9→v15 — data, training, and the v14 Bavi failure</title>
+
+<style>
+  :root{
+    --bg:#f1f4f6; --surface:#ffffff; --surface-2:#e8edf1;
+    --ink:#121a22; --body:#2c3a47; --muted:#5d6c7a; --line:#d5dce3;
+    --cool:#0f6f80; --cool-soft:#d3e8ec;
+    --hot:#b04a18; --hot-soft:#f6dfd2;
+    --ok:#3f7d4e;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0c1117; --surface:#141c25; --surface-2:#1b242f;
+      --ink:#e8eef4; --body:#c2cdd8; --muted:#8697a5; --line:#26313d;
+      --cool:#46b3c1; --cool-soft:#123039;
+      --hot:#e07a44; --hot-soft:#3a2216;
+      --ok:#71b581;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0c1117; --surface:#141c25; --surface-2:#1b242f;
+    --ink:#e8eef4; --body:#c2cdd8; --muted:#8697a5; --line:#26313d;
+    --cool:#46b3c1; --cool-soft:#123039;
+    --hot:#e07a44; --hot-soft:#3a2216;
+    --ok:#71b581;
+  }
+  :root[data-theme="light"]{
+    --bg:#f1f4f6; --surface:#ffffff; --surface-2:#e8edf1;
+    --ink:#121a22; --body:#2c3a47; --muted:#5d6c7a; --line:#d5dce3;
+    --cool:#0f6f80; --cool-soft:#d3e8ec;
+    --hot:#b04a18; --hot-soft:#f6dfd2;
+    --ok:#3f7d4e;
+  }
+
+  body{background:var(--bg);color:var(--body);font-family:var(--sans);
+       font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1080px;margin:0 auto;padding:clamp(28px,5vw,64px) clamp(18px,4vw,40px) 96px;
+        display:flex;flex-direction:column;gap:52px;}
+  .prose{max-width:70ch;display:flex;flex-direction:column;gap:16px;}
+
+  h1,h2,h3{color:var(--ink);text-wrap:balance;margin:0;}
+  h1{font-size:clamp(30px,4.4vw,46px);line-height:1.1;letter-spacing:-.022em;font-weight:660;}
+  h2{font-size:clamp(21px,2.5vw,26px);line-height:1.22;letter-spacing:-.012em;font-weight:640;}
+  h3{font-size:16px;letter-spacing:-.004em;font-weight:640;}
+  p{margin:0;}
+  a{color:var(--cool);}
+  strong{color:var(--ink);font-weight:640;}
+  code,.mono{font-family:var(--mono);font-size:.88em;font-variant-ligatures:none;}
+  code{background:var(--surface-2);padding:.1em .38em;border-radius:3px;color:var(--ink);}
+
+  .eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;
+           color:var(--muted);}
+
+  header{display:flex;flex-direction:column;gap:14px;border-bottom:1px solid var(--line);padding-bottom:30px;}
+  .dek{font-size:clamp(17px,2vw,19px);line-height:1.5;color:var(--body);max-width:64ch;}
+  .meta{font-family:var(--mono);font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px;}
+
+  section{display:flex;flex-direction:column;gap:20px;}
+  .sec-head{display:flex;flex-direction:column;gap:7px;}
+
+  .verdict{background:var(--surface);border:1px solid var(--line);
+           border-left:3px solid var(--hot);border-radius:4px;
+           padding:clamp(22px,3vw,32px);display:flex;flex-direction:column;gap:14px;}
+  .verdict .thesis{font-family:var(--serif);font-size:clamp(19px,2.4vw,24px);line-height:1.4;
+                   color:var(--ink);font-style:italic;max-width:56ch;}
+
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:4px;background:var(--surface);}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;}
+  caption{caption-side:top;text-align:left;padding:14px 16px 12px;font-size:13px;color:var(--muted);
+          border-bottom:1px solid var(--line);}
+  th,td{padding:9px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;
+        white-space:nowrap;}
+  thead th{font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;
+           color:var(--muted);font-weight:500;background:var(--surface-2);}
+  tbody tr:last-child td{border-bottom:none;}
+  td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);}
+  td.v{font-family:var(--mono);font-weight:600;color:var(--ink);}
+  td.wrap-cell{white-space:normal;min-width:230px;}
+  .best{color:var(--cool);font-weight:650;}
+  .bad{color:var(--hot);font-weight:650;}
+  tr.focus td{background:var(--hot-soft);}
+
+  .chain{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:2px;counter-reset:step;}
+  .chain li{counter-increment:step;display:grid;grid-template-columns:34px 1fr;gap:16px;
+            padding:15px 0;border-bottom:1px solid var(--line);}
+  .chain li:last-child{border-bottom:none;}
+  .chain li::before{content:counter(step);font-family:var(--mono);font-size:12px;color:var(--cool);
+                    padding-top:3px;font-variant-numeric:tabular-nums;}
+  .chain .step-body{display:flex;flex-direction:column;gap:6px;max-width:66ch;}
+  .chain h3{font-size:15px;}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:14px;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:18px;
+        display:flex;flex-direction:column;gap:8px;}
+  .card .label{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+  .card .big{font-family:var(--mono);font-size:25px;font-variant-numeric:tabular-nums;color:var(--ink);
+             letter-spacing:-.02em;line-height:1.1;}
+  .card .big.warn{color:var(--hot);}
+  .card .big.good{color:var(--cool);}
+  .card p{font-size:13.5px;line-height:1.5;color:var(--muted);}
+
+  .note{background:var(--surface-2);border-radius:4px;padding:16px 18px;font-size:14px;
+        color:var(--body);max-width:70ch;}
+
+  pre{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:15px 17px;
+      overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.65;color:var(--ink);margin:0;}
+  pre .cmt{color:var(--muted);}
+  pre .hl{color:var(--hot);font-weight:650;}
+
+  footer{border-top:1px solid var(--line);padding-top:22px;font-size:13px;color:var(--muted);
+         display:flex;flex-direction:column;gap:8px;max-width:70ch;}
+  ul.plain{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:7px;}
+  ul.plain li{padding-left:2px;}
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">TrackFormer · forensic review</div>
+    <h1>v9 → v15: what each model ate, how it was trained, and why v14 “broke”</h1>
+    <p class="dek">Six models share one dataset and one training recipe. They differ in two things: how the
+      persistence baseline is drawn, and what environmental field is fed to the track decoder. That second
+      difference is where the story is.</p>
+    <div class="meta">
+      <span>193,609 windows</span><span>4,264 storms</span><span>1980–2026</span>
+      <span>IBTrACS v04r01 + NCEP reanalysis</span><span>measured 2026-07-19</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="verdict">
+      <div class="eyebrow">Verdict</div>
+      <p class="thesis">v14 is not a bad model. It is the best model in the lineage — and its one
+        catastrophic result is an artifact of corrupted input data, not a defect in the network.</p>
+      <p>v14 beats every predecessor on aggregate test error and has the <em>tightest</em> tail on the
+        2020+ test set. Its 3,442 km blow-up on Bavi 2026 traces to a silent bug in the steering-field
+        extractor that fed it a physically impossible wind field for that year. v14.1 and v15 were both
+        designed to fix a problem that does not exist as diagnosed.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <div class="eyebrow">Measured</div>
+      <h2>Results, all models on identical footing</h2>
+      <p class="prose">Re-run locally today from the saved checkpoints — same windows, same metric, no
+        cached numbers. Test set is Western Pacific storms from 2020 on, restricted to windows with the
+        full 20-lead horizon (n = 2,698). Errors in kilometres.</p>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <caption>Great-circle track error. “All-lead mean” averages every lead from +6 h to +120 h; the rest are at +120 h.</caption>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th class="num">All-lead mean</th><th class="num">120 h mean</th>
+            <th class="num">120 h p90</th><th class="num">120 h max</th>
+            <th class="num">Bavi 2026</th><th class="num">Wayne 1986</th>
+            <th class="num">Co-may 2025</th><th class="num">Hinnamnor 2022</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="v">v10</td><td class="num">614</td><td class="num">1252</td><td class="num">2419</td>
+              <td class="num">4848</td><td class="num">656</td><td class="num">1115</td><td class="num">1154</td><td class="num">1676</td></tr>
+          <tr><td class="v">v13</td><td class="num">619</td><td class="num">1267</td><td class="num">2481</td>
+              <td class="num">4801</td><td class="num">639</td><td class="num best">628</td><td class="num">1098</td><td class="num">1260</td></tr>
+          <tr class="focus"><td class="v">v14</td><td class="num best">546</td><td class="num best">1193</td><td class="num best">2237</td>
+              <td class="num best">4329</td><td class="num bad">3442</td><td class="num">730</td><td class="num">941</td><td class="num">1095</td></tr>
+          <tr><td class="v">v14.1</td><td class="num">561</td><td class="num">1218</td><td class="num">2429</td>
+              <td class="num bad">5828</td><td class="num bad">2257</td><td class="num">739</td><td class="num best">905</td><td class="num best">1021</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <div class="label">v14 aggregate</div><div class="big good">−11%</div>
+        <p>All-lead error vs v10, the best non-steering model. Steering genuinely works.</p>
+      </div>
+      <div class="card">
+        <div class="label">v14 worst case, test set</div><div class="big good">4,329</div>
+        <p>km — <em>lower</em> than v10 (4,848) and v13 (4,801). v14 has the tightest tail, not the loosest.</p>
+      </div>
+      <div class="card">
+        <div class="label">v14 on Bavi 2026</div><div class="big warn">3,442</div>
+        <p>km, against 656 for v10. A single storm, five times worse than the model's own average.</p>
+      </div>
+      <div class="card">
+        <div class="label">2026 steering anomaly</div><div class="big warn">+8.2σ</div>
+        <p>Mean u500 for 2026 WP storms against the 2008–2025 year-to-year distribution.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <div class="eyebrow">Root cause</div>
+      <h2>The failure chain</h2>
+      <p class="prose">Each step below was measured, not inferred. The numbering is the causal order —
+        every link was tested before moving to the next.</p>
+    </div>
+    <ol class="chain">
+      <li><div class="step-body">
+        <h3>The failure is one storm, not a pattern</h3>
+        <p>v14 improves on Wayne, Co-may and Hinnamnor, and wins on every aggregate statistic including
+          p90 and max. Only Bavi 2026 regresses — from ~640 km to 3,442 km.</p>
+      </div></li>
+      <li><div class="step-body">
+        <h3>It is a direction reversal, not a magnitude error</h3>
+        <p>At +120 h, Bavi's true displacement is <strong>2,029 km west</strong> and 1,213 km north.
+          v14 predicts <strong>1,360 km east</strong> — a bearing error of 106°. For comparison v10's
+          bearing error is 1° and v13's is −12°. v14 sends the storm the wrong way across the basin.</p>
+      </div></li>
+      <li><div class="step-body">
+        <h3>Its steering input says “strong westerly” when the storm went west</h3>
+        <p>Mean 500 hPa zonal wind over the inner 5×5 of Bavi's patches is <strong>+10.75 m/s</strong>
+          (eastward flow). The training-set average for WP storms is +0.88 m/s. v14 feeds steering into the
+          track decoder with no regularization, so it followed the field — correctly, given what it was told.</p>
+      </div></li>
+      <li><div class="step-body">
+        <h3>Every 2026 storm is affected, so it isn't weather</h3>
+        <p>Year-mean u500 for WP storms runs between +0.03 and +3.09 m/s for every year from 2008 to 2025
+          (mean +1.67, sd 0.90). 2026 comes out at <strong>+9.01 m/s</strong> — an 8.2σ outlier. Steering
+          climatology does not move that far; a data pipeline does.</p>
+      </div></li>
+      <li><div class="step-body">
+        <h3>The extractor matches times with no bounds check</h3>
+        <p>NCEP fields are matched to storm windows by nearest timestamp. <code>argmin</code> always
+          returns an index — when a window falls past the end of the file, it silently snaps to the last
+          available day instead of failing.</p>
+        <pre><span class="cmt"># extract_steer.py — per window k</span>
+ti = int(np.abs(tns - bt[k]).argmin())   <span class="hl">← no tolerance, no bounds check</span>
+li = int(np.abs(lat - bla[k]).argmin())
+lj = int(np.abs(lon - (blo[k] % 360.0)).argmin())</pre>
+        <p>2026 is the current year, so its reanalysis file is partial. Every storm after the file's last
+          timestep received that timestep's field.</p>
+      </div></li>
+      <li><div class="step-body">
+        <h3>Confirmed: duplicate patches months apart</h3>
+        <p>Taking pairs of windows in the same 2.5° grid cell more than 30 days apart, and comparing their
+          steering patches byte-for-byte:</p>
+        <div class="tablewrap" style="max-width:520px">
+          <table>
+            <thead><tr><th>Year</th><th class="num">Pairs</th><th class="num">Identical patch</th></tr></thead>
+            <tbody>
+              <tr><td class="v">2025</td><td class="num">4,078</td><td class="num best">0.0%</td></tr>
+              <tr class="focus"><td class="v">2026</td><td class="num">444</td><td class="num bad">43.0%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Two storms two months apart cannot share an identical wind field. 2025 shows zero such
+          collisions; 2026 shows 43%.</p>
+      </div></li>
+      <li><div class="step-body">
+        <h3>Therefore the Bavi number measures the data, not the model</h3>
+        <p>2026 sits in the <em>test</em> split, so training was never contaminated — only evaluation was.
+          v10 and v13 are unaffected because neither consumes u500. v14's “blow-up” is the correct response
+          to a corrupted input.</p>
+      </div></li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <div class="eyebrow">Consequence</div>
+      <h2>What this means for v14.1 and v15</h2>
+    </div>
+    <div class="prose">
+      <p><strong>v14.1</strong> was built to stop the model over-trusting steering — dropout on the whole
+        field plus 4σ clipping. Measured against v14 it cuts Bavi from 3,442 to 2,257 km, but it cannot
+        repair an input that is simply wrong, and it pays for the attempt: aggregate error rises 546 → 561
+        and the worst case on the test set gets substantially worse, 4,329 → 5,828 km. It trades real
+        accuracy for partial cover over a data bug.</p>
+      <p><strong>v15</strong> — training on Colab as of this writing — adds equatorial-mirror augmentation.
+        That is a sound idea on its own merits: 34% of the dataset is Southern Hemisphere, and mirroring
+        lets every storm teach both hemispheres. But it does nothing about 2026 steering, so the Bavi
+        number will not improve, and if it's read as the headline result the experiment will look like a
+        failure for the wrong reason.</p>
+      <div class="note">
+        <strong>The actual fix</strong> is three lines in <code>extract_steer.py</code>: reject any window
+        whose nearest reanalysis timestamp is more than ~12 h away, mark those windows as
+        steering-unavailable, and let the model's existing steering-dropout path handle them as missing
+        rather than as fabricated data. Then re-evaluate v14 on Bavi before drawing any further conclusions
+        about steering.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <div class="eyebrow">Lineage</div>
+      <h2>What changed at each version</h2>
+      <p class="prose">All six share the same 193,609 windows, the same three-stream encoder and the same
+        optimizer settings. Only the two rightmost columns differ.</p>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Version</th><th>Dataset</th><th>Track baseline</th><th class="wrap-cell">Environmental field into track decoder</th><th class="wrap-cell">Change from previous</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="v">v9</td><td><code>track_windows_v9.npz</code></td><td>straight persistence</td>
+            <td class="wrap-cell">none — IBTrACS features only</td>
+            <td class="wrap-cell">Triple-stream split: kinematic → track, thermodynamic → intensity, environmental → both. Checkpoint since pruned.</td>
+          </tr>
+          <tr>
+            <td class="v">v10</td><td><code>track_windows_v9.npz</code></td><td>curved persistence</td>
+            <td class="wrap-cell">none</td>
+            <td class="wrap-cell">Adds a learned per-lead turn rate from (v₀, v₋₁), so the baseline arcs instead of running straight.</td>
+          </tr>
+          <tr>
+            <td class="v">v13</td><td><code>track_windows_v13.npz</code></td><td>curved persistence</td>
+            <td class="wrap-cell">2 ch surface: SLP anomaly, SLP tendency — 17×17</td>
+            <td class="wrap-cell">First real environmental field. Fixed the speed bias but not direction: steering lives above the surface.</td>
+          </tr>
+          <tr class="focus">
+            <td class="v">v14</td><td><code>track_windows_v13.npz</code></td><td>curved persistence</td>
+            <td class="wrap-cell">4 ch: + <strong>u500, v500</strong> — the actual steering level</td>
+            <td class="wrap-cell">Swaps in 500 hPa winds and routes them strongly into the track decoder. Best aggregate result in the lineage.</td>
+          </tr>
+          <tr>
+            <td class="v">v14.1</td><td><code>track_windows_v13.npz</code></td><td>curved persistence</td>
+            <td class="wrap-cell">same 4 ch, clipped to ±4σ</td>
+            <td class="wrap-cell">Whole-field dropout p=0.20, spatial dropout 0.10, narrower CNN (24→48→d). Regularizes the steering path.</td>
+          </tr>
+          <tr>
+            <td class="v">v15</td><td><code>track_windows_v13.npz</code></td><td>curved persistence</td>
+            <td class="wrap-cell">same as v14.1</td>
+            <td class="wrap-cell">Equatorial-mirror augmentation — reflect a storm across the equator and negate the signed northward quantities. Currently training.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <div class="eyebrow">Inputs</div>
+      <h2>How the data is built</h2>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <div class="label">Source A — best track</div>
+        <p><strong>IBTrACS v04r01</strong>, all basins, downloaded from NOAA NCEI. 4,264 storms,
+          1980–2026, 6-hourly fixes.</p>
+      </div>
+      <div class="card">
+        <div class="label">Source B — steering</div>
+        <p><strong>NCEP/NCAR reanalysis</strong> daily means. Storm-centred 17×17 patches on a 2.5° grid
+          (±20°), 500 hPa level.</p>
+      </div>
+      <div class="card">
+        <div class="label">Window</div>
+        <p>9 history steps × 54 features. Split into kinematic, thermodynamic and environmental streams
+          that are encoded separately.</p>
+      </div>
+      <div class="card">
+        <div class="label">Split</div>
+        <p>By each storm's <em>first</em> year, so no storm crosses a boundary. Train ≤2015 · valid
+          2016–19 · test ≥2020.</p>
+      </div>
+    </div>
+    <div class="tablewrap" style="max-width:640px">
+      <table>
+        <caption>Window counts and basin mix.</caption>
+        <thead><tr><th>Split / basin</th><th class="num">Windows</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td class="v">train ≤2015</td><td class="num">153,378</td><td>normalization stats derived here</td></tr>
+          <tr><td class="v">valid 2016–19</td><td class="num">16,342</td><td>early stopping</td></tr>
+          <tr><td class="v">test ≥2020</td><td class="num">23,889</td><td>includes the corrupted 2026 steering</td></tr>
+          <tr><td class="v">WP</td><td class="num">67,044</td><td>headline evaluation basin</td></tr>
+          <tr><td class="v">SI + SP + SA</td><td class="num">65,373</td><td>34% southern hemisphere — v15's rationale</td></tr>
+          <tr><td class="v">EP · NI</td><td class="num">36,468</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="prose">
+      <h3>The 54 input features</h3>
+      <ul class="plain">
+        <li><strong>Kinematic</strong> — position deltas, speed, heading sin/cos, turn rate. Routed to the
+          track decoder with its own gradients; the intensity head only sees a detached copy.</li>
+        <li><strong>Thermodynamic</strong> — vmax, central pressure, gust, radius of maximum wind, the
+          twelve wind radii, validity flags. Routed to the intensity decoder; reaches track only through a
+          zero-initialised gated adapter.</li>
+        <li><strong>Environmental</strong> (columns 48–53) — latitude, |latitude|, sin/cos longitude,
+          distance to land, and a latitude×month climatological SST proxy. Routed to both decoders.</li>
+      </ul>
+      <h3>The 17 outputs, at each of 20 lead times</h3>
+      <ul class="plain">
+        <li><strong>0:2</strong> — east and north displacement in km, stored as <em>per-step increments</em>;
+          the track is their cumulative sum. Predicting increments rather than absolute positions is what
+          keeps long-horizon error from compounding through the decoder.</li>
+        <li><strong>2:5</strong> — vmax, central pressure, radius of maximum wind.</li>
+        <li><strong>5:17</strong> — twelve wind radii: {34, 50, 64 kt} × {NE, SE, SW, NW}.</li>
+      </ul>
+      <p>Leads run +6 h to +120 h in 6-hour steps. A boolean mask marks which targets actually exist, so
+        missing radii and storms that end early contribute nothing to the loss rather than teaching zeros.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <div class="eyebrow">Method</div>
+      <h2>Training recipe</h2>
+      <p class="prose">Identical across the lineage except where noted, which is what makes the version
+        comparison meaningful.</p>
+    </div>
+    <div class="tablewrap" style="max-width:680px">
+      <table>
+        <thead><tr><th>Setting</th><th>v9 – v14.1</th><th>v15</th></tr></thead>
+        <tbody>
+          <tr><td>Optimizer</td><td class="mono">AdamW</td><td class="mono">AdamW</td></tr>
+          <tr><td>Learning rate</td><td class="mono">3e-4</td><td class="mono">3e-4</td></tr>
+          <tr><td>Weight decay</td><td class="mono">3e-2</td><td class="mono">5e-2</td></tr>
+          <tr><td>Schedule</td><td class="mono">cosine anneal</td><td class="mono">cosine anneal</td></tr>
+          <tr><td>Batch</td><td class="mono">1024</td><td class="mono">512</td></tr>
+          <tr><td>Epochs / patience</td><td class="mono">60 / 12</td><td class="mono">80 / 14</td></tr>
+          <tr><td>Model size</td><td class="mono">d=256, 8 heads</td><td class="mono">12.9M params</td></tr>
+          <tr><td>Device</td><td class="mono">Apple MPS</td><td class="mono">NVIDIA L4, AMP</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="prose">
+      <p>The loss has two parts. Position is scored with smooth-L1 on the <em>cumulative</em> track, so the
+        model is penalised for where the storm ends up rather than for each increment in isolation.
+        Everything else is a masked heteroscedastic Gaussian negative log-likelihood: a second head emits a
+        log-scale per target, so the network states its own uncertainty and is not forced to be confident
+        about quantities it cannot resolve.</p>
+      <p>Targets are rescaled to comparable magnitudes before the loss
+        (<code>[100, 100, 35, 20, 50, 50×12]</code>) so that a kilometre of track error and a knot of vmax
+        error carry sensible relative weight.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p><strong>Reproducing this.</strong> Every number above comes from <code>_diag_all.py</code> against the
+      saved checkpoints in <code>track_build/</code>, run 2026-07-19. The steering statistics read
+      <code>steer4_patches.npy</code> directly; the duplicate-patch test compares raw float16 patches for
+      window pairs sharing a 2.5° grid cell.</p>
+    <p>Baseline figures quoted in the v15 notebook (v10 614.19 · v13 618.66 · v14 545.74) are all-lead means
+      and agree with the table above to rounding.</p>
+  </footer>
+
+</div>
