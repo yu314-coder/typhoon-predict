@@ -44,9 +44,10 @@ vpair = np.concatenate([v0, vp], 1).astype("float32")
 SC = torch.tensor([100., 100., 35., 20., 50.] + [50.] * 12)
 
 DRV = "/content/drive/MyDrive/typhoon"
-CK = [f"{DRV}/v17_seed{i}.pt" for i in range(5)]
+CK = [f"/content/v19_seed{i}.pt" for i in range(NS)]
+CK = [c if os.path.exists(c) else f"{DRV}/{os.path.basename(c)}" for c in CK]
 CK = [c for c in CK if os.path.exists(c)]
-assert CK, f"no v17 checkpoints under {DRV}"
+assert CK, "no v19 checkpoints found"
 M = []
 for c in CK:
     sd = torch.load(c, map_location="cpu", weights_only=False)["model"]
@@ -62,7 +63,7 @@ def int_base(tr):
     cur = tr[:, -1, :][:, _SRC] * _tsd[_SRC] + _tmn[_SRC]
     cur = torch.where(cur > 0, cur, torch.zeros_like(cur))
     return (cur / SC[2:]).unsqueeze(1).expand(-1, 20, -1)
-print(f"v17: {len(M)} seeds on CPU", flush=True)
+print(f"v19: {len(M)} seeds on CPU  <- {[os.path.basename(c) for c in CK]}", flush=True)
 
 R = 111.2
 STORMS = [("2026182N09163", "Bavi"), ("1986228N19120", "Wayne"),
@@ -104,8 +105,8 @@ for s, nm in STORMS:
                       "vmax": P[0, :, 2].tolist(), "pressure": P[0, :, 3].tolist(),
                       "rmw": P[0, :, 4].tolist(), "speed": psp.tolist(), "bearing": pbr.tolist(),
                       "err120": float(np.hypot(cE[0, 19] - tE[0, 19], cN[0, 19] - tN[0, 19]))}
-    print(f"{nm:11s} {len(k):3d} windows | v17 mean 120h {err:6.0f} km", flush=True)
+    print(f"{nm:11s} {len(k):3d} windows | v19 mean 120h {err:6.0f} km", flush=True)
 
-json.dump(tracks_out, open("/content/v17_tracks.json", "w"))
-json.dump(series_out, open("/content/v17_series.json", "w"))
-print("wrote /content/v17_tracks.json and /content/v17_series.json")
+json.dump(tracks_out, open("/content/v19_tracks.json", "w"))
+json.dump(series_out, open("/content/v19_series.json", "w"))
+print("wrote /content/v19_tracks.json and /content/v19_series.json")
