@@ -3,7 +3,7 @@ GPU or interrupt a training cell. Rebuilds everything from files; uses no notebo
 
     cd /content && wget -q -O s17.py <raw-url> && python3 s17.py
 """
-import re, os, json, math, urllib.request
+import re, os, sys, json, math, urllib.request
 import numpy as np, torch, torch.nn as nn, torch.nn.functional as F
 
 RAW = "https://raw.githubusercontent.com/yu314-coder/typhoon-predict/main"
@@ -43,6 +43,7 @@ vp = track[:, -2, 2:4] * tstd[2:4] + tmean[2:4]
 vpair = np.concatenate([v0, vp], 1).astype("float32")
 SC = torch.tensor([100., 100., 35., 20., 50.] + [50.] * 12)
 
+NS = int(sys.argv[1]) if len(sys.argv) > 1 else 5
 DRV = "/content/drive/MyDrive/typhoon"
 CK = [f"/content/v19_seed{i}.pt" for i in range(NS)]
 CK = [c if os.path.exists(c) else f"{DRV}/{os.path.basename(c)}" for c in CK]
