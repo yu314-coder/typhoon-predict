@@ -200,5 +200,94 @@ for i, m in enumerate(MS):
     print(f"  v10.2 seed{i}  {np.sqrt(((predict([m]) - T) ** 2).sum(-1)).mean():.2f} km")
 e = float(np.sqrt(((predict(MS) - T) ** 2).sum(-1)).mean())
 print(f"  v10.2 ENSEMBLE ({len(MS)} seeds)  {e:.2f} km")
-print(f"  vs v10: {e - 549.3:+.2f} km   vs v17: {e - 462.8:+.2f} km")
+print(f"  vs v10: {e - 549.3:+.2f} km   vs v17: {e - 462.8:+.2f} km   vs v10.1 542.59: {e - 542.59:+.2f} km")
 json.dump({"v10_2": e}, open("/content/v21.json", "w"))
+
+# ---- export tracks for four storms genuinely outside v10.2's training data ----
+# This runs HERE, in the same cell as training, on purpose. The previous attempt finished, then
+# sat idle while a 191 MB checkpoint tar was fetched by hand -- the runtime timed out and took the
+# weights with it. The thing actually needed downstream is an ~80 KB JSON of predicted positions,
+# and it now exists seconds after the last epoch rather than however long a download takes.
+# Tip is held out above; Allyn/Lilly/Karen predate the 1950 cut, so no model has seen any of them.
+R = 111.2
+NAMES = {"1979275N06159": "Tip", "1949317N09158": "Allyn",
+         "1946222N15152": "Lilly", "1948011N07147": "Karen"}
+
+@torch.no_grad()
+def tracks_for(tr, vp, bt_, bla_, blo_, tgt_, K):
+    P = []
+    for i in range(0, len(K), 64):
+        j = K[i:i + 64]
+        s = torch.stack([m(torch.from_numpy(tr[j]).to(DEVICE),
+                           torch.from_numpy(vp[j]).to(DEVICE))[0] for m in MS]).mean(0)
+        P.append((s * TARGET_SCALE).float().cpu().numpy())
+    A = np.concatenate(P)
+    cE, cN = np.cumsum(A[..., 0], 1), np.cumsum(A[..., 1], 1)
+    T_ = tgt_[K]; tE, tN = np.cumsum(T_[..., 0], 1), np.cumsum(T_[..., 1], 1)
+    lats, lons = [], []
+    for a in range(len(K)):
+        la = bla_[K[a]] + cN[a] / R
+        lo = blo_[K[a]] + cE[a] / (R * np.cos(np.radians((bla_[K[a]] + la) / 2)))
+        lats.append(np.round(la, 3).tolist()); lons.append(np.round(lo, 3).tolist())
+    err = float(np.hypot(cE[:, 19] - tE[:, 19], cN[:, 19] - tN[:, 19]).mean())
+    return {"lat": lats, "lon": lons, "base_time": bt_[K].tolist(),
+            "base_lat": np.round(bla_[K], 3).tolist(), "base_lon": np.round(blo_[K], 3).tolist(),
+            "err120_mean": err, "n": int(len(K))}
+
+EXPORT = {}
+print("\nout-of-dataset tracks (v10.2 ensemble):", flush=True)
+for tag, fn, prenorm in [("tip", "tip_v20_fixed.npz", True),
+                         ("pre1950", "pre1950_windows.npz", False)]:
+    p = f"/content/{fn}"
+    if not os.path.exists(p):
+        urllib.request.urlretrieve(f"{RAW}/track_build/{fn}", p)
+    w = np.load(p, allow_pickle=True)
+    tr = w["track"].astype("float32")
+    assert tr.shape[2] == 55, f"{fn} has {tr.shape[2]} features, expected 55"
+    if not prenorm:
+        # stored against its own build stats -- round-trip to raw and rescale to the v20 training
+        # statistics, since feeding a model inputs normalised by anything else is silent nonsense
+        raw = tr * w["track_std"].astype("float32") + w["track_mean"].astype("float32")
+        tr = (raw - tmean) / tstd
+    vp_ = np.concatenate([tr[:, -1, 2:4] * tstd[2:4] + tmean[2:4],
+                          tr[:, -2, 2:4] * tstd[2:4] + tmean[2:4]], 1).astype("float32")
+    nl_ = w["n_leads"].astype(int); bt_ = w["base_time"].astype("int64")
+    sid_ = w["storm_id"].astype(str)
+    bla_ = w["base_lat"].astype("float64"); blo_ = w["base_lon"].astype("float64")
+    tgt_ = w["target"].astype("float32")
+    out = {}
+    for s, nm in NAMES.items():
+        K = np.where((sid_ == s) & (nl_ == 20))[0]
+        if not len(K):
+            continue
+        K = K[np.argsort(bt_[K])]
+        out[nm] = tracks_for(tr, vp_, bt_, bla_, blo_, tgt_, K)
+        print(f"  {nm:6s} {out[nm]['n']:3d} forecasts | mean 120h {out[nm]['err120_mean']:6.0f} km", flush=True)
+    EXPORT[tag] = out
+
+J = "/content/v21_tracks.json"
+json.dump(EXPORT, open(J, "w"))
+print(f"\nwrote {J} ({os.path.getsize(J)/1000:.0f} KB)", flush=True)
+if os.path.isdir(DATA):
+    try:
+        import shutil; shutil.copy(J, DATA); print("  mirrored to Drive", flush=True)
+    except Exception as ex: print("  (drive copy failed:", ex, ")", flush=True)
+
+# stdout fallback: if both the Drive mirror and the browser download fail, the payload is still
+# recoverable straight from the cell output
+import gzip, base64
+_b = base64.b64encode(gzip.compress(open(J, "rb").read())).decode()
+print(f"\nBASE64 gzip payload, {len(_b)} chars", flush=True)
+print("<<<V21TRACKS", flush=True)
+for i in range(0, len(_b), 200):
+    print(_b[i:i + 200], flush=True)
+print("V21TRACKS>>>", flush=True)
+
+try:
+    from google.colab import files
+    files.download(J)                      # small, so it lands before any idle timeout matters
+    import subprocess
+    subprocess.run("tar cf /content/v21_seeds.tar /content/v21_seed*.pt", shell=True)
+    files.download("/content/v21_seeds.tar")   # 191 MB, strictly a bonus at this point
+except Exception as ex:
+    print("(auto-download unavailable:", ex, ")", flush=True)
