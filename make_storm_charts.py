@@ -29,7 +29,7 @@ def rings_in(lo0, lo1, la0, la1):
 
 D = json.load(open("track_build/storm_forecasts.json"))
 # v17 comes from the Colab export; merge it in as a third model where available
-for _tag in ("v17", "v18"):
+for _tag in ("v17", "v18", "v19"):
     _p = f"track_build/{_tag}_series.json"
     if os.path.exists(_p):
         for _nm, _r in json.load(open(_p)).items():
@@ -38,7 +38,7 @@ for _tag in ("v17", "v18"):
                 D[_nm][_tag]["err120"] = _r.get("err120", float("nan"))
 LEADS = [6 * (i + 1) for i in range(20)]
 SERIES = [("observed", "observed", "obs"), ("v10", "v10", "v10"), ("v14", "v14", "v14")]
-for _t in ("v17", "v18"):
+for _t in ("v17", "v18", "v19"):
     if any(_t in v for v in D.values()):
         SERIES = SERIES + [(_t, _t, _t)]
 # validated: node scripts/validate_palette.js "#2a78d6,#e34948" (light) / "#3987e5,#e66767" (dark)

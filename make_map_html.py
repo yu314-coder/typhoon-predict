@@ -12,26 +12,37 @@ apart and draw a route the model never predicted.
 """
 import json, math, os
 
+TD = os.environ.get("TRACK_DIR", "track_build")
+
 LAND = json.load(open("track_build/geo/ne/ne_50m_land.geojson"))
-V10 = json.load(open("track_build/v10_tracks.json"))
+V10 = json.load(open(f"{TD}/v10_tracks.json"))
 CONS = {}
 for _t in ("v10", "v17", "v18", "v19"):
-    _c = f"track_build/{_t}_consensus.json"
+    _c = f"{TD}/{_t}_consensus.json"
     if os.path.exists(_c):
         CONS[_t] = json.load(open(_c))
-MODELS = [("v10", V10)]
-for _t in ("v17", "v18"):
-    _p = f"track_build/{_t}_tracks.json"
+_want = [t.strip() for t in os.environ.get("MAP_MODELS", "v10,v17,v18,v19").split(",") if t.strip()]
+MODELS = [("v10", V10)] if "v10" in _want else []
+for _t in ("v13", "v14", "v17", "v18", "v19"):
+    if _t not in _want:
+        continue
+    _p = f"{TD}/{_t}_tracks.json"
     if os.path.exists(_p):
         MODELS.append((_t, json.load(open(_p))))
-STORMS = [("Bavi", "2026"), ("Wayne", "1986"), ("Co-may", "2025"), ("Hinnamnor", "2022")]
+STORMS = [tuple(x.split(":")) for x in os.environ["MAP_STORMS"].split(",")] \
+         if os.environ.get("MAP_STORMS") else \
+         [("Bavi", "2026"), ("Wayne", "1986"), ("Co-may", "2025"), ("Hinnamnor", "2022")]
 # validated both modes: node validate_palette.js "#eda100,#e34948,#2a78d6,#1baf7a" light
 #                        node validate_palette.js "#c98500,#e66767,#3987e5,#199e70" dark
-COL = {"v10": ("#eda100", "#c98500"), "v14": ("#e34948", "#e66767"),
-       "v17": ("#2a78d6", "#3987e5"), "v18": ("#1baf7a", "#199e70")}
+COL = {"v10": ("#eda100", "#c98500"), "v13": ("#e87ba4", "#d55181"), "v14": ("#e34948", "#e66767"),
+       "v17": ("#2a78d6", "#3987e5"), "v18": ("#1baf7a", "#199e70"),
+       "v19": ("#4a3aa7", "#9085e9")}
 NOTE = {"v10": "no environmental field at all",
+        "v13": "surface SLP only",
+        "v14": "500 hPa steering, original data",
         "v17": "steering + repaired data + 4-term track loss",
-        "v18": "v17 + EMA, stronger dropout, input jitter"}
+        "v18": "v17 + EMA, stronger dropout, input jitter",
+        "v19": "v17 + intensity persistence baseline, rarity + speed weighting"}
 
 
 def rings_in(lo0, lo1, la0, la1):
@@ -119,8 +130,17 @@ def panel(tag, rec, obs_lat, obs_lon, storm=None, W=520, H=380):
         o.append(f'<path class="spag" d="{d}"/>')
     labels = []
     cc = CONS.get(tag, {}).get(storm)
-    if cc:
-        # the equal-weight mean lost on all 4 storms x 3 models, by ~55%. Draw the winner.
+    if cc and os.environ.get("MAP_BOTH"):
+        # show the plain valid-time mean AND the weighted+smoothed consensus side by side
+        mla, mlo = mean_by_valid_time(BT, LAT, LON)
+        o.append('<path class="rawmean" d="M' +
+                 " L".join(f"{PX(lo):.1f},{PY(la):.1f}" for la, lo in zip(mla, mlo)) + '"/>')
+        labels.append((PY(mla[-1]), PX(mlo[-1]), "mean"))
+        pts_w = cc.get("smooth") or cc["rmt"]
+        o.append('<path class="meanline" d="M' +
+                 " L".join(f"{PX(p[1]):.1f},{PY(p[0]):.1f}" for p in pts_w) + '"/>')
+        labels.append((PY(pts_w[-1][0]), PX(pts_w[-1][1]), "weighted"))
+    elif cc:
         pts_w = cc.get("smooth") or cc["rmt"]
         o.append('<path class="meanline" d="M' +
                  " L".join(f"{PX(p[1]):.1f},{PY(p[0]):.1f}" for p in pts_w) + '"/>')
@@ -173,16 +193,16 @@ HTML = f"""<title>TrackFormer — forecast tracks on the map</title>
 <style>
 :root{{color-scheme:light;--bg:#f2f4f6;--surface:#fcfcfb;--surface-2:#e9edf1;--ink:#111820;--body:#2c3a47;
  --muted:#5d6c7a;--line:#d5dce3;--sea:#eaf1f5;--land:#dfe3e0;--coast:#a8b3ba;
- --c-v10:#eda100;--c-v14:#e34948;--c-v17:#2a78d6;--c-v18:#1baf7a;--obs:#11181f;
+ --c-v10:#eda100;--c-v14:#e34948;--c-v17:#2a78d6;--c-v18:#1baf7a;--c-v19:#4a3aa7;--obs:#11181f;
  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;}}
 @media (prefers-color-scheme:dark){{:root:where(:not([data-theme="light"])){{color-scheme:dark;
  --bg:#0c1117;--surface:#141c25;--surface-2:#1b242f;--ink:#e8eef4;--body:#c2cdd8;--muted:#8697a5;
  --line:#26313d;--sea:#101b24;--land:#26313a;--coast:#4a5a66;
- --c-v10:#c98500;--c-v14:#e66767;--c-v17:#3987e5;--c-v18:#199e70;--obs:#f0f5fa;}}}}
+ --c-v10:#c98500;--c-v14:#e66767;--c-v17:#3987e5;--c-v18:#199e70;--c-v19:#9085e9;--obs:#f0f5fa;}}}}
 :root[data-theme="dark"]{{color-scheme:dark;--bg:#0c1117;--surface:#141c25;--surface-2:#1b242f;
  --ink:#e8eef4;--body:#c2cdd8;--muted:#8697a5;--line:#26313d;--sea:#101b24;--land:#26313a;
- --coast:#4a5a66;--c-v10:#c98500;--c-v14:#e66767;--c-v17:#3987e5;--c-v18:#199e70;--obs:#f0f5fa;}}
+ --coast:#4a5a66;--c-v10:#c98500;--c-v14:#e66767;--c-v17:#3987e5;--c-v18:#199e70;--c-v19:#9085e9;--obs:#f0f5fa;}}
 body{{background:var(--bg);color:var(--body);font-family:var(--sans);font-size:16px;line-height:1.6;}}
 .wrap{{max-width:1180px;margin:0 auto;padding:clamp(26px,5vw,56px) clamp(16px,4vw,34px) 90px;
  display:flex;flex-direction:column;gap:44px;}}
@@ -215,10 +235,13 @@ figcaption b{{color:var(--ink);font-family:var(--mono);}}
 .tk{{font-family:var(--mono);font-size:8.5px;fill:var(--muted);}}
 .spag{{fill:none;stroke-width:.8;opacity:.3;stroke-linejoin:round;stroke-linecap:round;}}
 .meanline{{fill:none;stroke-width:2.8;stroke-linejoin:round;stroke-linecap:round;}}
+.rawmean{{fill:none;stroke-width:2;stroke-dasharray:5 3;opacity:.62;stroke-linejoin:round;stroke-linecap:round;}}
 .rmtline{{fill:none;stroke-width:2.6;stroke-dasharray:7 3.5;stroke-linejoin:round;stroke-linecap:round;}}
-[data-model="v10"] .spag,[data-model="v10"] .meanline{{stroke:var(--c-v10);}}
-[data-model="v17"] .spag,[data-model="v17"] .meanline{{stroke:var(--c-v17);}}
-[data-model="v18"] .spag,[data-model="v18"] .meanline{{stroke:var(--c-v18);}}
+[data-model="v10"] .spag,[data-model="v10"] .meanline,[data-model="v10"] .rawmean{{stroke:var(--c-v10);}}
+[data-model="v17"] .spag,[data-model="v17"] .meanline,[data-model="v17"] .rawmean{{stroke:var(--c-v17);}}
+[data-model="v18"] .spag,[data-model="v18"] .meanline,[data-model="v18"] .rawmean{{stroke:var(--c-v18);}}
+[data-model="v19"] .spag,[data-model="v19"] .meanline,[data-model="v19"] .rawmean{{stroke:var(--c-v19);}}
+[data-model="v14"] .spag,[data-model="v14"] .meanline,[data-model="v14"] .rawmean{{stroke:var(--c-v14);}}
 [data-model="v10"] .rmtline{{stroke:var(--c-v10);}}
 [data-model="v17"] .rmtline{{stroke:var(--c-v17);}}
 [data-model="v18"] .rmtline{{stroke:var(--c-v18);}}
@@ -229,20 +252,23 @@ figcaption b{{color:var(--ink);font-family:var(--mono);}}
 [data-model="v10"] .cl{{fill:var(--c-v10);}}
 [data-model="v17"] .cl{{fill:var(--c-v17);}}
 [data-model="v18"] .cl{{fill:var(--c-v18);}}
+[data-model="v19"] .cl{{fill:var(--c-v19);}}
+[data-model="v14"] .cl{{fill:var(--c-v14);}}
 footer{{border-top:1px solid var(--line);padding-top:20px;font-size:13px;color:var(--muted);
  max-width:76ch;display:flex;flex-direction:column;gap:8px;}}
 </style>
 <div class="wrap">
  <header>
   <div class="eyebrow">TrackFormer &middot; every forecast, on the map</div>
-  <h1>Where these models actually send the storm</h1>
+  <h1>{(_want[0] + " vs " + _want[1] + ", head to head") if len(_want) == 2 else "Where these models actually send the storm"}</h1>
   <p class="lede">Four test storms, every full-horizon forecast each one produced — 262 forecasts in
   all. <strong>v10</strong> sees no environmental field whatsoever; <strong>v17</strong> and <strong>v18</strong> see 500&nbsp;hPa
   steering winds on the repaired reanalysis. Each model gets its own panel so overlapping
   tracks never have to be told apart by colour alone.</p>
   <div class="legend">
    <span class="lg"><svg width="26" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="var(--c-v16)" stroke-width="1" opacity=".45"/></svg>one forecast</span>
-   <span class="lg"><svg width="26" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="var(--c-v17)" stroke-width="2.8" stroke-linecap="round"/></svg>consensus (lead-weighted, smoothed)</span>
+   <span class="lg"><svg width="26" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="var(--c-v17)" stroke-width="2" stroke-dasharray="5 3" opacity=".62" stroke-linecap="round"/></svg>plain mean by valid time</span>
+   <span class="lg"><svg width="26" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="var(--c-v17)" stroke-width="2.8" stroke-linecap="round"/></svg>weighted + smoothed consensus</span>
    <span class="lg"><svg width="26" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="var(--obs)" stroke-width="2.4" stroke-dasharray="1.4 2.6" stroke-linecap="round"/></svg>observed</span>
   </div>
  </header>

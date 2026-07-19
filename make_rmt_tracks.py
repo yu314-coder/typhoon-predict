@@ -21,6 +21,9 @@ Writes <tag>_consensus.json next to the track files.
 """
 import json, math, os
 import numpy as np
+
+# TRACK_DIR lets a render point at an alternate set, e.g. the out-of-dataset Tip run
+TD = os.environ.get("TRACK_DIR", "track_build")
 from smooth_consensus import rts_smooth, to_km, to_ll, turn_rate, SIX_H as _S
 
 R = 111.2
@@ -149,8 +152,8 @@ def err_field(rec):
 
 
 if __name__ == "__main__":
-    for tag in ("v10", "v17", "v18", "v19"):
-        p = f"track_build/{tag}_tracks.json"
+    for tag in os.environ.get("RMT_MODELS", "v10,v17,v18,v19").split(","):
+        p = f"{TD}/{tag}_tracks.json"
         if not os.path.exists(p):
             continue
         D = json.load(open(p))
@@ -215,7 +218,7 @@ if __name__ == "__main__":
             print(f"{'':5s}   {nm:11s} {em:8.1f} {ew:9.1f} {es:9.1f} | "
                   f"{r['turn_mean']:6.1f} {r['turn_rmt']:6.1f} {r['turn_smooth']:6.1f} "
                   f"{r['turn_obs']:6.1f}")
-        json.dump(out, open(f"track_build/{tag}_consensus.json", "w"))
+        json.dump(out, open(f"{TD}/{tag}_consensus.json", "w"))
     print("\nWeights are min-variance on an MP-cleaned lead x lead error covariance, fitted")
     print("LEAVE-ONE-STORM-OUT. This is an ANALYSIS track, not a forecast: it leans on short-lead")
     print("members, so it is not comparable to a 120 h forecast error.")
