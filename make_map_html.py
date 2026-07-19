@@ -14,10 +14,19 @@ import json, math, os
 
 LAND = json.load(open("track_build/geo/ne/ne_50m_land.geojson"))
 V10 = json.load(open("track_build/v10_tracks.json"))
-V16 = json.load(open("track_build/v16_tracks.json")) if os.path.exists("track_build/v16_tracks.json") else None
+# prefer v17 (current best) and fall back to v16 if it has not been exported yet
+if os.path.exists("track_build/v17_tracks.json"):
+    NEW, NEWTAG = json.load(open("track_build/v17_tracks.json")), "v17"
+elif os.path.exists("track_build/v16_tracks.json"):
+    NEW, NEWTAG = json.load(open("track_build/v16_tracks.json")), "v16"
+else:
+    NEW, NEWTAG = None, "v17"
+V16 = NEW
 STORMS = [("Bavi", "2026"), ("Wayne", "1986"), ("Co-may", "2025"), ("Hinnamnor", "2022")]
-COL = {"v10": ("#4a3aa7", "#9085e9"), "v16": ("#2a78d6", "#3987e5")}
-NOTE = {"v10": "no environmental field at all", "v16": "500 hPa steering + observed SST"}
+COL = {"v10": ("#4a3aa7", "#9085e9"), "v16": ("#2a78d6", "#3987e5"), "v17": ("#2a78d6", "#3987e5")}
+NOTE = {"v10": "no environmental field at all",
+        "v16": "500 hPa steering + observed SST",
+        "v17": "500 hPa steering, repaired data, 4-term track loss"}
 
 
 def rings_in(lo0, lo1, la0, la1):
@@ -41,14 +50,29 @@ def rings_in(lo0, lo1, la0, la1):
     return out
 
 
+SIX_H = int(6 * 3600 * 1e9)
+MIN_MEMBERS = 3
+
+
 def mean_by_valid_time(bts, lats, lons):
+    """Mean forecast position per valid time.
+
+    Valid times are SNAPPED to the native 6-hour best-track grid first. Some storms carry 3-hourly
+    fixes, which puts consecutive valid times in disjoint sets of initialisations — the mean then
+    alternates between two unrelated subsets and draws a sawtooth, with steps up to 354 km per 3 h
+    for Bavi, which no storm does. Snapping makes neighbouring bins share most of their members.
+
+    Bins with fewer than MIN_MEMBERS forecasts are dropped: at the ends of a storm's life only one
+    initialisation reaches that far, and a one-member 'mean' is just that single forecast wearing a
+    bold line.
+    """
     acc = {}
     for w, bt in enumerate(bts):
         for L in range(20):
-            vt = int(bt) + int((L + 1) * 6 * 3600 * 1e9)
+            vt = int(round((int(bt) + (L + 1) * SIX_H) / SIX_H)) * SIX_H
             a = acc.setdefault(vt, [0.0, 0.0, 0])
             a[0] += lats[w][L]; a[1] += lons[w][L]; a[2] += 1
-    ts = sorted(acc)
+    ts = [t for t in sorted(acc) if acc[t][2] >= MIN_MEMBERS]
     return [acc[t][0] / acc[t][2] for t in ts], [acc[t][1] / acc[t][2] for t in ts]
 
 
@@ -105,7 +129,7 @@ for nm, yr in STORMS:
         continue
     obs_lat, obs_lon = V10[nm]["base_lat"], V10[nm]["base_lon"]
     cards = []
-    for tag, src in [("v10", V10), ("v16", V16)]:
+    for tag, src in [("v10", V10), (NEWTAG, NEW)]:
         if src is None or nm not in src:
             cards.append('<div class="panel pending"><p>v16 tracks not yet exported from the '
                          'training session.</p></div>')
@@ -129,16 +153,16 @@ HTML = f"""<title>TrackFormer — forecast tracks on the map</title>
 <style>
 :root{{color-scheme:light;--bg:#f2f4f6;--surface:#fcfcfb;--surface-2:#e9edf1;--ink:#111820;--body:#2c3a47;
  --muted:#5d6c7a;--line:#d5dce3;--sea:#eaf1f5;--land:#dfe3e0;--coast:#a8b3ba;
- --c-v10:#4a3aa7;--c-v16:#2a78d6;--obs:#11181f;
+ --c-v10:#4a3aa7;--c-v16:#2a78d6;--c-v17:#2a78d6;--obs:#11181f;
  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;}}
 @media (prefers-color-scheme:dark){{:root:where(:not([data-theme="light"])){{color-scheme:dark;
  --bg:#0c1117;--surface:#141c25;--surface-2:#1b242f;--ink:#e8eef4;--body:#c2cdd8;--muted:#8697a5;
  --line:#26313d;--sea:#101b24;--land:#26313a;--coast:#4a5a66;
- --c-v10:#9085e9;--c-v16:#3987e5;--obs:#f0f5fa;}}}}
+ --c-v10:#9085e9;--c-v16:#3987e5;--c-v17:#3987e5;--obs:#f0f5fa;}}}}
 :root[data-theme="dark"]{{color-scheme:dark;--bg:#0c1117;--surface:#141c25;--surface-2:#1b242f;
  --ink:#e8eef4;--body:#c2cdd8;--muted:#8697a5;--line:#26313d;--sea:#101b24;--land:#26313a;
- --coast:#4a5a66;--c-v10:#9085e9;--c-v16:#3987e5;--obs:#f0f5fa;}}
+ --coast:#4a5a66;--c-v10:#9085e9;--c-v16:#3987e5;--c-v17:#3987e5;--obs:#f0f5fa;}}
 body{{background:var(--bg);color:var(--body);font-family:var(--sans);font-size:16px;line-height:1.6;}}
 .wrap{{max-width:1180px;margin:0 auto;padding:clamp(26px,5vw,56px) clamp(16px,4vw,34px) 90px;
  display:flex;flex-direction:column;gap:44px;}}
@@ -173,6 +197,7 @@ figcaption b{{color:var(--ink);font-family:var(--mono);}}
 .meanline{{fill:none;stroke-width:2.8;stroke-linejoin:round;stroke-linecap:round;}}
 [data-model="v10"] .spag,[data-model="v10"] .meanline{{stroke:var(--c-v10);}}
 [data-model="v16"] .spag,[data-model="v16"] .meanline{{stroke:var(--c-v16);}}
+[data-model="v17"] .spag,[data-model="v17"] .meanline{{stroke:var(--c-v17);}}
 .obs{{fill:none;stroke:var(--obs);stroke-width:2.4;stroke-dasharray:1.4 2.6;stroke-linecap:round;}}
 .start{{fill:var(--surface);stroke:var(--obs);stroke-width:2;}}
 .startl{{font-family:var(--mono);font-size:9.5px;fill:var(--obs);font-weight:600;}}
@@ -184,8 +209,8 @@ footer{{border-top:1px solid var(--line);padding-top:20px;font-size:13px;color:v
   <div class="eyebrow">TrackFormer &middot; every forecast, on the map</div>
   <h1>Where these models actually send the storm</h1>
   <p class="lede">Four test storms, every full-horizon forecast each one produced — 262 forecasts in
-  all. <strong>v10</strong> sees no environmental field whatsoever; <strong>v16</strong> sees 500&nbsp;hPa
-  steering winds and observed sea-surface temperature. Each model gets its own panel so overlapping
+  all. <strong>v10</strong> sees no environmental field whatsoever; <strong>{NEWTAG}</strong> sees 500&nbsp;hPa
+  steering winds on the repaired reanalysis. Each model gets its own panel so overlapping
   tracks never have to be told apart by colour alone.</p>
   <div class="legend">
    <span class="lg"><svg width="26" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="var(--c-v16)" stroke-width="1" opacity=".45"/></svg>one forecast</span>

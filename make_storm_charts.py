@@ -4,10 +4,20 @@ how a storm behaves. Reads track_build/storm_forecasts.json, writes paper/storm_
 import json, math, os
 
 D = json.load(open("track_build/storm_forecasts.json"))
+# v17 comes from the Colab export; merge it in as a third model where available
+if os.path.exists("track_build/v17_series.json"):
+    _v17 = json.load(open("track_build/v17_series.json"))
+    for _nm, _r in _v17.items():
+        if _nm in D:
+            D[_nm]["v17"] = _r
+            D[_nm]["v17"]["err120"] = _r.get("err120", float("nan"))
 LEADS = [6 * (i + 1) for i in range(20)]
 SERIES = [("observed", "observed", "obs"), ("v10", "v10", "v10"), ("v14", "v14", "v14")]
+if any("v17" in v for v in D.values()):
+    SERIES = SERIES + [("v17", "v17", "v17")]
 # validated: node scripts/validate_palette.js "#2a78d6,#e34948" (light) / "#3987e5,#e66767" (dark)
-COL = {"observed": ("#111820", "#e8eef4"), "v10": ("#2a78d6", "#3987e5"), "v14": ("#e34948", "#e66767")}
+COL = {"observed": ("#111820", "#e8eef4"), "v10": ("#2a78d6", "#3987e5"),
+       "v14": ("#e34948", "#e66767"), "v17": ("#1baf7a", "#199e70")}
 
 PANELS = [("vmax", "Peak wind", "kt"), ("pressure", "Central pressure", "hPa"),
           ("rmw", "Radius of max wind", "km"), ("speed", "Forward speed", "km/h"),
@@ -129,8 +139,8 @@ sections = []
 for nm in ["Bavi", "Wayne", "Co-may", "Hinnamnor"]:
     if nm not in D: continue
     r = D[nm]
-    e10, e14 = r["v10"]["err120"], r["v14"]["err120"]
-    win = "v10" if e10 < e14 else "v14"
+    errs = {k: r[k]["err120"] for k, _, _ in SERIES if k != "observed" and k in r}
+    win = min(errs, key=errs.get)
     panels = "".join(f'<figure class="panel"><figcaption><h3>{t}</h3></figcaption>{linechart(r, k, u)}</figure>'
                      for k, t, u in PANELS)
     sections.append(f"""
@@ -142,9 +152,8 @@ for nm in ["Bavi", "Wayne", "Co-may", "Hinnamnor"]:
       {r['base']['lon']:.1f}&deg;E — the earliest window with a full 5-day horizon, one of
       {r['n_windows']} for this storm. Dotted line is observed.</p>
       <div class="chips">
-        <span class="chip"><i style="background:var(--c-v10)"></i>v10 &nbsp;<b>{e10:.0f} km</b> at 120 h</span>
-        <span class="chip"><i style="background:var(--c-v14)"></i>v14 &nbsp;<b>{e14:.0f} km</b> at 120 h</span>
-        <span class="chip win">{win} closer here</span>
+        {"".join(f'<span class="chip"><i style="background:var(--c-{k})"></i>{k} &nbsp;<b>{v:.0f} km</b> at 120 h</span>' for k, v in errs.items())}
+        <span class="chip win">{win} closest here</span>
       </div>
     </div>
     <div class="storm-grid">
@@ -157,15 +166,15 @@ for nm in ["Bavi", "Wayne", "Co-may", "Hinnamnor"]:
 HTML = f"""<title>TrackFormer — four storms, forecast vs observed</title>
 <style>
 :root{{color-scheme:light;--bg:#f2f4f6;--surface:#fcfcfb;--surface-2:#e9edf1;--ink:#111820;--body:#2c3a47;
- --muted:#5d6c7a;--line:#d5dce3;--c-observed:#111820;--c-v10:#2a78d6;--c-v14:#e34948;
+ --muted:#5d6c7a;--line:#d5dce3;--c-observed:#111820;--c-v10:#2a78d6;--c-v14:#e34948;--c-v17:#1baf7a;
  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;}}
 @media (prefers-color-scheme:dark){{:root:where(:not([data-theme="light"])){{color-scheme:dark;
  --bg:#0c1117;--surface:#141c25;--surface-2:#1b242f;--ink:#e8eef4;--body:#c2cdd8;--muted:#8697a5;
- --line:#26313d;--c-observed:#e8eef4;--c-v10:#3987e5;--c-v14:#e66767;}}}}
+ --line:#26313d;--c-observed:#e8eef4;--c-v10:#3987e5;--c-v14:#e66767;--c-v17:#199e70;}}}}
 :root[data-theme="dark"]{{color-scheme:dark;--bg:#0c1117;--surface:#141c25;--surface-2:#1b242f;
  --ink:#e8eef4;--body:#c2cdd8;--muted:#8697a5;--line:#26313d;
- --c-observed:#e8eef4;--c-v10:#3987e5;--c-v14:#e66767;}}
+ --c-observed:#e8eef4;--c-v10:#3987e5;--c-v14:#e66767;--c-v17:#199e70;}}
 body{{background:var(--bg);color:var(--body);font-family:var(--sans);font-size:16px;line-height:1.6;}}
 .wrap{{max-width:1180px;margin:0 auto;padding:clamp(26px,5vw,58px) clamp(16px,4vw,34px) 90px;
  display:flex;flex-direction:column;gap:46px;}}
