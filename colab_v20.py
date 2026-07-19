@@ -41,8 +41,14 @@ NPZ = "/content/d/track_windows_v20.npz"
 if not os.path.exists(NPZ):
     os.makedirs("/content/d", exist_ok=True)
     src = f"{DATA}/track_windows_v20.npz"
-    assert os.path.exists(src), f"upload track_windows_v20.npz to {DATA} first"
-    import shutil; shutil.copy(src, NPZ)
+    if os.path.exists(src):
+        import shutil; shutil.copy(src, NPZ)
+    else:
+        # No Drive copy: fetch straight from the repo. 63 MB, so this needs no manual upload
+        # and no Drive mount at all -- the whole run can proceed without touching the account.
+        print("fetching the dataset from GitHub (63 MB) ...", flush=True)
+        urllib.request.urlretrieve(f"{RAW}/track_build/track_windows_v20.npz", NPZ)
+    print(f"dataset ready: {os.path.getsize(NPZ)/1e6:.0f} MB", flush=True)
 
 # ---- model definition lifted from the training script that defines v10.1 ----
 if not os.path.exists("/content/_v20.py"):
@@ -138,9 +144,10 @@ def train_one(seed, ckpt):
             best, bad = vv, 0
             torch.save({"model": model.state_dict(), "epoch": ep, "best_val": best,
                         "track_mean": tmean, "track_std": tstd}, ckpt)
-            try:
-                import shutil; shutil.copy(ckpt, DATA)
-            except Exception as e: print("  (drive copy failed:", e, ")")
+            if os.path.isdir(DATA):
+                try:
+                    import shutil; shutil.copy(ckpt, DATA)
+                except Exception as e: print("  (drive copy failed:", e, ")")
         else:
             bad += 1
         print(f"ep {ep:03d} | train {trl:.5f} | val {vv:.5f} | best {best:.5f} | {time.time()-te:.0f}s", flush=True)
