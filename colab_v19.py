@@ -46,6 +46,13 @@ import numpy as np, torch, torch.nn as nn
 
 N_SEEDS = int(os.environ.get("V19_SEEDS", "5"))
 W_CAT = [float(x) for x in os.environ.get("V19_W", "1.0,1.6,2.6,3.6").split(",")]
+# forward speed shows the same mean-collapse as intensity: fast movers (>=35 km/h) are
+# under-predicted by -20.7 km/h against an MAE of 21.3, so ~97% of that error is bias.
+# Up-weight fast windows so the model cannot win by predicting the average storm's speed.
+W_SPEED = [float(x) for x in os.environ.get("V19_WS", "1.0,1.0,1.8,2.8").split(",")]
+# NOTE: heading is deliberately NOT given a bias correction. Measured, its fast-mover bias is
+# -4.5 deg against an MAE of 23.2 -- only ~19% systematic. Heading error is genuine scatter, and
+# a bias-shaped fix would be treating it as a problem it does not have.
 
 # verified empirically: col4 vmax, col5 pressure, col7 rmw, cols 8-19 the twelve radii,
 # aligning with target indices 2,3,4 and 5..16
@@ -85,6 +92,40 @@ def cat_weights(tn, m):
     return w.unsqueeze(-1)
 
 
+def speed_weights(tn, m):
+    """Per (window, lead) weight from the OBSERVED step speed, in km/h."""
+    # tn is scaled by TARGET_SCALE, whose first two entries are 100 -- so *100 recovers km
+    # per 6 h step, and /6 makes it km/h.
+    ts_ = torch.sqrt(((tn[..., :2] * 100.0) ** 2).sum(-1) + 1e-8) / 6.0
+    w = torch.full_like(ts_, W_SPEED[0])
+    w = torch.where(ts_ >= 15, torch.full_like(w, W_SPEED[1]), w)
+    w = torch.where(ts_ >= 25, torch.full_like(w, W_SPEED[2]), w)
+    w = torch.where(ts_ >= 35, torch.full_like(w, W_SPEED[3]), w)
+    return w
+
+
+def track_loss_v19(s, tn, m):
+    """v17's four terms, with the per-step/speed/heading terms weighted by observed speed.
+
+    The cumulative-position term is left unweighted: it is about where the storm ends up, and
+    re-weighting it by instantaneous speed would distort the thing it exists to measure.
+    """
+    pm, tm_, mm = s[..., :2], tn[..., :2], m[..., :2]
+    sw = speed_weights(tn, m).unsqueeze(-1)
+    w = mm * LEADW.view(1, 20, 1) * sw
+    step = (F.smooth_l1_loss(pm, tm_, reduction="none") * w).sum() / w.sum().clamp(min=1)
+    pos = (F.smooth_l1_loss(torch.cumsum(pm, 1), torch.cumsum(tm_, 1), reduction="none")
+           * mm).sum() / mm.sum().clamp(min=1)
+    ps = torch.sqrt((pm ** 2).sum(-1) + 1e-8)
+    ts_ = torch.sqrt((tm_ ** 2).sum(-1) + 1e-8)
+    mv = mm[..., 0] * sw[..., 0]
+    spd = (F.smooth_l1_loss(ps, ts_, reduction="none") * mv).sum() / mv.sum().clamp(min=1)
+    cos = (pm * tm_).sum(-1) / (ps.clamp(min=1e-3) * ts_.clamp(min=1e-3))
+    hv = mv * (ts_ > 1e-3).float()
+    dirl = ((1.0 - cos) * hv).sum() / hv.sum().clamp(min=1)
+    return step + pos + W_SPD * spd + W_DIR * dirl
+
+
 def int_loss_v19(s, logs, tn, m):
     ps, ts_, ms = s[..., 2:], tn[..., 2:], m[..., 2:]
     w = cat_weights(tn, m) * ms
@@ -96,7 +137,7 @@ def int_loss_v19(s, logs, tn, m):
 
 def total_loss_v19(s, logs, tgt, m):
     tn = tgt / TARGET_SCALE
-    return track_loss(s, tn, m) + int_loss_v19(s, logs, tn, m)
+    return track_loss_v19(s, tn, m) + int_loss_v19(s, logs, tn, m)
 
 
 def train_v19(seed, ckpt):
