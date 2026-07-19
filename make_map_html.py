@@ -14,19 +14,24 @@ import json, math, os
 
 LAND = json.load(open("track_build/geo/ne/ne_50m_land.geojson"))
 V10 = json.load(open("track_build/v10_tracks.json"))
-# prefer v17 (current best) and fall back to v16 if it has not been exported yet
-if os.path.exists("track_build/v17_tracks.json"):
-    NEW, NEWTAG = json.load(open("track_build/v17_tracks.json")), "v17"
-elif os.path.exists("track_build/v16_tracks.json"):
-    NEW, NEWTAG = json.load(open("track_build/v16_tracks.json")), "v16"
-else:
-    NEW, NEWTAG = None, "v17"
-V16 = NEW
+CONS = {}
+for _t in ("v10", "v17", "v18", "v19"):
+    _c = f"track_build/{_t}_consensus.json"
+    if os.path.exists(_c):
+        CONS[_t] = json.load(open(_c))
+MODELS = [("v10", V10)]
+for _t in ("v17", "v18"):
+    _p = f"track_build/{_t}_tracks.json"
+    if os.path.exists(_p):
+        MODELS.append((_t, json.load(open(_p))))
 STORMS = [("Bavi", "2026"), ("Wayne", "1986"), ("Co-may", "2025"), ("Hinnamnor", "2022")]
-COL = {"v10": ("#4a3aa7", "#9085e9"), "v16": ("#2a78d6", "#3987e5"), "v17": ("#2a78d6", "#3987e5")}
+# validated both modes: node validate_palette.js "#eda100,#e34948,#2a78d6,#1baf7a" light
+#                        node validate_palette.js "#c98500,#e66767,#3987e5,#199e70" dark
+COL = {"v10": ("#eda100", "#c98500"), "v14": ("#e34948", "#e66767"),
+       "v17": ("#2a78d6", "#3987e5"), "v18": ("#1baf7a", "#199e70")}
 NOTE = {"v10": "no environmental field at all",
-        "v16": "500 hPa steering + observed SST",
-        "v17": "500 hPa steering, repaired data, 4-term track loss"}
+        "v17": "steering + repaired data + 4-term track loss",
+        "v18": "v17 + EMA, stronger dropout, input jitter"}
 
 
 def rings_in(lo0, lo1, la0, la1):
@@ -76,7 +81,7 @@ def mean_by_valid_time(bts, lats, lons):
     return [acc[t][0] / acc[t][2] for t in ts], [acc[t][1] / acc[t][2] for t in ts]
 
 
-def panel(tag, rec, obs_lat, obs_lon, W=520, H=380):
+def panel(tag, rec, obs_lat, obs_lon, storm=None, W=520, H=380):
     m = 34
     LAT, LON, BT = rec["lat"], rec["lon"], rec["base_time"]
     xs = [x for t in LON for x in t] + list(obs_lon)
@@ -115,6 +120,20 @@ def panel(tag, rec, obs_lat, obs_lon, W=520, H=380):
     mla, mlo = mean_by_valid_time(BT, LAT, LON)
     o.append('<path class="meanline" d="M' +
              " L".join(f"{PX(lo):.1f},{PY(la):.1f}" for la, lo in zip(mla, mlo)) + '"/>')
+    labels = [(PY(mla[-1]), PX(mlo[-1]), "mean")]
+    cc = CONS.get(tag, {}).get(storm)
+    if cc:
+        pts_w = cc.get("smooth") or cc["rmt"]
+        o.append('<path class="rmtline" d="M' +
+                 " L".join(f"{PX(p[1]):.1f},{PY(p[0]):.1f}" for p in pts_w) + '"/>')
+        labels.append((PY(pts_w[-1][0]), PX(pts_w[-1][1]), "weighted"))
+    # push apart so the two endpoint labels never overlap
+    labels.sort()
+    for i in range(1, len(labels)):
+        if labels[i][0] - labels[i - 1][0] < 13:
+            labels[i] = (labels[i - 1][0] + 13, labels[i][1], labels[i][2])
+    for ly, lx, txt in labels:
+        o.append(f'<text class="cl" x="{lx+7:.1f}" y="{ly+3.5:.1f}">{txt}</text>')
     o.append('<path class="obs" d="M' +
              " L".join(f"{PX(lo):.1f},{PY(la):.1f}" for la, lo in zip(obs_lat, obs_lon)) + '"/>')
     o.append(f'<circle class="start" cx="{PX(obs_lon[0]):.1f}" cy="{PY(obs_lat[0]):.1f}" r="5"/>')
@@ -129,17 +148,15 @@ for nm, yr in STORMS:
         continue
     obs_lat, obs_lon = V10[nm]["base_lat"], V10[nm]["base_lon"]
     cards = []
-    for tag, src in [("v10", V10), (NEWTAG, NEW)]:
+    for tag, src in MODELS:
         if src is None or nm not in src:
-            cards.append('<div class="panel pending"><p>v16 tracks not yet exported from the '
-                         'training session.</p></div>')
             continue
         rec = src[nm]
         cards.append(
             f'<figure class="panel" data-model="{tag}">'
             f'<figcaption><h3>{tag}<span class="sub">{NOTE[tag]}</span></h3>'
             f'<p><b>{rec["err120_mean"]:.0f} km</b> mean 120 h error over {rec["n"]} forecasts</p>'
-            f'</figcaption>{panel(tag, rec, obs_lat, obs_lon)}</figure>')
+            f'</figcaption>{panel(tag, rec, obs_lat, obs_lon, storm=nm)}</figure>')
     sections.append(f"""
   <section class="storm">
     <div class="sec-head"><div class="eyebrow">{yr}</div><h2>{nm}</h2>
@@ -153,16 +170,16 @@ HTML = f"""<title>TrackFormer — forecast tracks on the map</title>
 <style>
 :root{{color-scheme:light;--bg:#f2f4f6;--surface:#fcfcfb;--surface-2:#e9edf1;--ink:#111820;--body:#2c3a47;
  --muted:#5d6c7a;--line:#d5dce3;--sea:#eaf1f5;--land:#dfe3e0;--coast:#a8b3ba;
- --c-v10:#4a3aa7;--c-v16:#2a78d6;--c-v17:#2a78d6;--obs:#11181f;
+ --c-v10:#eda100;--c-v14:#e34948;--c-v17:#2a78d6;--c-v18:#1baf7a;--obs:#11181f;
  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;}}
 @media (prefers-color-scheme:dark){{:root:where(:not([data-theme="light"])){{color-scheme:dark;
  --bg:#0c1117;--surface:#141c25;--surface-2:#1b242f;--ink:#e8eef4;--body:#c2cdd8;--muted:#8697a5;
  --line:#26313d;--sea:#101b24;--land:#26313a;--coast:#4a5a66;
- --c-v10:#9085e9;--c-v16:#3987e5;--c-v17:#3987e5;--obs:#f0f5fa;}}}}
+ --c-v10:#c98500;--c-v14:#e66767;--c-v17:#3987e5;--c-v18:#199e70;--obs:#f0f5fa;}}}}
 :root[data-theme="dark"]{{color-scheme:dark;--bg:#0c1117;--surface:#141c25;--surface-2:#1b242f;
  --ink:#e8eef4;--body:#c2cdd8;--muted:#8697a5;--line:#26313d;--sea:#101b24;--land:#26313a;
- --coast:#4a5a66;--c-v10:#9085e9;--c-v16:#3987e5;--c-v17:#3987e5;--obs:#f0f5fa;}}
+ --coast:#4a5a66;--c-v10:#c98500;--c-v14:#e66767;--c-v17:#3987e5;--c-v18:#199e70;--obs:#f0f5fa;}}
 body{{background:var(--bg);color:var(--body);font-family:var(--sans);font-size:16px;line-height:1.6;}}
 .wrap{{max-width:1180px;margin:0 auto;padding:clamp(26px,5vw,56px) clamp(16px,4vw,34px) 90px;
  display:flex;flex-direction:column;gap:44px;}}
@@ -180,7 +197,7 @@ header{{display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(
 .storm{{display:flex;flex-direction:column;gap:14px;border-top:1px solid var(--line);padding-top:26px;}}
 .storm:first-of-type{{border-top:none;padding-top:0;}}
 .sec-head{{display:flex;flex-direction:column;gap:6px;}}
-.pair{{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:14px;}}
+.pair{{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:12px;}}
 .panel{{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px 13px 10px;
  margin:0;display:flex;flex-direction:column;gap:7px;}}
 .panel.pending{{display:flex;align-items:center;justify-content:center;min-height:300px;
@@ -195,12 +212,20 @@ figcaption b{{color:var(--ink);font-family:var(--mono);}}
 .tk{{font-family:var(--mono);font-size:8.5px;fill:var(--muted);}}
 .spag{{fill:none;stroke-width:.8;opacity:.3;stroke-linejoin:round;stroke-linecap:round;}}
 .meanline{{fill:none;stroke-width:2.8;stroke-linejoin:round;stroke-linecap:round;}}
+.rmtline{{fill:none;stroke-width:2.6;stroke-dasharray:7 3.5;stroke-linejoin:round;stroke-linecap:round;}}
 [data-model="v10"] .spag,[data-model="v10"] .meanline{{stroke:var(--c-v10);}}
-[data-model="v16"] .spag,[data-model="v16"] .meanline{{stroke:var(--c-v16);}}
 [data-model="v17"] .spag,[data-model="v17"] .meanline{{stroke:var(--c-v17);}}
+[data-model="v18"] .spag,[data-model="v18"] .meanline{{stroke:var(--c-v18);}}
+[data-model="v10"] .rmtline{{stroke:var(--c-v10);}}
+[data-model="v17"] .rmtline{{stroke:var(--c-v17);}}
+[data-model="v18"] .rmtline{{stroke:var(--c-v18);}}
 .obs{{fill:none;stroke:var(--obs);stroke-width:2.4;stroke-dasharray:1.4 2.6;stroke-linecap:round;}}
 .start{{fill:var(--surface);stroke:var(--obs);stroke-width:2;}}
 .startl{{font-family:var(--mono);font-size:9.5px;fill:var(--obs);font-weight:600;}}
+.cl{{font-family:var(--mono);font-size:9.5px;font-weight:700;paint-order:stroke;stroke:var(--sea);stroke-width:2.6px;}}
+[data-model="v10"] .cl{{fill:var(--c-v10);}}
+[data-model="v17"] .cl{{fill:var(--c-v17);}}
+[data-model="v18"] .cl{{fill:var(--c-v18);}}
 footer{{border-top:1px solid var(--line);padding-top:20px;font-size:13px;color:var(--muted);
  max-width:76ch;display:flex;flex-direction:column;gap:8px;}}
 </style>
@@ -209,12 +234,13 @@ footer{{border-top:1px solid var(--line);padding-top:20px;font-size:13px;color:v
   <div class="eyebrow">TrackFormer &middot; every forecast, on the map</div>
   <h1>Where these models actually send the storm</h1>
   <p class="lede">Four test storms, every full-horizon forecast each one produced — 262 forecasts in
-  all. <strong>v10</strong> sees no environmental field whatsoever; <strong>{NEWTAG}</strong> sees 500&nbsp;hPa
+  all. <strong>v10</strong> sees no environmental field whatsoever; <strong>v17</strong> and <strong>v18</strong> see 500&nbsp;hPa
   steering winds on the repaired reanalysis. Each model gets its own panel so overlapping
   tracks never have to be told apart by colour alone.</p>
   <div class="legend">
    <span class="lg"><svg width="26" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="var(--c-v16)" stroke-width="1" opacity=".45"/></svg>one forecast</span>
-   <span class="lg"><svg width="26" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="var(--c-v16)" stroke-width="2.8" stroke-linecap="round"/></svg>mean by valid time</span>
+   <span class="lg"><svg width="26" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="var(--c-v16)" stroke-width="2.8" stroke-linecap="round"/></svg>mean by valid time (solid)</span>
+   <span class="lg"><svg width="26" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="var(--c-v17)" stroke-width="2.6" stroke-dasharray="7 3.5" stroke-linecap="round"/></svg>lead-weighted consensus (dashed)</span>
    <span class="lg"><svg width="26" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="var(--obs)" stroke-width="2.4" stroke-dasharray="1.4 2.6" stroke-linecap="round"/></svg>observed</span>
   </div>
  </header>
@@ -223,6 +249,21 @@ footer{{border-top:1px solid var(--line);padding-top:20px;font-size:13px;color:v
   <p>Coastlines are Natural Earth 50&nbsp;m land polygons, simplified to the resolution each panel can
   actually show. Projection is equirectangular with longitude scaled by cos(latitude), so shapes are
   locally true at the centre of each panel.</p>
+  <p>The weighted consensus is additionally passed through a constant-velocity Kalman/RTS
+  smoother. Solving every valid time independently makes the track jump whenever the short-lead
+  membership rotates, producing turns no storm makes &mdash; on Co-may the point-wise solve swung
+  45&deg; per step. The smoother treats each weighted position as an observation whose variance
+  comes from the min-variance solve itself, so well-determined times pull hard and poorly-determined
+  ones yield to the motion model. Its one parameter is chosen as the <em>least</em> smoothing whose
+  error stays within 2% of the best, because minimising error alone flattens real curvature: a
+  straight line through the middle of a turn scores well and is the wrong shape.</p>
+  <p><strong>The lead-weighted consensus is an analysis, not a forecast.</strong> At each valid time
+  the members come from different initialisations and so carry different lead times; the weights are
+  minimum-variance on a Marchenko-Pastur-cleaned lead&times;lead error covariance, fitted
+  <em>leave-one-storm-out</em>. Because the solution puts ~45% of its weight on leads 1&ndash;4 and
+  none on leads 17&ndash;20, it leans on recent initialisations &mdash; so its error is not comparable
+  to the 120&nbsp;h forecast error beside it. Most of its advantage is simply lead-awareness; RMT only
+  cleans the residual covariance shape.</p>
   <p>The mean is averaged by <em>valid time</em>, not by lead. Forecasts launched hours apart only
   describe the same moment at different lead offsets — averaging by lead would blend positions hours
   apart and draw a route no model ever predicted.</p>
@@ -233,5 +274,5 @@ footer{{border-top:1px solid var(--line);padding-top:20px;font-size:13px;color:v
 
 os.makedirs("paper", exist_ok=True)
 open("paper/storm_maps.html", "w").write(HTML)
-print(f"wrote paper/storm_maps.html ({len(HTML)/1000:.0f} KB)"
-      + ("" if V16 else "  [v16 panels pending — track_build/v16_tracks.json not found]"))
+print(f"wrote paper/storm_maps.html ({len(HTML)/1000:.0f} KB)  models: "
+      + ", ".join(t for t, _ in MODELS))

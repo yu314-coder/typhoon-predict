@@ -3,21 +3,48 @@ how a storm behaves. Reads track_build/storm_forecasts.json, writes paper/storm_
 """
 import json, math, os
 
+LAND = json.load(open("track_build/geo/ne/ne_50m_land.geojson"))
+
+
+def rings_in(lo0, lo1, la0, la1):
+    """Natural Earth land rings overlapping the box, thinned to what this panel can resolve."""
+    out = []
+    for f in LAND["features"]:
+        g = f["geometry"]
+        polys = g["coordinates"] if g["type"] == "MultiPolygon" else [g["coordinates"]]
+        for poly in polys:
+            r = poly[0]
+            xs = [p[0] for p in r]; ys = [p[1] for p in r]
+            if max(xs) < lo0 or min(xs) > lo1 or max(ys) < la0 or min(ys) > la1:
+                continue
+            tol = (lo1 - lo0) / 220.0
+            simp, last = [], None
+            for p in r:
+                if last is None or abs(p[0] - last[0]) > tol or abs(p[1] - last[1]) > tol:
+                    simp.append(p); last = p
+            if len(simp) >= 3:
+                out.append(simp)
+    return out
+
+
 D = json.load(open("track_build/storm_forecasts.json"))
 # v17 comes from the Colab export; merge it in as a third model where available
-if os.path.exists("track_build/v17_series.json"):
-    _v17 = json.load(open("track_build/v17_series.json"))
-    for _nm, _r in _v17.items():
-        if _nm in D:
-            D[_nm]["v17"] = _r
-            D[_nm]["v17"]["err120"] = _r.get("err120", float("nan"))
+for _tag in ("v17", "v18"):
+    _p = f"track_build/{_tag}_series.json"
+    if os.path.exists(_p):
+        for _nm, _r in json.load(open(_p)).items():
+            if _nm in D:
+                D[_nm][_tag] = _r
+                D[_nm][_tag]["err120"] = _r.get("err120", float("nan"))
 LEADS = [6 * (i + 1) for i in range(20)]
 SERIES = [("observed", "observed", "obs"), ("v10", "v10", "v10"), ("v14", "v14", "v14")]
-if any("v17" in v for v in D.values()):
-    SERIES = SERIES + [("v17", "v17", "v17")]
+for _t in ("v17", "v18"):
+    if any(_t in v for v in D.values()):
+        SERIES = SERIES + [(_t, _t, _t)]
 # validated: node scripts/validate_palette.js "#2a78d6,#e34948" (light) / "#3987e5,#e66767" (dark)
-COL = {"observed": ("#111820", "#e8eef4"), "v10": ("#2a78d6", "#3987e5"),
-       "v14": ("#e34948", "#e66767"), "v17": ("#1baf7a", "#199e70")}
+COL = {"observed": ("#111820", "#e8eef4"), "v10": ("#eda100", "#c98500"),
+       "v14": ("#e34948", "#e66767"), "v17": ("#2a78d6", "#3987e5"),
+       "v18": ("#1baf7a", "#199e70")}
 
 PANELS = [("vmax", "Peak wind", "kt"), ("pressure", "Central pressure", "hPa"),
           ("rmw", "Radius of max wind", "km"), ("speed", "Forward speed", "km/h"),
@@ -101,7 +128,11 @@ def mapchart(rec):
     ox, oy = (W - spanx * sc) / 2, (H - spany * sc) / 2
     def PX(lon): return ox + (lon - lo0) * kx * sc
     def PY(lat): return H - oy - (lat - la0) * sc
-    o = [f'<svg viewBox="0 0 {W} {H}" class="map" role="img" aria-label="forecast tracks">']
+    o = [f'<svg viewBox="0 0 {W} {H}" class="map" role="img" aria-label="forecast tracks">',
+         f'<rect x="0" y="0" width="{W}" height="{H}" class="sea"/>']
+    for _r in rings_in(lo0, lo1, la0, la1):
+        _d = "M" + " L".join(f"{PX(p[0]):.1f},{PY(p[1]):.1f}" for p in _r) + " Z"
+        o.append(f'<path class="land" d="{_d}"/>')
     step = 5 if (la1 - la0) > 12 else 2
     g0 = math.floor(la0 / step) * step
     while g0 <= la1:
@@ -166,15 +197,15 @@ for nm in ["Bavi", "Wayne", "Co-may", "Hinnamnor"]:
 HTML = f"""<title>TrackFormer — four storms, forecast vs observed</title>
 <style>
 :root{{color-scheme:light;--bg:#f2f4f6;--surface:#fcfcfb;--surface-2:#e9edf1;--ink:#111820;--body:#2c3a47;
- --muted:#5d6c7a;--line:#d5dce3;--c-observed:#111820;--c-v10:#2a78d6;--c-v14:#e34948;--c-v17:#1baf7a;
+ --muted:#5d6c7a;--line:#d5dce3;--c-observed:#111820;--c-v10:#eda100;--c-v14:#e34948;--c-v17:#2a78d6;--c-v18:#1baf7a;--sea:#eaf1f5;--land:#dfe3e0;--coast:#a8b3ba;
  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;}}
 @media (prefers-color-scheme:dark){{:root:where(:not([data-theme="light"])){{color-scheme:dark;
  --bg:#0c1117;--surface:#141c25;--surface-2:#1b242f;--ink:#e8eef4;--body:#c2cdd8;--muted:#8697a5;
- --line:#26313d;--c-observed:#e8eef4;--c-v10:#3987e5;--c-v14:#e66767;--c-v17:#199e70;}}}}
+ --line:#26313d;--c-observed:#e8eef4;--c-v10:#c98500;--c-v14:#e66767;--c-v17:#3987e5;--c-v18:#199e70;--sea:#101b24;--land:#26313a;--coast:#4a5a66;}}}}
 :root[data-theme="dark"]{{color-scheme:dark;--bg:#0c1117;--surface:#141c25;--surface-2:#1b242f;
  --ink:#e8eef4;--body:#c2cdd8;--muted:#8697a5;--line:#26313d;
- --c-observed:#e8eef4;--c-v10:#3987e5;--c-v14:#e66767;--c-v17:#199e70;}}
+ --c-observed:#e8eef4;--c-v10:#c98500;--c-v14:#e66767;--c-v17:#3987e5;--c-v18:#199e70;--sea:#101b24;--land:#26313a;--coast:#4a5a66;}}
 body{{background:var(--bg);color:var(--body);font-family:var(--sans);font-size:16px;line-height:1.6;}}
 .wrap{{max-width:1180px;margin:0 auto;padding:clamp(26px,5vw,58px) clamp(16px,4vw,34px) 90px;
  display:flex;flex-direction:column;gap:46px;}}
@@ -200,8 +231,11 @@ header{{display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(
  margin:0;display:flex;flex-direction:column;gap:4px;position:relative;}}
 figcaption{{padding:0 3px;display:flex;flex-direction:column;gap:2px;}}
 figcaption p{{font-size:11.5px;color:var(--muted);line-height:1.4;}}
-.chart,.map{{width:100%;height:auto;overflow:visible;stroke:none;}}
-.gl{{stroke:var(--line);stroke-width:1;}}
+.chart{{width:100%;height:auto;overflow:visible;stroke:none;}}
+.map{{width:100%;height:auto;overflow:hidden;stroke:none;border-radius:4px;}}
+.gl{{stroke:var(--coast);stroke-width:.5;opacity:.5;}}
+.sea{{fill:var(--sea);}}
+.land{{fill:var(--land);stroke:var(--coast);stroke-width:.7;}}
 .tk{{font-family:var(--mono);font-size:9px;fill:var(--muted);}}
 .ax{{font-size:9.5px;fill:var(--muted);}}
 .ln{{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;}}
