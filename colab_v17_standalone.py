@@ -10,19 +10,24 @@ RAW = "https://raw.githubusercontent.com/yu314-coder/typhoon-predict/main"
 DEVICE = torch.device("cpu")
 STEER_CLIP, STEER_DROP = 4.0, 0.0
 
-# v17's architecture is byte-identical to train_track_v14_1.py's (4-channel steer CNN with
-# Dropout2d, same curved baseline) -- so its class definition loads v17 state dicts directly.
-src_path = "/content/_v141.py"
-if not os.path.exists(src_path):
-    urllib.request.urlretrieve(f"{RAW}/train_track_v14_1.py", src_path)
-src = open(src_path).read()
+# The v17 class differs from train_track_v14_1.py (adapter is Linear(d,d) not Linear(d,64), and
+# int_dec has 3 layers not 5), so the definition is taken from the notebook that produced the
+# checkpoints rather than assumed.
+nb_path = "/content/_v17.ipynb"
+if not os.path.exists(nb_path):
+    urllib.request.urlretrieve(f"{RAW}/colab_train_v17.ipynb", nb_path)
+import json as _json
+_nb = _json.load(open(nb_path))
+src = "\n".join("".join(c["source"]) for c in _nb["cells"] if c["cell_type"] == "code")
 G = {"torch": torch, "nn": nn, "F": F, "math": math, "np": np, "os": os,
      "DEVICE": DEVICE, "STEER_DROP": STEER_DROP, "STEER_CLIP": STEER_CLIP}
 for pat in [r"KIN_COLS = .*?KIN_DIM, THERMO_DIM, ENV_DIM = len\(KIN_COLS\), len\(THERMO_COLS\), len\(ENV_COLS\)",
             r"def sinusoidal.*?\n    return e", r"def enc\(.*?depth\)\n", r"def dec\(d.*?depth\)\n",
-            r"class TrackFormerV9.*?torch\.zeros_like\(motion\), ilog\], -1\)"]:
-    exec(re.search(pat, src, re.S).group(0), G)
-Net = G["TrackFormerV9"]
+            r"class TrackFormerV17.*?torch\.zeros_like\(motion\), ilog\], -1\)"]:
+    m = re.search(pat, src, re.S)
+    assert m, f"pattern not found: {pat[:40]}"
+    exec(m.group(0), G)
+Net = G["TrackFormerV17"]
 
 z = np.load("/content/d/track_windows_v13.npz", allow_pickle=True)
 track = z["track"].astype("float32"); target = z["target"].astype("float32")
