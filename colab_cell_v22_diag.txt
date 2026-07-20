@@ -1,0 +1,37 @@
+# ===== v22 diagnostic runner -- prints at every step, cannot fail silently =====
+import sys, os, traceback, urllib.request
+print("STEP 1: cell is executing", flush=True)
+
+SHA = "bc937601d4075c44c07d7445faeda1d7c383aff0"
+URL = f"https://raw.githubusercontent.com/yu314-coder/typhoon-predict/{SHA}/colab_v27_train.py"
+
+try:
+    import torch
+    print(f"STEP 2: torch {torch.__version__} | cuda={torch.cuda.is_available()} | "
+          f"{torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'NO GPU'}", flush=True)
+except Exception:
+    print("STEP 2 FAILED:"); traceback.print_exc()
+
+try:
+    urllib.request.urlretrieve(URL, "/content/v22.py")
+    n = os.path.getsize("/content/v22.py")
+    head = open("/content/v22.py").read(120)
+    print(f"STEP 3: downloaded {n} bytes (expect 18457)", flush=True)
+    print(f"STEP 3: first 120 chars >>> {head!r}", flush=True)
+    if n < 5000 or "<html" in head.lower():
+        print("STEP 3: *** BAD DOWNLOAD -- got an error page, not the script ***", flush=True)
+        sys.exit(1)
+except Exception:
+    print("STEP 3 FAILED:"); traceback.print_exc()
+
+os.environ["V27_SEEDS"]  = "3"
+os.environ["V27_ROUNDS"] = "2"
+print("STEP 4: starting exec -- data fetch is ~114 MB, expect a pause here", flush=True)
+try:
+    exec(compile(open('/content/v22.py').read(), 'v22.py', 'exec'), globals())
+    print("STEP 5: exec returned normally", flush=True)
+except SystemExit as e:
+    print(f"STEP 5: script called sys.exit({e.code})", flush=True)
+except Exception:
+    print("STEP 5 FAILED with an exception:", flush=True)
+    traceback.print_exc()

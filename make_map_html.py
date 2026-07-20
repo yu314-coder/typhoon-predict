@@ -17,7 +17,15 @@ TD = os.environ.get("TRACK_DIR", "track_build")
 _want_pre = [t.strip() for t in
              os.environ.get("MAP_MODELS", "v10,v17,v18,v19").split(",") if t.strip()]
 LAND = json.load(open("track_build/geo/ne/ne_50m_land.geojson"))
-V10 = json.load(open(f"{TD}/v10_tracks.json"))
+# V10 supplies the OBSERVED track (every record carries the same base_lat/base_lon), so any model's
+# file will do. Hardcoding v10 broke every comparison that does not happen to include it.
+_obs_src = f"{TD}/v10_tracks.json"
+if not os.path.exists(_obs_src):
+    import glob as _g
+    _c = sorted(_g.glob(f"{TD}/*_tracks.json"))
+    assert _c, f"no *_tracks.json in {TD}"
+    _obs_src = _c[0]
+V10 = json.load(open(_obs_src))
 CONS = {}
 for _t in _want_pre:
     _c = f"{TD}/{_t}_consensus.json"
@@ -25,7 +33,8 @@ for _t in _want_pre:
         CONS[_t] = json.load(open(_c))
 _want = [t.strip() for t in os.environ.get("MAP_MODELS", "v10,v17,v18,v19").split(",") if t.strip()]
 MODELS = [("v10", V10)] if "v10" in _want else []
-for _t in ("v13", "v14", "v17", "v18", "v19", "v10.1", "v10.2"):
+for _t in ("v13", "v14", "v17", "v18", "v19", "v10.1", "v10.2", "v10.3", "v10.3s",
+           "v20", "v21", "v22"):
     if _t not in _want:
         continue
     _p = f"{TD}/{_t}_tracks.json"
@@ -40,6 +49,11 @@ COL = {"v10": ("#eda100", "#c98500"), "v13": ("#e87ba4", "#d55181"), "v14": ("#e
        "v17": ("#2a78d6", "#3987e5"), "v18": ("#1baf7a", "#199e70"),
        "v19": ("#4a3aa7", "#9085e9"), "v10.1": ("#1baf7a", "#199e70"),
        "v10.2": ("#c0699e", "#a85f8c"),   # distinct from v18; see validate_palette.py
+       "v10.3": ("#2a78d6", "#3987e5"), "v10.3s": ("#1baf7a", "#199e70"),
+       "v20": ("#1baf7a", "#199e70"), "v21": ("#2a78d6", "#3987e5"),
+       # validated: validate_palette.py "#eda100,#2a78d6,#c2185b" -- worst dE 28.0 (protan),
+       # both modes. Purple/teal/green candidates all failed or came in weak against v21 blue.
+       "v22": ("#c2185b", "#e0457f"),
        "rmt": ("#e34948", "#e66767")}   # the consensus line, overridable via MAP_COL
 for _ov in os.environ.get("MAP_COL", "").split(","):
     if ":" in _ov:
@@ -53,7 +67,12 @@ NOTE = {"v10": "no environmental field at all",
         "v18": "v17 + EMA, stronger dropout, input jitter",
         "v19": "v17 + intensity persistence baseline, rarity + speed weighting",
         "v10.1": "v10 + 1950-2026 data (+72%) + ONI",
-        "v10.2": "v10.1 with Tip held out of training"}
+        "v10.2": "v10.1 with Tip held out of training",
+        "v10.3": "generative, mean of 50 samples",
+        "v10.3s": "generative, one raw sample",
+        "v20": "deep-layer mean steering, 850/500/200 hPa",
+        "v21": "chain-of-thought: predicts the steering flow, derives the track",
+        "v22": "v21 + latent chain-of-thought, 2 weight-tied feedback rounds"}
 
 
 def rings_in(lo0, lo1, la0, la1):
@@ -138,7 +157,7 @@ def panel(tag, rec, obs_lat, obs_lon, storm=None, W=520, H=380):
         o.append(f'<text class="tk" x="{x+3:.1f}" y="{H-5}">{((g+180)%360)-180:.0f}°E</text>')
         g += step
     solo = " solo" if len(LAT) == 1 else ""   # one line at 30% opacity is invisible
-    for a in range(len(LAT)):
+    for a in range(0 if os.environ.get("MAP_NOSPAG") else len(LAT)):
         d = "M" + " L".join(f"{PX(lo):.1f},{PY(la):.1f}" for la, lo in zip(LAT[a], LON[a]))
         o.append(f'<path class="spag{solo}" d="{d}"/>')
     labels = []
@@ -174,6 +193,13 @@ def panel(tag, rec, obs_lat, obs_lon, storm=None, W=520, H=380):
                  " L".join(f"{PX(lo):.1f},{PY(la):.1f}" for la, lo in zip(mla, mlo)) + '"/>')
         labels.append((PY(mla[-1]), PX(mlo[-1]), "mean", ""))
     # push apart so the two endpoint labels never overlap
+    pr = rec.get("pairs")
+    if pr:
+        # one hairline per valid time joining the forecast to where the storm actually was,
+        # so the error is a visible length rather than a number in the caption
+        for a_, b_ in pr:
+            o.append(f'<line class="errlink" x1="{PX(a_[1]):.1f}" y1="{PY(a_[0]):.1f}" '
+                     f'x2="{PX(b_[1]):.1f}" y2="{PY(b_[0]):.1f}"/>')
     fx = rec.get("fixed")
     if fx:
         o.append('<path class="fixedline" d="M' +
@@ -203,6 +229,11 @@ def panel(tag, rec, obs_lat, obs_lon, storm=None, W=520, H=380):
     return "\n".join(o)
 
 
+# which optional layers the records carry -- needed by both the section text and the legend
+_anypairs = any("pairs" in r[nm] for _t, r in MODELS for nm, _ in STORMS if nm in r)
+_anyfixed = any("fixed" in r[nm] for _t, r in MODELS for nm, _ in STORMS if nm in r)
+_anycausal = any("causal" in r[nm] for _t, r in MODELS for nm, _ in STORMS if nm in r)
+
 sections = []
 for nm, yr in STORMS:
     if nm not in V10:
@@ -227,9 +258,11 @@ for nm, yr in STORMS:
         "A single forecast, launched from the filled dot using only the 48 hours before it. The "
         "hollow dot is where the storm formed; dotted black is what it actually did."
         if V10[nm]['n'] == 1 else
-        f"Every full-horizon forecast this storm produced — {V10[nm]['n']} of them — drawn as one "
-        "thin line each. " + ("Bold is the +120 h forecast track; dashed is the mean of launches at "
-        "least 48 h old." if os.environ.get("MAP_NOCONS") else "Bold is the mean by valid time;")
+        (f"Every full-horizon forecast this storm produced — {V10[nm]['n']} of them — drawn as one "
+        "thin line each. " if not os.environ.get("MAP_NOSPAG") else "") + (("Bold is the +120 h forecast track"
+        + ("; dashed is the mean of launches at least 48 h old." if _anycausal else
+           ", and each hairline joins a forecast to where the storm actually was."))
+        if os.environ.get("MAP_NOCONS") else "Bold is the mean by valid time;")
         + " Dotted black is the observed track from genesis."}</p></div>
     <div class="pair">{''.join(cards)}</div>
   </section>""")
@@ -266,7 +299,22 @@ _consfoot = """  <p><strong>Why the weighted consensus and not the plain mean.</
   <p>The mean is averaged by <em>valid time</em>, not by lead. Forecasts launched hours apart only
   describe the same moment at different lead offsets — averaging by lead would blend positions hours
   apart and draw a route no model ever predicted.</p>"""
-if os.environ.get("MAP_NOCONS"):
+if not CONS and not os.environ.get("MAP_NOCONS"):
+    # No consensus file for these arms: the bold line is the plain valid-time mean. Describe that
+    # and nothing else, rather than four paragraphs of RMT/Kalman machinery this page never ran.
+    _consfoot = """  <p><strong>The bold line is the mean by valid time</strong>, not a weighted
+  consensus. At each moment it averages the positions every forecast assigns to that moment, with
+  no lead-weighting and no smoothing. Bins holding fewer than three forecasts are dropped &mdash;
+  at the ends of a storm's life only one initialisation reaches that far, and a one-member
+  &ldquo;mean&rdquo; is just that single forecast drawn in bold.</p>
+  <p>The mean is averaged by <em>valid time</em>, not by lead. Forecasts launched hours apart only
+  describe the same moment at different lead offsets &mdash; averaging by lead would blend
+  positions hours apart and draw a route no model ever predicted.</p>
+  <p><strong>A mean over all launches is not a forecast you could have issued.</strong> It includes
+  initialisations only six hours before the moment they describe, so its error is not comparable to
+  the 120&nbsp;h figure quoted in each caption. The captions are the honest forecast numbers; the
+  bold line only shows the centre of the spread.</p>"""
+elif os.environ.get("MAP_NOCONS"):
     # This page deliberately shows only products that could have been issued, so the paragraphs
     # about the analysis consensus and its smoother would describe machinery that is not here.
     _consfoot = ("""  <p><strong>Everything drawn here is a forecast.</strong> The bold line is the
@@ -289,7 +337,12 @@ _nfc = sum(rec[nm]["n"] for _t, rec in MODELS for nm, _y in STORMS if nm in rec)
 _slist = " and ".join([", ".join(nm for nm, _ in STORMS[:-1]), STORMS[-1][0]]) \
          if len(STORMS) > 1 else STORMS[0][0]
 _mlist = "".join(f"<strong>{t}</strong> {NOTE.get(t, '')}; " for t, _ in MODELS).rstrip("; ") + "."
-_lede = (f"{'Storm' if len(STORMS) == 1 else 'Storms'} {_slist}, every full-horizon forecast "
+# MAP_NOUN lets a page whose sections are launch times rather than storms say so ("Launch"/
+# "Launches"); the default keeps every existing caller's wording identical.
+# Accepts "singular/plural" because naive +"s" produces "Launchs".
+_noun = os.environ.get("MAP_NOUN", "Storm/Storms").split("/")
+_noun = _noun[0] if len(STORMS) == 1 else _noun[-1]
+_lede = (f"{_noun} {_slist}, every full-horizon forecast "
          f"produced &mdash; {_nfc} forecast{'' if _nfc == 1 else 's'} in all. {_mlist}"
          + (" Each model gets its own panel so overlapping tracks never have to be told apart "
             "by colour alone." if len(MODELS) > 1 else ""))
@@ -302,19 +355,24 @@ _c1 = "var(--c-" + MODELS[0][0].replace(".", "_") + ")" if MODELS else "var(--in
 def _lg(stroke, w, extra, txt):
     return (f'<span class="lg"><svg width="26" height="10"><line x1="1" y1="5" x2="25" y2="5" '
             f'stroke="{stroke}" stroke-width="{w}" {extra} stroke-linecap="round"/></svg>{txt}</span>')
-_legend = _lg(_c1, "2.8" if _solo else "1", "" if _solo else 'opacity=".45"',
-              "the forecast" if _solo else "one forecast")
-_anyfixed = any("fixed" in r[nm] for _t, r in MODELS for nm, _ in STORMS if nm in r)
+_legend = "" if os.environ.get("MAP_NOSPAG") else _lg(
+    _c1, "2.8" if _solo else "1", "" if _solo else 'opacity=".45"',
+    "the forecast" if _solo else "one forecast")
 if _anyfixed:
     _legend += _lg(_c1, "2.8", "", "+120 h forecast track")
-_anycausal = any("causal" in r[nm] for _t, r in MODELS for nm, _ in STORMS if nm in r)
+if _anypairs:
+    _legend += _lg("var(--obs)", "1", 'opacity=".45"', "the miss, forecast to truth")
 if _anycausal:
     _legend += _lg("var(--c-rmt)", "2.6", 'stroke-dasharray="7 3.5"',
                    "mean of launches at least 48 h old")
 if not os.environ.get("MAP_NOCONS"):
-    if os.environ.get("MAP_BOTH"):
+    # Only claim the weighted consensus when a *_consensus.json was actually loaded. Without one
+    # the panels fall through to a plain valid-time mean and label it "mean", so advertising a
+    # "weighted + smoothed consensus" in the legend describes a line that is not on the page.
+    if os.environ.get("MAP_BOTH") and CONS:
         _legend += _lg(_c1, "2", 'stroke-dasharray="5 3" opacity=".62"', "plain mean by valid time")
-    _legend += _lg(_c1, "2.8", "", "weighted + smoothed consensus")
+    _legend += _lg(_c1, "2.8", "",
+                   "weighted + smoothed consensus" if CONS else "mean by valid time")
 _legend += _lg("var(--obs)", "2.4", 'stroke-dasharray="1.4 2.6"', "observed")
 
 # Quote the consensus comparison from the storms actually on this page rather than from a fixed
@@ -351,7 +409,7 @@ _caveat = ("<p><strong>Where the smoother is buying accuracy with shape.</strong
              "as a position estimate, not as a description of how the storm curved.</p>") if _flat else ""
 
 HTML = f"""<meta charset="utf-8">
-<title>TrackFormer — forecast tracks on the map</title>
+<title>{os.environ.get("MAP_TITLE") or "TrackFormer — forecast tracks on the map"}</title>
 <style>
 :root{{color-scheme:light;--bg:#f2f4f6;--surface:#fcfcfb;--surface-2:#e9edf1;--ink:#111820;--body:#2c3a47;
  --muted:#5d6c7a;--line:#d5dce3;--sea:#eaf1f5;--land:#dfe3e0;--coast:#a8b3ba;
@@ -410,14 +468,15 @@ figcaption b{{color:var(--ink);font-family:var(--mono);}}
 {_clrules}
 .cl.rmtcl{{fill:var(--c-rmt);}}
 .fixedline{{fill:none;stroke-width:2.8;stroke-linejoin:round;stroke-linecap:round;}}
+.errlink{{stroke:var(--obs);stroke-width:.7;opacity:.32;}}
 footer{{border-top:1px solid var(--line);padding-top:20px;font-size:13px;color:var(--muted);
  max-width:76ch;display:flex;flex-direction:column;gap:8px;}}
 </style>
 <div class="wrap">
  <header>
   <div class="eyebrow">TrackFormer &middot; every forecast, on the map</div>
-  <h1>{(_want[0] + " vs " + _want[1] + ", head to head") if len(_want) == 2 else "Where these models actually send the storm"}</h1>
-  <p class="lede">{_lede}</p>
+  <h1>{os.environ.get("MAP_TITLE") or ((_want[0] + " vs " + _want[1] + ", head to head") if len(_want) == 2 else "Where these models actually send the storm")}</h1>
+  <p class="lede">{os.environ.get("MAP_INTRO", "")}{_lede}</p>
   <div class="legend">{_legend}</div>
  </header>
 {''.join(sections)}
