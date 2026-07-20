@@ -32,6 +32,26 @@ except ImportError:
     import netCDF4
 
 RAW = "https://raw.githubusercontent.com/yu314-coder/typhoon-predict/main"
+
+# ---- PERSIST: this tensor is deterministic, so never build it twice ----
+# It has been rebuilt from scratch on three separate VMs because it only lived in /content.
+# Prefer, in order: a copy already on this VM, Drive, then the repo. Extract only as a last resort.
+import shutil as _sh
+_OUT = "/content/dlm4_int8.npz"
+_DRV = "/content/drive/MyDrive/typhoon/dlm4_int8.npz"
+if not os.path.exists(_OUT):
+    if os.path.exists(_DRV):
+        _sh.copy(_DRV, _OUT); print(f"reused the Drive copy of dlm4_int8.npz", flush=True)
+    else:
+        try:
+            urllib.request.urlretrieve(f"{RAW}/track_build/dlm4_int8.npz", _OUT)
+            print(f"fetched dlm4_int8.npz from the repo -- skipping extraction", flush=True)
+        except Exception:
+            pass
+_SKIP = os.path.exists(_OUT)
+if _SKIP:
+    print(f"dlm4_int8.npz already available ({os.path.getsize(_OUT)/1e6:.0f} MB); "
+          f"skipping the 47-year extraction entirely.", flush=True)
 HALF = 8
 MAX_DT_H = float(os.environ.get("STEER_MAX_DT_H", "18"))
 MAX_DT = int(MAX_DT_H * 3600 * 1e9)
@@ -77,7 +97,7 @@ def get(var, year):
 
 
 t0 = time.time()
-for year in range(int(years.min()), int(years.max()) + 1):
+for year in ([] if _SKIP else range(int(years.min()), int(years.max()) + 1)):
     sel = np.where(years == year)[0]
     if len(sel) == 0:
         continue
@@ -125,10 +145,21 @@ q4 = np.concatenate([slp_int8, dq], axis=1)                # [N,4,17,17] int8
 scale4 = np.concatenate([slp_scale, dsc])                  # [4]
 # 3 columns to match v17's AVAIL shape [SLP pair, steering pair, SST]; SST is unused here (all False)
 ok4 = np.stack([slp_ok, OKD, np.zeros(N, bool)], axis=1)   # [N,3]
-np.savez_compressed("/content/dlm4_int8.npz", q=q4, ok=ok4, scale=scale4)
+if not _SKIP:
+    np.savez_compressed(_OUT, q=q4, ok=ok4, scale=scale4)
 sz = os.path.getsize("/content/dlm4_int8.npz") / 1e6
 print(f"\nwrote /content/dlm4_int8.npz ({sz:.0f} MB)  channels [SLPanom, SLPtend, uDLM, vDLM]", flush=True)
 print(f"  DLM scale (m/s): u {dsc[0]:.2f}  v {dsc[1]:.2f}   steering availability {ok4[:,1].mean():.3f}", flush=True)
 if os.path.isdir("/content/drive/MyDrive/typhoon"):
     import shutil; shutil.copy("/content/dlm4_int8.npz", "/content/drive/MyDrive/typhoon")
     print("  mirrored to Drive (survives a disconnect)", flush=True)
+
+# mirror so the next run can skip extraction entirely
+for _d in ("/content/drive/MyDrive/typhoon",):
+    if os.path.isdir(_d):
+        try:
+            _sh.copy(_OUT, _d); print(f"mirrored dlm4_int8.npz to Drive", flush=True)
+        except Exception as _e:
+            print("  (drive copy failed:", _e, ")", flush=True)
+print("If Drive is not mounted, download dlm4_int8.npz and commit it to track_build/ "
+      "so no future run repeats this.", flush=True)

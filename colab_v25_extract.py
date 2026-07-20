@@ -31,6 +31,26 @@ except ImportError:
     import netCDF4
 
 RAW = "https://raw.githubusercontent.com/yu314-coder/typhoon-predict/main"
+
+# ---- PERSIST: this tensor is deterministic, so never build it twice ----
+# It has been rebuilt from scratch on three separate VMs because it only lived in /content.
+# Prefer, in order: a copy already on this VM, Drive, then the repo. Extract only as a last resort.
+import shutil as _sh
+_OUT = "/content/lead_flow.npz"
+_DRV = "/content/drive/MyDrive/typhoon/lead_flow.npz"
+if not os.path.exists(_OUT):
+    if os.path.exists(_DRV):
+        _sh.copy(_DRV, _OUT); print(f"reused the Drive copy of lead_flow.npz", flush=True)
+    else:
+        try:
+            urllib.request.urlretrieve(f"{RAW}/track_build/lead_flow.npz", _OUT)
+            print(f"fetched lead_flow.npz from the repo -- skipping extraction", flush=True)
+        except Exception:
+            pass
+_SKIP = os.path.exists(_OUT)
+if _SKIP:
+    print(f"lead_flow.npz already available ({os.path.getsize(_OUT)/1e6:.0f} MB) -- skipping the "
+          f"47-year extraction and going straight to validation.", flush=True)
 LEVELS = [850, 500, 200]
 WGT = np.array([0.269, 0.500, 0.231], dtype="float32")
 R_IN, R_OUT = 3.0, 8.0                 # steering annulus, degrees
@@ -110,7 +130,7 @@ def annulus(lat_c, nlat, nlon, dlat, dlon):
 
 
 t0 = time.time()
-uy = sorted(set(years[VALID].ravel().tolist()))
+uy = [] if _SKIP else sorted(set(years[VALID].ravel().tolist()))
 for y in uy:
     sel = np.argwhere(VALID & (years == y))
     if len(sel) == 0:
@@ -134,8 +154,12 @@ for y in uy:
           f"u {FLOW[GOT][:,0].mean():+.1f} v {FLOW[GOT][:,1].mean():+.1f} m/s | "
           f"{time.time()-t0:.0f}s", flush=True)
 
-np.savez_compressed("/content/lead_flow.npz", flow=FLOW.astype("float16"), got=GOT)
-print(f"\nwrote /content/lead_flow.npz  {FLOW.shape}  ({GOT.sum():,} points, "
+if _SKIP:
+    _z = np.load(_OUT)
+    FLOW = _z["flow"].astype("float32"); GOT = _z["got"]
+else:
+    np.savez_compressed(_OUT, flow=FLOW.astype("float16"), got=GOT)
+print(f"\n{_OUT}  {FLOW.shape}  ({GOT.sum():,} points, "
       f"{os.path.getsize('/content/lead_flow.npz')/1e6:.0f} MB)")
 
 # ---- THE VALIDATION: does the extracted flow explain the motion the storm actually made? ----
@@ -150,3 +174,13 @@ for nm, mo, fl in (("east", mo_e[g], FLOW[..., 0][g]), ("north", mo_n[g], FLOW[.
 print("\n  theory: motion ~= 0.8 x deep-layer steering, plus a beta drift of about")
 print("  1-2 m/s toward west-northwest (so a NEGATIVE east intercept, POSITIVE north).")
 print("  corr >= 0.7 and slope near 0.8 means the extraction is sound and v21 can be built on it.")
+
+# mirror so the next run can skip extraction entirely
+for _d in ("/content/drive/MyDrive/typhoon",):
+    if os.path.isdir(_d):
+        try:
+            _sh.copy(_OUT, _d); print(f"mirrored lead_flow.npz to Drive", flush=True)
+        except Exception as _e:
+            print("  (drive copy failed:", _e, ")", flush=True)
+print("If Drive is not mounted, download lead_flow.npz and commit it to track_build/ "
+      "so no future run repeats this.", flush=True)
