@@ -174,7 +174,16 @@ with torch.no_grad():
     _p, _q = V21().to(DEVICE).eval(), TrackFormerHist().to(DEVICE).eval()
     torch.manual_seed(7)
     nn.init.normal_(_p.track_res.weight, std=0.02); nn.init.normal_(_p.track_res.bias, std=0.02)
-    _q.load_state_dict(_p.state_dict(), strict=False)
+    # HistStem WRAPS the original stem, so v21's "steer_cnn.*" keys become "steer_cnn.base.*".
+    # Loading with strict=False and no remap silently skips every steering-CNN weight, leaving _q
+    # with a randomly initialised stem -- which is exactly what the init assertion caught
+    # (0.0284 instead of 0). Remap, then verify nothing was silently dropped.
+    _sd = {("steer_cnn.base." + k[len("steer_cnn."):]) if k.startswith("steer_cnn.") else k: v
+           for k, v in _p.state_dict().items()}
+    _miss, _unexp = _q.load_state_dict(_sd, strict=False)
+    assert not _unexp, f"unexpected keys when loading v21 into v23: {list(_unexp)[:5]}"
+    assert all(m.startswith("steer_cnn.stem") or m.startswith("steer_cnn.out") for m in _miss), \
+        f"v21 weights failed to transfer into v23: {[m for m in _miss][:5]}"
     assert float(_q.steer_cnn.out.weight.abs().max()) == 0.0, "history path is not zero-init"
     _d1 = float((_p(_t, _v, _s)[0] - _q(_t, _v, _s, _h, _a)[0]).abs().max())
     assert _d1 < 1e-5, f"{TAG} does not reduce to v21 at init: {_d1}"
