@@ -98,41 +98,46 @@ class TrackFormerCoT(Base):
         self.A = nn.Parameter(torch.tensor([0.76, 0.91]))
 
     def forward(self, track, vpair, slp):
+        # v17's forward VERBATIM, with only the flow lines inserted. Written from the notebook
+        # rather than from memory: the first attempt silently omitted st.detach() from the
+        # intensity decoder, dropped a clamp on s0 and added one on ilog, and the init assertion
+        # caught it at 0.65 max diff.
         b = track.shape[0]
-        kin = self.kin_enc(self.kin_proj(track[:, :, G["KIN_COLS"]]) + self.kin_time)
-        thermo = self.thermo_enc(self.thermo_proj(track[:, :, G["THERMO_COLS"]]) + self.thermo_time)
-        env = self.env_enc(self.env_proj(track[:, :, G["ENV_COLS"]]) + self.env_time)
-        if self.training and G["STEER_DROP"] > 0:
-            keep = (torch.rand(b, 1, 1, 1, device=slp.device) >= G["STEER_DROP"]).float()
+        KIN_COLS, THERMO_COLS, ENV_COLS = G["KIN_COLS"], G["THERMO_COLS"], G["ENV_COLS"]
+        STEER_DROP = G["STEER_DROP"]
+        kin = self.kin_enc(self.kin_proj(track[:, :, KIN_COLS]) + self.kin_time)
+        thermo = self.thermo_enc(self.thermo_proj(track[:, :, THERMO_COLS]) + self.thermo_time)
+        env = self.env_enc(self.env_proj(track[:, :, ENV_COLS]) + self.env_time)
+        if self.training and STEER_DROP > 0:
+            keep = (torch.rand(b, 1, 1, 1, device=slp.device) >= STEER_DROP).float()
             slp = slp * keep
         st = self.steer_cnn(slp).flatten(2).transpose(1, 2) + self.steer_pos
         tq = (self.track_q + self.qpos.unsqueeze(0)).expand(b, -1, -1)
         h_track = self.track_dec(tq, torch.cat([kin, env, st], dim=1))
-        h_track = h_track + self.alpha.view(1, self.leads, 1) * \
-            self.adapter(thermo.mean(1).detach()).unsqueeze(1)
+        h_track = h_track + self.alpha.view(1, self.leads, 1) * self.adapter(thermo.mean(1).detach()).unsqueeze(1)
 
-        # present steering, read off the input patch over the same 3-8 deg ring as the targets
+        # ---- the only addition: predicted steering, and the track derived from it ----
+        # present steering read off the input patch over the same 3-8 deg ring as the targets.
+        # NOTE this uses the possibly steer-dropped slp, which is correct: if the field is
+        # unavailable the model should see zero present flow, exactly as the target is zeroed.
         w = ANN / ANN.sum()
-        sc = torch.tensor(DSC, device=slp.device)
+        sc = torch.as_tensor(DSC, device=slp.device, dtype=slp.dtype)
         flow_now = (slp[:, 2:4] * w).sum((-2, -1)) * sc                    # [b,2] m/s
-
-        fd = self.flow_delta(h_track)                                      # [b,20,2] m/s, zero at init
+        fd = self.flow_delta(h_track)                                      # [b,20,2], zero at init
         flow_pred = flow_now.unsqueeze(1) + fd                             # supervised
 
         v0, vp = vpair[:, :2], vpair[:, 2:]
-        s0 = torch.linalg.norm(v0, dim=-1)
-        phi0 = torch.atan2(v0[:, 1], v0[:, 0]); phip = torch.atan2(vp[:, 1], vp[:, 0])
-        om = torch.remainder(phi0 - phip + __import__("math").pi, 2 * __import__("math").pi) \
-            - __import__("math").pi
-        phil = phi0.unsqueeze(1) + self.gturn.view(1, self.leads) * om.unsqueeze(1)
-        speed = self.rho.view(1, self.leads) * s0.unsqueeze(1)
-        base = torch.stack([speed * torch.cos(phil), speed * torch.sin(phil)], -1) / 100.0
-        # the flow DELTA moves the storm off persistence; at init this term is exactly zero
+        s0 = v0.norm(dim=1, keepdim=True).clamp(min=1e-3)
+        phi0 = torch.atan2(v0[:, 1], v0[:, 0])
+        dphi = phi0 - torch.atan2(vp[:, 1], vp[:, 0])
+        omega = torch.atan2(torch.sin(dphi), torch.cos(dphi))
+        phil = phi0.unsqueeze(1) + self.gturn.view(1, self.leads) * omega.unsqueeze(1)
+        speed = self.rho.view(1, self.leads) * s0
+        base = torch.stack([speed * torch.cos(phil), speed * torch.sin(phil)], dim=-1) / 100.0
         motion = base + (self.A.view(1, 1, 2) * fd) * KM6H / 100.0 + self.track_res(h_track)
-
         iq = (self.int_q + self.qpos.unsqueeze(0)).expand(b, -1, -1)
-        h_int = self.int_dec(iq, torch.cat([thermo, env, kin.detach()], dim=1))
-        istate = self.int_state(h_int); ilog = self.int_logscale(h_int).clamp(-5.0, 3.0)
+        h_int = self.int_dec(iq, torch.cat([thermo, env, kin.detach(), st.detach()], dim=1))
+        istate = self.int_state(h_int); ilog = self.int_logscale(h_int)
         return (torch.cat([motion, istate], -1),
                 torch.cat([torch.zeros_like(motion), ilog], -1), flow_pred)
 
