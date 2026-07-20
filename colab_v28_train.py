@@ -187,3 +187,160 @@ with torch.no_grad():
     print(f"init check: history on  max|v23 - v21| = {_d2:.2e} (history path is live)", flush=True)
 del _p, _q
 print(f"\n{TAG} ready. USE_HIST={USE_HIST}, {N_SEEDS} seeds.", flush=True)
+
+# ---- dataset: v26's, plus the two past steering fields -----------------------------------------
+# Cannot reuse v26's DS verbatim because the history has to ride along with each sample. The mirror
+# handling is copied exactly: a N-S flip negates northward flow, and the history fields flip the
+# same way the present field does. Getting that wrong would train on physically inconsistent pairs.
+class DS(torch.utils.data.Dataset):
+    def __init__(self, idx, aug):
+        self.idx = np.asarray(idx); self.aug = aug
+
+    def __len__(self):
+        return len(self.idx)
+
+    def __getitem__(self, i):
+        j = int(self.idx[i])
+        tr = torch.from_numpy(track[j]); tg = torch.from_numpy(target[j])
+        mk = torch.from_numpy(mask[j]); sp = torch.from_numpy(SLP[j])
+        vp = torch.from_numpy(vpair[j])
+        fl = torch.from_numpy(FLOW_T[j].copy()); fm = torch.from_numpy(FLOW_M[j].copy())
+        hs = torch.from_numpy(np.concatenate([SLP[HIST_S[j, 0]], SLP[HIST_S[j, 1]]], 0).copy())
+        hv = torch.from_numpy(HAVE[j].copy())
+        if self.aug and torch.rand(()) < MIRROR_P:
+            tr, tg, mk, sp = mirror(tr, tg, mk, sp)
+            vp = vp.clone(); vp[1] = -vp[1]; vp[3] = -vp[3]
+            fl = fl.clone(); fl[:, 1] = -fl[:, 1]
+            # mirror each past field the same way mirror() does the present one: flip the lat axis
+            # and negate the northward wind channel of each 4-channel block
+            hs = torch.flip(hs, dims=[1]).clone()
+            hs[3] = -hs[3]; hs[7] = -hs[7]
+        return tr, vp, sp, tg, mk, fl, fm, hs, hv
+
+
+def loader(idx, sh, aug=False):
+    return torch.utils.data.DataLoader(DS(idx, aug), batch_size=BATCH, shuffle=sh, num_workers=2,
+                                       pin_memory=True, persistent_workers=True, drop_last=sh)
+
+
+def total_loss(s, ls, fp, tgt, m, fl, fm):
+    base = G["total_loss"](s, ls, tgt, m)
+    fmm = fm.unsqueeze(-1)
+    flow = (F.smooth_l1_loss(fp, fl, reduction="none") * fmm).sum() / fmm.sum().clamp(min=1)
+    return base + W_FLOW * flow, float(flow.detach())
+
+
+def train_one(seed, ckpt):
+    torch.manual_seed(seed); np.random.seed(seed)
+    model = TrackFormerHist().to(DEVICE)
+    print(f"seed {seed} | params {sum(p.numel() for p in model.parameters()):,}", flush=True)
+    opt = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
+    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=EPOCHS)
+    scaler = torch.cuda.amp.GradScaler()
+    tl, vl = loader(tr_idx, True, aug=True), loader(va_idx, False)
+
+    def run(ld, train):
+        model.train(train); tot = cnt = 0.0; fa = 0.0
+        for tr, v0, sp, tg, m, fl, fm, hs, hv in ld:
+            tr, v0, sp, tg, m, fl, fm, hs, hv = [x.to(DEVICE, non_blocking=True)
+                                                 for x in (tr, v0, sp, tg, m, fl, fm, hs, hv)]
+            with torch.set_grad_enabled(train), torch.cuda.amp.autocast():
+                s, ls, fp = model(tr, v0, sp, hs, hv)
+                loss, fv = total_loss(s, ls, fp.float(), tg, m, fl, fm)
+            if train:
+                opt.zero_grad(set_to_none=True); scaler.scale(loss).backward()
+                scaler.unscale_(opt); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                scaler.step(opt); scaler.update()
+            tot += float(loss.detach()) * len(tr); fa += fv * len(tr); cnt += len(tr)
+        return tot / cnt, fa / cnt
+
+    best, bad, t0 = 1e9, 0, time.time()
+    for ep in range(EPOCHS):
+        te = time.time(); trl, trf = run(tl, True)
+        with torch.no_grad():
+            vv, vf = run(vl, False)
+        sched.step()
+        if vv < best:
+            best, bad = vv, 0
+            torch.save({"model": model.state_dict(), "epoch": ep, "best_val": best,
+                        "track_mean": G["tmean"], "track_std": G["tstd"]}, ckpt)
+        else:
+            bad += 1
+        with torch.no_grad():
+            # |W| of the history output conv is the collapse diagnostic: if it stays at zero the
+            # temporal stack is being ignored and v23 has silently reverted to v21.
+            hw = float(model.steer_cnn.out.weight.abs().mean())
+            amag = model.A.detach().cpu().numpy()
+        print(f"ep {ep:03d} | train {trl:.5f} | val {vv:.5f} | best {best:.5f} | "
+              f"flow {vf:.3f} | A {amag[0]:.2f},{amag[1]:.2f} | histW {hw:.5f} | "
+              f"{time.time()-te:.0f}s", flush=True)
+        if bad >= PATIENCE:
+            print("early stop", ep); break
+    print(f"done in {(time.time()-t0)/60:.1f} min | best_val {best:.5f}\n", flush=True)
+    return ckpt
+
+
+# the history mirror must be self-inverse, exactly as v17 asserts for the present field
+_h0 = torch.from_numpy(np.concatenate([SLP[HIST_S[0, 0]], SLP[HIST_S[0, 1]]], 0).copy())
+_h1 = torch.flip(_h0, dims=[1]).clone(); _h1[3] = -_h1[3]; _h1[7] = -_h1[7]
+_h2 = torch.flip(_h1, dims=[1]).clone(); _h2[3] = -_h2[3]; _h2[7] = -_h2[7]
+assert torch.allclose(_h0, _h2, atol=1e-5), "history mirror is not an involution"
+assert torch.allclose(_h0[2].flip(0), _h1[2], atol=1e-5), "u500 must not change sign under mirror"
+assert torch.allclose(-_h0[3].flip(0), _h1[3], atol=1e-5), "v500 must change sign under mirror"
+print("OK - history mirror matches v17's convention and is self-inverse", flush=True)
+del _h0, _h1, _h2
+
+CK = []
+for _s in range(N_SEEDS):
+    _c = f"/content/{TAG}_seed{_s}.pt"
+    if os.path.exists(_c):
+        print(f"seed {_s}: checkpoint already present, reusing", flush=True)
+    else:
+        train_one(_s, _c)
+    CK.append(_c)
+print(f"{TAG} trained: {len(CK)} seeds (USE_HIST={USE_HIST})", flush=True)
+
+full = z["n_leads"].astype(int) == 20
+wpep = np.array([i for i in te_idx if full[i] and basins[i] in ("WP", "EP")])
+SC = TARGET_SCALE
+
+
+@torch.no_grad()
+def track_err(ms):
+    P = []
+    for i in range(0, len(wpep), 128):
+        j = wpep[i:i + 128]
+        hs = torch.from_numpy(np.concatenate([SLP[HIST_S[j, 0]], SLP[HIST_S[j, 1]]], 1)).to(DEVICE)
+        hv = torch.from_numpy(HAVE[j]).to(DEVICE)
+        a = [torch.from_numpy(track[j]).to(DEVICE), torch.from_numpy(vpair[j]).to(DEVICE),
+             torch.from_numpy(SLP[j]).to(DEVICE), hs, hv]
+        P.append((torch.stack([m(*a)[0] for m in ms]).mean(0) * SC).float().cpu().numpy())
+    C = np.cumsum(np.concatenate(P)[..., :2], 1)
+    T = np.cumsum(target[wpep][..., :2], 1)
+    return float(np.sqrt(((C - T) ** 2).sum(-1)).mean())
+
+
+def load_m(c):
+    m = TrackFormerHist().to(DEVICE).eval()
+    m.load_state_dict(torch.load(c, map_location=DEVICE, weights_only=False)["model"]); return m
+
+
+MS = [load_m(c) for c in CK]
+print(f"\nWP+EP 2020+, {len(wpep)} windows")
+print("  BASELINES   v17 462.8 | v20 452.5 | v21 443.6 | v22 443.4 (the bar)")
+for i, c in enumerate(CK):
+    print(f"  {TAG} seed{i}  {track_err([load_m(c)]):.2f} km", flush=True)
+e = track_err(MS)
+print(f"\n  {TAG} ENSEMBLE ({len(MS)} seeds)  {e:.2f} km")
+print(f"  vs v21 443.62: {e - 443.62:+.2f} km   vs v22 443.41: {e - 443.41:+.2f} km", flush=True)
+print("  NOTE: seed spread is ~19 km and the v21/v22 bootstrap CIs cross zero. Anything inside"
+      "\n  ~10 km of the bar is noise until a paired-storm bootstrap says otherwise.", flush=True)
+json.dump({TAG: e, "use_hist": USE_HIST, "n_seeds": len(MS)},
+          open(f"/content/{TAG}.json", "w"))
+try:
+    from google.colab import files
+    import subprocess
+    subprocess.run(f"tar cf /content/{TAG}_seeds.tar /content/{TAG}_seed*.pt", shell=True)
+    files.download(f"/content/{TAG}.json"); files.download(f"/content/{TAG}_seeds.tar")
+except Exception as ex:
+    print("download skipped:", ex)
