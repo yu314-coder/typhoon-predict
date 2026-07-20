@@ -22,7 +22,14 @@ Writes /content/dlm4_int8.npz -- the training cell reads it, so a bad training r
 re-download of the 14 GB of reanalysis.
 """
 import os, time, subprocess, urllib.request
-import numpy as np, netCDF4
+import numpy as np
+try:
+    import netCDF4
+except ImportError:
+    # not preinstalled on a stock Colab VM, and this script is fetched fresh onto a new VM every
+    # run, so install it here rather than relying on the calling cell to remember
+    subprocess.run(["pip", "install", "-q", "netCDF4"], check=True)
+    import netCDF4
 
 RAW = "https://raw.githubusercontent.com/yu314-coder/typhoon-predict/main"
 HALF = 8
