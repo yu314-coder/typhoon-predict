@@ -242,7 +242,15 @@ def train_one(seed, ckpt):
     return ckpt
 
 
-CK = [train_one(s, f"/content/{TAG}_seed{s}.pt") for s in range(N_SEEDS)]
+# reuse any checkpoint already on this VM, so extending 3 seeds -> 5 costs two runs, not five
+CK = []
+for _s in range(N_SEEDS):
+    _c = f"/content/{TAG}_seed{_s}.pt"
+    if os.path.exists(_c):
+        print(f"seed {_s}: checkpoint already present, reusing", flush=True)
+    else:
+        train_one(_s, _c)
+    CK.append(_c)
 print(f"{TAG} trained: {len(CK)} seeds (USE_FLOW={USE_FLOW})", flush=True)
 
 full = z["n_leads"].astype(int) == 20
