@@ -41,6 +41,16 @@ import numpy as np, torch, torch.nn as nn, torch.nn.functional as F
 RAW = "https://raw.githubusercontent.com/yu314-coder/typhoon-predict/main"
 N_SEEDS = int(os.environ.get("V26_SEEDS", "3"))
 W_FLOW = float(os.environ.get("W_FLOW", "0.3"))     # weight on the auxiliary flow loss
+# ABLATION SWITCH. v21 changes two things at once: it supervises a flow head (multi-task
+# regularisation) AND derives the track from that flow (the chain-of-thought structure). A km gain
+# could come from either. USE_FLOW=0 keeps the supervision but cuts the flow out of the motion, so
+# the two effects can be separated:
+#   v20            no flow head at all                      452.47 km
+#   USE_FLOW=0     flow supervised, NOT used for motion      <- isolates the auxiliary regulariser
+#   USE_FLOW=1     flow supervised AND drives motion         <- adds the CoT structure
+# CoT only earns credit for the gap between the last two.
+USE_FLOW = int(os.environ.get("V26_USE_FLOW", "1"))
+TAG = os.environ.get("V26_TAG", "v21" if USE_FLOW else "v21aux")
 KM6H = 6 * 3600 / 1000.0                            # m/s -> km per 6 h step (21.6)
 
 for fn in ("track_windows_v13.npz", "dlm4_int8.npz", "lead_flow.npz"):
@@ -134,7 +144,9 @@ class TrackFormerCoT(Base):
         phil = phi0.unsqueeze(1) + self.gturn.view(1, self.leads) * omega.unsqueeze(1)
         speed = self.rho.view(1, self.leads) * s0
         base = torch.stack([speed * torch.cos(phil), speed * torch.sin(phil)], dim=-1) / 100.0
-        motion = base + (self.A.view(1, 1, 2) * fd) * KM6H / 100.0 + self.track_res(h_track)
+        motion = base + self.track_res(h_track)
+        if USE_FLOW:
+            motion = motion + (self.A.view(1, 1, 2) * fd) * KM6H / 100.0
         iq = (self.int_q + self.qpos.unsqueeze(0)).expand(b, -1, -1)
         h_int = self.int_dec(iq, torch.cat([thermo, env, kin.detach(), st.detach()], dim=1))
         istate = self.int_state(h_int); ilog = self.int_logscale(h_int)
@@ -149,7 +161,7 @@ with torch.no_grad():
     _t = torch.from_numpy(track[:4]).to(DEVICE); _v = torch.from_numpy(vpair[:4]).to(DEVICE)
     _s = torch.from_numpy(SLP[:4]).to(DEVICE)
     _d1 = float((_a(_t, _v, _s)[0] - _b(_t, _v, _s)[0]).abs().max())
-    assert _d1 < 1e-5, f"v21 does not reduce to v20 at init: max diff {_d1}"
+    assert _d1 < 1e-5, f"{TAG} does not reduce to v20 at init: max diff {_d1}"
     print(f"init check: max|v21 - v20| = {_d1:.2e} -- v21 starts as exactly v20", flush=True)
 del _a, _b
 
@@ -230,8 +242,8 @@ def train_one(seed, ckpt):
     return ckpt
 
 
-CK = [train_one(s, f"/content/v21_seed{s}.pt") for s in range(N_SEEDS)]
-print(f"v21 trained: {len(CK)} seeds", flush=True)
+CK = [train_one(s, f"/content/{TAG}_seed{s}.pt") for s in range(N_SEEDS)]
+print(f"{TAG} trained: {len(CK)} seeds (USE_FLOW={USE_FLOW})", flush=True)
 
 full = z["n_leads"].astype(int) == 20
 wpep = np.array([i for i in te_idx if full[i] and basins[i] in ("WP", "EP")])
@@ -261,16 +273,16 @@ MS = [load_m(c) for c in CK]
 print(f"\nWP+EP 2020+, {len(wpep)} windows")
 print("  BASELINES   v10 549.3 | v17 462.8 | v20 452.5 (the bar)")
 for i, c in enumerate(CK):
-    print(f"  v21 seed{i}  {track_err([load_m(c)]):.2f} km", flush=True)
+    print(f"  {TAG} seed{i}  {track_err([load_m(c)]):.2f} km", flush=True)
 e = track_err(MS)
-print(f"\n  v21 ENSEMBLE ({len(MS)} seeds)  {e:.2f} km")
+print(f"\n  {TAG} ENSEMBLE ({len(MS)} seeds)  {e:.2f} km")
 print(f"  vs v20 452.5: {e - 452.47:+.2f} km   vs v17 462.8: {e - 462.8:+.2f} km", flush=True)
-json.dump({"v21": e}, open("/content/v21.json", "w"))
+json.dump({TAG: e, "use_flow": USE_FLOW}, open(f"/content/{TAG}.json", "w"))
 
 try:
     from google.colab import files
     import subprocess
-    subprocess.run("tar cf /content/v21_seeds.tar /content/v21_seed*.pt", shell=True)
-    files.download("/content/v21.json"); files.download("/content/v21_seeds.tar")
+    subprocess.run(f"tar cf /content/{TAG}_seeds.tar /content/{TAG}_seed*.pt", shell=True)
+    files.download(f"/content/{TAG}.json"); files.download(f"/content/{TAG}_seeds.tar")
 except Exception as ex:
     print("(auto-download unavailable:", ex, ")", flush=True)
