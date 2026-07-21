@@ -42,6 +42,9 @@ RDA = "https://thredds.rda.ucar.edu/thredds/dodsC/files/g/d633000/e5.oper.an.pl"
 # 202001 catalogs; it is not year-dependent.
 VARS = [("128_129_z", "Z", "ll025sc"), ("128_131_u", "U", "ll025uv"), ("128_132_v", "V", "ll025uv")]
 LAT0, LAT1 = 120, 361          # 60N .. 0N   (ERA5 latitude runs north -> south)
+# 100E..180E. Widening east to 260E to pick up the EP costs MORE than linearly -- measured
+# 7.4 MB / 38.0 s against 14.8 MB / 97.4 s, so WP+EP 1990+ would be ~40 h at 12 workers rather
+# than 13. EP is a second pass on the same machinery; nothing here has to be redone for it.
 LON0, LON1 = 400, 721          # 100E .. 180E
 LEV0, LEV1 = 14, 31            # 200 .. 850 hPa inclusive
 LEV_HPA = [200, 225, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 775, 800, 825, 850]
@@ -173,6 +176,7 @@ from concurrent.futures import ThreadPoolExecutor
 W = int(os.environ.get("WORKERS", "24"))
 Y0 = int(os.environ.get("Y0", "1990"))
 STRIDE = int(os.environ.get("STRIDE", "8"))
+TSTRIDE = int(os.environ.get("TSTRIDE", "3"))   # 98.8% of windows sit on the 8 synoptic hours
 LEV_SL = slice(LEV0, LEV1, STRIDE)
 KEEP3 = list(range(len(range(LEV0, LEV1, STRIDE))))
 LEV_LABEL = [LEV_HPA[k] for k in range(0, len(LEV_HPA), STRIDE)]
@@ -191,7 +195,11 @@ def fetch_day_sl(day_idx):
         for attempt in range(4):
             try:
                 nc = netCDF4.Dataset(url)
-                a = np.asarray(nc.variables[dapname][:, LEV_SL, LAT0:LAT1, LON0:LON1], "float32")
+                # stride the HOUR axis too: time is NOT free per request (24 steps = 22.3 MB /
+                # 64.5 s against 4 steps = 3.7 MB / 7.2 s), and 98.8% of windows land on the
+                # 3-hourly synoptic times.
+                a = np.asarray(nc.variables[dapname][::TSTRIDE, LEV_SL, LAT0:LAT1, LON0:LON1],
+                               "float32")
                 nc.close(); out.append(a); ok = True; break
             except Exception as ex:
                 time.sleep(3 * (attempt + 1))
@@ -201,10 +209,16 @@ def fetch_day_sl(day_idx):
     return day_idx, np.stack(out, 1), None
 
 
+# WP+EP only -- those are the basins we score, and fetching SI/SP/NI would be pure waste.
+# The patch must also fit inside the box with its 8 deg half-width.
+_bas = z["basin"].astype(str)
+_lo360 = blo % 360
+BASIN = os.environ.get("BASIN", "WP")
+_fits = (bla >= 8.0) & (bla <= 52.0) & (_lo360 >= 108.0) & (_lo360 <= 172.0)
 by_year = {}
 for i in range(N):
     y = int(str(np.datetime64(int(snap[i]), "ns").astype("datetime64[Y]")))
-    if y >= Y0:
+    if y >= Y0 and _bas[i] == BASIN and _fits[i]:
         by_year.setdefault(y, []).append(i)
 
 print(f"levels {LEV_LABEL} hPa | {W} workers | years {Y0}+ "
@@ -212,7 +226,10 @@ print(f"levels {LEV_LABEL} hPa | {W} workers | years {Y0}+ "
 print(f"TMPDIR={os.environ.get('TMPDIR','(default)')}\n", flush=True)
 
 t_all = time.time()
-for year in sorted(by_year):
+# NEWEST FIRST. The test period is 2020+, so processing in reverse means the years we evaluate
+# on land within the first couple of hours and the pilot experiment can run while the rest of the
+# archive is still downloading.
+for year in sorted(by_year, reverse=True):
     f = f"{OUT}/era5_{year}.npz"
     if os.path.exists(f):
         print(f"  {year}: present, skipping", flush=True); continue
@@ -230,7 +247,9 @@ for year in sorted(by_year):
                 fails += 1; continue
             for s_ in dmap[di]:
                 i = idx[s_]
-                ti = int((snap[i] - int(di) * 24 * HOUR) // HOUR)
+                # index into the strided hour axis; windows off the 3-hourly grid snap back to
+                # the previous synoptic hour, which stays causal (at most 2 h stale)
+                ti = int((snap[i] - int(di) * 24 * HOUR) // HOUR) // TSTRIDE
                 if ti >= a.shape[0]:
                     continue
                 r = int(np.abs(lat_g[LAT0:LAT1] - bla[i]).argmin())
@@ -245,15 +264,25 @@ for year in sorted(by_year):
     np.savez_compressed(f, q=q, scale=sc, got=got, widx=idx,
                         levels=np.array(LEV_LABEL), vars=np.array(["z", "u", "v"]))
     el = (time.time() - t0) / 60
-    done = sorted(by_year).index(year) + 1
+    done = sorted(by_year, reverse=True).index(year) + 1
     eta = (time.time() - t_all) / done * (len(by_year) - done) / 3600
     print(f"  {year}: {len(idx):6,} win {100*got.mean():5.1f}% got  "
           f"{os.path.getsize(f)/1e6:6.1f} MB  {fails:3d} fail  {el:5.1f} min   ETA {eta:4.1f} h",
           flush=True)
     # A year where nothing landed is a broken run, not slow progress. The first version caught
     # every exception, wrote a file of zeros, printed an ETA and carried on for 4.3 hours.
+    # A year where nothing landed is usually a broken run. But it can also mean the source
+    # simply stops there: ERA5's d633000 ends after 2026-03 (202605 is a 404), so 2026 windows
+    # from April on have no file to fetch. Distinguish the two -- halt on a systematic failure,
+    # but only warn and continue when a SHORT year is partially covered, which is the signature
+    # of hitting the end of the archive rather than a bug.
     if got.mean() < 0.5:
-        os.remove(f)
-        raise SystemExit(f"ABORT: {year} got only {100*got.mean():.1f}% of windows "
-                         f"({fails} failed days). Not continuing -- fix the cause first.")
+        if len(idx) < 1000 and got.mean() > 0.05:
+            print(f"    NOTE: {year} is partial ({100*got.mean():.0f}%) and short "
+                  f"({len(idx)} windows) -- looks like the end of the archive, continuing",
+                  flush=True)
+        else:
+            os.remove(f)
+            raise SystemExit(f"ABORT: {year} got only {100*got.mean():.1f}% of windows "
+                             f"({fails} failed days). Not continuing -- fix the cause first.")
 print(f"\ndone in {(time.time()-t_all)/3600:.1f} h -> {OUT}/")
