@@ -34,7 +34,7 @@ for _t in _want_pre:
 _want = [t.strip() for t in os.environ.get("MAP_MODELS", "v10,v17,v18,v19").split(",") if t.strip()]
 MODELS = [("v10", V10)] if "v10" in _want else []
 for _t in ("v13", "v14", "v17", "v18", "v19", "v10.1", "v10.2", "v10.3", "v10.3s",
-           "v20", "v21", "v22"):
+           "v20", "v21", "v22", "v23", "v24"):
     if _t not in _want:
         continue
     _p = f"{TD}/{_t}_tracks.json"
@@ -54,6 +54,13 @@ COL = {"v10": ("#eda100", "#c98500"), "v13": ("#e87ba4", "#d55181"), "v14": ("#e
        # validated: validate_palette.py "#eda100,#2a78d6,#c2185b" -- worst dE 28.0 (protan),
        # both modes. Purple/teal/green candidates all failed or came in weak against v21 blue.
        "v22": ("#c2185b", "#e0457f"),
+       # validated both modes against v10 yellow + v21 blue: worst dE 24.7 protan / 24.3 tritan
+       # / 30.7 normal. Green failed the dark lightness band; violet and teal came in weak.
+       "v23": ("#eb6834", "#d95926"),
+       # v24 is blue so the panel order v10, v24, v23 makes the ADJACENT pairs yellow<->blue and
+       # blue<->orange, which validate. v10 yellow beside v23 orange does NOT: dE 13.7 light /
+       # 10.6 dark, under the 15 normal-vision floor. Order matters to the pairlist.
+       "v24": ("#2a78d6", "#3987e5"),
        "rmt": ("#e34948", "#e66767")}   # the consensus line, overridable via MAP_COL
 for _ov in os.environ.get("MAP_COL", "").split(","):
     if ":" in _ov:
@@ -72,7 +79,9 @@ NOTE = {"v10": "no environmental field at all",
         "v10.3s": "generative, one raw sample",
         "v20": "deep-layer mean steering, 850/500/200 hPa",
         "v21": "chain-of-thought: predicts the steering flow, derives the track",
-        "v22": "v21 + latent chain-of-thought, 2 weight-tied feedback rounds"}
+        "v22": "v21 + latent chain-of-thought, 2 weight-tied feedback rounds",
+        "v23": "v21 + temporal steering stack: t-24 h, t-12 h and now",
+        "v24": "basin map 100-180E 0-60N, 6-hourly, no mirror augmentation"}
 
 
 def rings_in(lo0, lo1, la0, la1):

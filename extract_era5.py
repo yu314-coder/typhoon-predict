@@ -36,7 +36,11 @@ except ImportError:
     sys.exit("pip install netCDF4")
 
 RDA = "https://thredds.rda.ucar.edu/thredds/dodsC/files/g/d633000/e5.oper.an.pl"
-VARS = [("128_129_z", "Z"), ("128_131_u", "U"), ("128_132_v", "V")]
+# GRID SUFFIX DIFFERS BY VARIABLE. Scalars are ll025sc; the WIND fields are ll025uv. Hardcoding
+# ll025sc for all three made every u/v request a 404 -- 3,444 "No such file" errors across a
+# 4.3-hour run that still reported an ETA instead of stopping. Verified against the 199001 and
+# 202001 catalogs; it is not year-dependent.
+VARS = [("128_129_z", "Z", "ll025sc"), ("128_131_u", "U", "ll025uv"), ("128_132_v", "V", "ll025uv")]
 LAT0, LAT1 = 120, 361          # 60N .. 0N   (ERA5 latitude runs north -> south)
 LON0, LON1 = 400, 721          # 100E .. 180E
 LEV0, LEV1 = 14, 31            # 200 .. 850 hPa inclusive
@@ -77,8 +81,8 @@ def fetch_day(day_idx, want_levels=True):
     ds = np.datetime64(d0, "ns").astype("datetime64[D]")
     y, m, dd = str(ds)[:4], str(ds)[5:7], str(ds)[8:10]
     out, times = [], None
-    for code, dapname in VARS:
-        url = (f"{RDA}/{y}{m}/e5.oper.an.pl.{code}.ll025sc."
+    for code, dapname, grid in VARS:
+        url = (f"{RDA}/{y}{m}/e5.oper.an.pl.{code}.{grid}."
                f"{y}{m}{dd}00_{y}{m}{dd}23.nc")
         for attempt in range(3):
             try:
@@ -181,8 +185,8 @@ def fetch_day_sl(day_idx):
     ds = np.datetime64(d0, "ns").astype("datetime64[D]")
     y, m, dd = str(ds)[:4], str(ds)[5:7], str(ds)[8:10]
     out = []
-    for code, dapname in VARS:
-        url = (f"{RDA}/{y}{m}/e5.oper.an.pl.{code}.ll025sc.{y}{m}{dd}00_{y}{m}{dd}23.nc")
+    for code, dapname, grid in VARS:
+        url = (f"{RDA}/{y}{m}/e5.oper.an.pl.{code}.{grid}.{y}{m}{dd}00_{y}{m}{dd}23.nc")
         ok = False
         for attempt in range(4):
             try:
@@ -246,4 +250,10 @@ for year in sorted(by_year):
     print(f"  {year}: {len(idx):6,} win {100*got.mean():5.1f}% got  "
           f"{os.path.getsize(f)/1e6:6.1f} MB  {fails:3d} fail  {el:5.1f} min   ETA {eta:4.1f} h",
           flush=True)
+    # A year where nothing landed is a broken run, not slow progress. The first version caught
+    # every exception, wrote a file of zeros, printed an ETA and carried on for 4.3 hours.
+    if got.mean() < 0.5:
+        os.remove(f)
+        raise SystemExit(f"ABORT: {year} got only {100*got.mean():.1f}% of windows "
+                         f"({fails} failed days). Not continuing -- fix the cause first.")
 print(f"\ndone in {(time.time()-t_all)/3600:.1f} h -> {OUT}/")
