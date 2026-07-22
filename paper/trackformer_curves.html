@@ -1,0 +1,312 @@
+<style>
+.viz-root{
+  color-scheme:light;
+  --surface-0:#f4f4f2; --surface-1:#fcfcfb; --line:#dcdcd6;
+  --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#78776f;
+  --s1:#2a78d6; --s2:#008300; --s3:#e87ba4; --s4:#eda100;
+  --ref:#8a8880; --grid:#e4e4de; --bad:#c0392b;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])) .viz-root{
+  color-scheme:dark;
+  --surface-0:#101010; --surface-1:#1a1a19; --line:#31312d;
+  --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#8f8e85;
+  --s1:#3987e5; --s2:#008300; --s3:#d55181; --s4:#c98500;
+  --ref:#7d7c74; --grid:#2a2a27; --bad:#e66767;
+}}
+:root[data-theme="dark"] .viz-root{
+  color-scheme:dark;
+  --surface-0:#101010; --surface-1:#1a1a19; --line:#31312d;
+  --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#8f8e85;
+  --s1:#3987e5; --s2:#008300; --s3:#d55181; --s4:#c98500;
+  --ref:#7d7c74; --grid:#2a2a27; --bad:#e66767;
+}
+.viz-root{background:var(--surface-0);color:var(--text-secondary);font-family:var(--sans);
+  font-size:15px;line-height:1.6;}
+.wrap{max-width:920px;margin:0 auto;padding:clamp(24px,5vw,52px) clamp(16px,4vw,30px) 80px;
+  display:flex;flex-direction:column;gap:36px;}
+h1,h2{color:var(--text-primary);margin:0;text-wrap:balance;}
+h1{font-size:clamp(25px,4vw,36px);line-height:1.14;letter-spacing:-.022em;font-weight:660;}
+h2{font-size:17px;letter-spacing:-.008em;font-weight:640;}
+p{margin:0;max-width:72ch;}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--text-muted);}
+header{display:flex;flex-direction:column;gap:11px;border-bottom:1px solid var(--line);
+  padding-bottom:22px;}
+figure{margin:0;background:var(--surface-1);border:1px solid var(--line);border-radius:7px;
+  padding:18px 18px 12px;display:flex;flex-direction:column;gap:10px;}
+figcaption{display:flex;flex-direction:column;gap:5px;}
+.takeaway{font-size:13.5px;color:var(--text-secondary);}
+.legend{display:flex;flex-wrap:wrap;gap:7px 17px;font-size:12.5px;align-items:center;}
+.lg{display:inline-flex;align-items:center;gap:6px;color:var(--text-secondary);}
+.sw{width:15px;height:3px;border-radius:2px;display:inline-block;}
+.chartbox{position:relative;overflow-x:auto;}
+svg{display:block;width:100%;height:auto;}
+.gl{stroke:var(--grid);stroke-width:1;}
+.ax{stroke:var(--line);stroke-width:1;}
+.tk{font-family:var(--mono);font-size:10px;fill:var(--text-muted);}
+.dl{font-family:var(--mono);font-size:10.5px;font-weight:700;}
+.zero{stroke:var(--text-muted);stroke-width:1;stroke-dasharray:3 3;}
+.tip{position:absolute;pointer-events:none;background:var(--surface-1);
+  border:1px solid var(--line);border-radius:5px;padding:7px 9px;font-size:12px;
+  font-family:var(--mono);color:var(--text-primary);opacity:0;transition:opacity .1s;
+  box-shadow:0 3px 14px rgba(0,0,0,.16);white-space:nowrap;z-index:5;}
+table{border-collapse:collapse;font-family:var(--mono);font-size:12px;width:100%;}
+th,td{padding:4px 9px;text-align:right;border-bottom:1px solid var(--line);
+  font-variant-numeric:tabular-nums;}
+th:first-child,td:first-child{text-align:left;}
+th{color:var(--text-muted);font-weight:600;}
+td{color:var(--text-secondary);}
+details{font-size:12.5px;}
+summary{cursor:pointer;color:var(--text-muted);padding:5px 0;}
+footer{border-top:1px solid var(--line);padding-top:18px;font-size:12.5px;color:var(--text-muted);
+  display:flex;flex-direction:column;gap:7px;}
+code{font-family:var(--mono);font-size:12px;}
+</style>
+
+<div class="viz-root"><div class="wrap">
+
+<header>
+  <div class="eyebrow">TrackFormer &middot; where the error actually is</div>
+  <h1>Four curves that decided what to build next</h1>
+  <p>Every number here is measured on the same held-out set &mdash; WP+EP storms from 2020 on,
+  3,763 full-horizon windows, five-seed ensembles. The models never saw these years in training.</p>
+</header>
+
+<figure>
+  <figcaption>
+    <h2>1 &middot; Error by forecast lead</h2>
+    <p class="takeaway">Three architecture versions sit on top of each other. The gap that matters
+    is to the <strong>perfect-flow oracle</strong> &mdash; the same model fed the true steering
+    flow instead of its own prediction. It opens from 1&nbsp;km at 24&nbsp;h to 323&nbsp;km at
+    120&nbsp;h.</p>
+  </figcaption>
+  <div class="legend" id="lg1"></div>
+  <div class="chartbox"><svg id="c1" viewBox="0 0 860 380" role="img"
+    aria-label="Track error against forecast lead for v20, v21, v22, the perfect-flow oracle and NHC official"></svg>
+    <div class="tip" id="t1"></div></div>
+  <details><summary>Table view</summary><div id="tb1"></div></details>
+</figure>
+
+<figure>
+  <figcaption>
+    <h2>2 &middot; Learning curve over training storms</h2>
+    <p class="takeaway">Subsampled by <strong>storm</strong>, not window &mdash; windows inside one
+    storm are correlated, so dropping windows would flatten this artificially. Each step doubles
+    the independent storms. The return is decaying fast: 59&nbsp;km, then 18&nbsp;km.</p>
+  </figcaption>
+  <div class="chartbox"><svg id="c2" viewBox="0 0 860 330" role="img"
+    aria-label="Test track error against number of training storms, log scale"></svg>
+    <div class="tip" id="t2"></div></div>
+  <details><summary>Table view</summary><div id="tb2"></div></details>
+</figure>
+
+<figure>
+  <figcaption>
+    <h2>3 &middot; The miss, split along and across the storm's motion</h2>
+    <p class="takeaway">Cross-track bias is near zero &mdash; the models steer in roughly the right
+    direction. Along-track runs deeply negative: at 120&nbsp;h the forecast sits ~300&nbsp;km
+    <em>behind</em> the storm. That lag is not a calibration error; a per-lead gain fitted on
+    validation came back <em>below</em>&nbsp;1.</p>
+  </figcaption>
+  <div class="legend" id="lg3"></div>
+  <div class="chartbox"><svg id="c3" viewBox="0 0 860 330" role="img"
+    aria-label="Signed along-track and cross-track bias by lead for v21"></svg>
+    <div class="tip" id="t3"></div></div>
+</figure>
+
+<figure>
+  <figcaption>
+    <h2>4 &middot; Paired-storm bootstrap &mdash; is any of it real?</h2>
+    <p class="takeaway">144 storms resampled 2,000 times. <strong>Every interval crosses zero.</strong>
+    None of the three version-to-version gains is statistically established, including the
+    chain-of-thought gain this project was built on.</p>
+  </figcaption>
+  <div class="chartbox"><svg id="c4" viewBox="0 0 860 250" role="img"
+    aria-label="Bootstrap confidence intervals for three model comparisons, all crossing zero"></svg>
+    <div class="tip" id="t4"></div></div>
+</figure>
+
+<footer>
+  <p><strong>Reading these together.</strong> Chart 1 says better flow prediction is worth ~115&nbsp;km
+  overall; charts 2 and 4 say more data and more architecture are worth ~18&nbsp;km and ~0&nbsp;km
+  respectively. Chart 3 says the remaining error is a genuine hedge under uncertainty, not a
+  correctable bias.</p>
+  <p>Oracle values are a first-order estimate: the weights were trained against the model's own
+  flow-error distribution, not a perfect one, so the true ceiling could sit either side of the
+  number shown. NHC official figures are the published five-year mean and are <em>not</em> a
+  homogeneous comparison &mdash; different sample, different basins &mdash; so read them as scale,
+  not as a head-to-head.</p>
+</footer>
+
+</div></div>
+
+<script>
+const LEADS=[24,48,72,96,120];
+const S1=[
+ {k:"v20",  n:"v20 deep-layer steering", c:"--s1", v:[132,299,507,730,970]},
+ {k:"v21",  n:"v21 chain-of-thought",    c:"--s2", v:[127,290,498,718,953]},
+ {k:"v22",  n:"v22 + latent CoT",        c:"--s3", v:[127,289,496,718,957]},
+ {k:"orc",  n:"perfect-flow oracle",     c:"--s4", v:[126,250,374,497,630]},
+];
+const NHC=[52,84,124,170,214];
+const CURVE=[{s:830,w:39279,km:537.88},{s:1659,w:77230,km:478.89},{s:3318,w:153378,km:460.93}];
+const BIAS=[{l:24,a:-34,c:5},{l:48,a:-71,c:16},{l:72,a:-113,c:24},{l:96,a:-199,c:20},{l:120,a:-318,c:16}];
+const BOOT=[
+ {n:"v21 vs v20", d:-8.85, lo:-18.30, hi:1.31, p:0.094, w:"80/144"},
+ {n:"v22 vs v21", d:-0.21, lo:-6.22,  hi:5.38, p:0.939, w:"74/144"},
+ {n:"v22 vs v20", d:-9.06, lo:-18.76, hi:0.45, p:0.066, w:"85/144"},
+];
+const cv=n=>getComputedStyle(document.querySelector('.viz-root')).getPropertyValue(n).trim();
+const E=(t,a)=>{const e=document.createElementNS("http://www.w3.org/2000/svg",t);
+  for(const k in a)e.setAttribute(k,a[k]);return e;};
+
+function tip(box,el,html,x,y){el.innerHTML=html;el.style.opacity=1;
+  const r=box.getBoundingClientRect();
+  el.style.left=Math.min(Math.max(x-el.offsetWidth/2,4),r.width-el.offsetWidth-4)+"px";
+  el.style.top=(y-el.offsetHeight-11)+"px";}
+
+/* ---- 1. per-lead ---- */
+(function(){
+  const svg=document.getElementById("c1"),W=860,H=380,m={t:16,r:104,b:42,l:56};
+  const x=i=>m.l+(W-m.l-m.r)*i/(LEADS.length-1), ymax=1000;
+  const y=v=>H-m.b-(H-m.t-m.b)*v/ymax;
+  for(let g=0;g<=1000;g+=200){svg.appendChild(E("line",{class:"gl",x1:m.l,x2:W-m.r,y1:y(g),y2:y(g)}));
+    const t=E("text",{class:"tk",x:m.l-8,y:y(g)+3.5,"text-anchor":"end"});t.textContent=g;svg.appendChild(t);}
+  LEADS.forEach((L,i)=>{const t=E("text",{class:"tk",x:x(i),y:H-m.b+16,"text-anchor":"middle"});
+    t.textContent=L+" h";svg.appendChild(t);});
+  const yl=E("text",{class:"tk",x:m.l-8,y:m.t+2,"text-anchor":"end"});yl.textContent="km";svg.appendChild(yl);
+  // NHC reference, dashed + direct label (not a peer series)
+  svg.appendChild(E("path",{d:"M"+NHC.map((v,i)=>x(i)+","+y(v)).join(" L"),fill:"none",
+    stroke:cv("--ref"),"stroke-width":2,"stroke-dasharray":"5 4","stroke-linecap":"round"}));
+  const nl=E("text",{class:"dl",x:x(4)+9,y:y(214)+3.5,fill:cv("--ref")});
+  nl.textContent="NHC official";svg.appendChild(nl);
+  const lab=[];
+  S1.forEach(s=>{const col=cv(s.c);
+    svg.appendChild(E("path",{d:"M"+s.v.map((v,i)=>x(i)+","+y(v)).join(" L"),fill:"none",
+      stroke:col,"stroke-width":2,"stroke-linejoin":"round","stroke-linecap":"round",
+      "stroke-dasharray":s.k==="orc"?"7 4":""}));
+    s.v.forEach((v,i)=>{svg.appendChild(E("circle",{cx:x(i),cy:y(v),r:4,fill:col,
+      stroke:cv("--surface-1"),"stroke-width":2}));});
+    lab.push({y:y(s.v[4]),x:x(4)+9,t:s.k,c:col});});
+  lab.sort((a,b)=>a.y-b.y);
+  for(let i=1;i<lab.length;i++) if(lab[i].y-lab[i-1].y<13) lab[i].y=lab[i-1].y+13;
+  lab.forEach(L=>{const t=E("text",{class:"dl",x:L.x,y:L.y+3.5,fill:L.c});t.textContent=L.t;
+    svg.appendChild(t);});
+  const box=svg.parentNode,tp=document.getElementById("t1");
+  LEADS.forEach((L,i)=>{const hit=E("rect",{x:x(i)-26,y:m.t,width:52,height:H-m.t-m.b,
+    fill:"transparent"});
+    hit.addEventListener("mousemove",ev=>{const r=box.getBoundingClientRect();
+      tip(box,tp,`<b>${L} h</b><br>`+S1.map(s=>`${s.k} ${s.v[i]}`).join("<br>")
+        +`<br>NHC ${NHC[i]}`,ev.clientX-r.left,ev.clientY-r.top);});
+    hit.addEventListener("mouseleave",()=>tp.style.opacity=0);
+    svg.appendChild(hit);});
+  document.getElementById("lg1").innerHTML=S1.map(s=>
+    `<span class="lg"><span class="sw" style="background:${cv(s.c)}"></span>${s.n}</span>`).join("")
+    +`<span class="lg"><span class="sw" style="background:${cv("--ref")}"></span>NHC official (scale only)</span>`;
+  document.getElementById("tb1").innerHTML="<table><tr><th>lead</th>"
+    +S1.map(s=>`<th>${s.k}</th>`).join("")+"<th>NHC</th></tr>"
+    +LEADS.map((L,i)=>`<tr><td>${L} h</td>`+S1.map(s=>`<td>${s.v[i]}</td>`).join("")
+    +`<td>${NHC[i]}</td></tr>`).join("")+"</table>";
+})();
+
+/* ---- 2. learning curve ---- */
+(function(){
+  const svg=document.getElementById("c2"),W=860,H=330,m={t:20,r:130,b:44,l:56};
+  const lx=v=>Math.log(v), x0=lx(700), x1=lx(3900);
+  const x=v=>m.l+(W-m.l-m.r)*(lx(v)-x0)/(x1-x0);
+  const y=v=>H-m.b-(H-m.t-m.b)*(v-440)/(560-440);
+  for(let g=440;g<=560;g+=30){svg.appendChild(E("line",{class:"gl",x1:m.l,x2:W-m.r,y1:y(g),y2:y(g)}));
+    const t=E("text",{class:"tk",x:m.l-8,y:y(g)+3.5,"text-anchor":"end"});t.textContent=g;svg.appendChild(t);}
+  CURVE.forEach(d=>{const t=E("text",{class:"tk",x:x(d.s),y:H-m.b+16,"text-anchor":"middle"});
+    t.textContent=d.s.toLocaleString()+" storms";svg.appendChild(t);});
+  const yl=E("text",{class:"tk",x:m.l-8,y:m.t+2,"text-anchor":"end"});yl.textContent="km";svg.appendChild(yl);
+  const col=cv("--s1");
+  svg.appendChild(E("path",{d:"M"+CURVE.map(d=>x(d.s)+","+y(d.km)).join(" L"),fill:"none",
+    stroke:col,"stroke-width":2,"stroke-linejoin":"round","stroke-linecap":"round"}));
+  // the 5-seed ensemble the full-data model actually reaches, as a reference
+  svg.appendChild(E("line",{class:"zero",x1:m.l,x2:W-m.r,y1:y(443.62),y2:y(443.62)}));
+  const rl=E("text",{class:"dl",x:W-m.r+9,y:y(443.62)+3.5,fill:cv("--ref")});
+  rl.textContent="443.6 · 5-seed";svg.appendChild(rl);
+  CURVE.forEach((d,i)=>{svg.appendChild(E("circle",{cx:x(d.s),cy:y(d.km),r:5,fill:col,
+      stroke:cv("--surface-1"),"stroke-width":2}));
+    const t=E("text",{class:"dl",x:x(d.s),y:y(d.km)-13,"text-anchor":"middle",fill:col});
+    t.textContent=d.km.toFixed(1);svg.appendChild(t);
+    if(i>0){const dd=d.km-CURVE[i-1].km, mx=(x(d.s)+x(CURVE[i-1].s))/2,
+      my=(y(d.km)+y(CURVE[i-1].km))/2+21;
+      const s=E("text",{class:"dl",x:mx,y:my,"text-anchor":"middle",fill:cv("--text-muted")});
+      s.textContent=dd.toFixed(1)+" km";svg.appendChild(s);}});
+  const box=svg.parentNode,tp=document.getElementById("t2");
+  CURVE.forEach(d=>{const hit=E("circle",{cx:x(d.s),cy:y(d.km),r:20,fill:"transparent"});
+    hit.addEventListener("mousemove",ev=>{const r=box.getBoundingClientRect();
+      tip(box,tp,`<b>${d.s.toLocaleString()} storms</b><br>${d.w.toLocaleString()} windows<br>${d.km.toFixed(2)} km`,
+        ev.clientX-r.left,ev.clientY-r.top);});
+    hit.addEventListener("mouseleave",()=>tp.style.opacity=0);svg.appendChild(hit);});
+  document.getElementById("tb2").innerHTML="<table><tr><th>fraction</th><th>storms</th><th>windows</th><th>test km</th></tr>"
+    +CURVE.map((d,i)=>`<tr><td>${["25%","50%","100%"][i]}</td><td>${d.s.toLocaleString()}</td>`
+    +`<td>${d.w.toLocaleString()}</td><td>${d.km.toFixed(2)}</td></tr>`).join("")+"</table>";
+})();
+
+/* ---- 3. along vs cross bias ---- */
+(function(){
+  const svg=document.getElementById("c3"),W=860,H=330,m={t:20,r:104,b:44,l:60};
+  const x=i=>m.l+(W-m.l-m.r)*i/(BIAS.length-1);
+  const y=v=>m.t+(H-m.t-m.b)*(60-v)/(60-(-360));
+  for(let g=-360;g<=60;g+=60){svg.appendChild(E("line",{class:"gl",x1:m.l,x2:W-m.r,y1:y(g),y2:y(g)}));
+    const t=E("text",{class:"tk",x:m.l-8,y:y(g)+3.5,"text-anchor":"end"});t.textContent=g;svg.appendChild(t);}
+  svg.appendChild(E("line",{class:"zero",x1:m.l,x2:W-m.r,y1:y(0),y2:y(0)}));
+  BIAS.forEach((d,i)=>{const t=E("text",{class:"tk",x:x(i),y:H-m.b+16,"text-anchor":"middle"});
+    t.textContent=d.l+" h";svg.appendChild(t);});
+  const yl=E("text",{class:"tk",x:m.l-8,y:m.t-4,"text-anchor":"end"});yl.textContent="km";svg.appendChild(yl);
+  [["a","--s1","along-track"],["c","--s4","cross-track"]].forEach(([k,cn,nm])=>{
+    const col=cv(cn);
+    svg.appendChild(E("path",{d:"M"+BIAS.map((d,i)=>x(i)+","+y(d[k])).join(" L"),fill:"none",
+      stroke:col,"stroke-width":2,"stroke-linejoin":"round","stroke-linecap":"round"}));
+    BIAS.forEach((d,i)=>svg.appendChild(E("circle",{cx:x(i),cy:y(d[k]),r:4,fill:col,
+      stroke:cv("--surface-1"),"stroke-width":2})));
+    const t=E("text",{class:"dl",x:x(4)+9,y:y(BIAS[4][k])+3.5,fill:col});t.textContent=nm;
+    svg.appendChild(t);});
+  const box=svg.parentNode,tp=document.getElementById("t3");
+  BIAS.forEach((d,i)=>{const hit=E("rect",{x:x(i)-26,y:m.t,width:52,height:H-m.t-m.b,fill:"transparent"});
+    hit.addEventListener("mousemove",ev=>{const r=box.getBoundingClientRect();
+      tip(box,tp,`<b>${d.l} h</b><br>along ${d.a>0?"+":""}${d.a} km<br>cross ${d.c>0?"+":""}${d.c} km`,
+        ev.clientX-r.left,ev.clientY-r.top);});
+    hit.addEventListener("mouseleave",()=>tp.style.opacity=0);svg.appendChild(hit);});
+  document.getElementById("lg3").innerHTML=
+    `<span class="lg"><span class="sw" style="background:${cv("--s1")}"></span>along-track bias (&minus; = forecast lags)</span>`
+   +`<span class="lg"><span class="sw" style="background:${cv("--s4")}"></span>cross-track bias (+ = left of motion)</span>`
+   +`<span class="lg" style="color:var(--text-muted)">v21, 5-seed ensemble</span>`;
+})();
+
+/* ---- 4. bootstrap intervals ---- */
+(function(){
+  const svg=document.getElementById("c4"),W=860,H=250,m={t:26,r:150,b:40,l:108};
+  const x=v=>m.l+(W-m.l-m.r)*(v-(-22))/(10-(-22));
+  const rowY=i=>m.t+30+i*52;
+  for(let g=-20;g<=10;g+=5){svg.appendChild(E("line",{class:"gl",x1:x(g),x2:x(g),y1:m.t,y2:H-m.b}));
+    const t=E("text",{class:"tk",x:x(g),y:H-m.b+16,"text-anchor":"middle"});
+    t.textContent=(g>0?"+":"")+g;svg.appendChild(t);}
+  svg.appendChild(E("line",{class:"zero",x1:x(0),x2:x(0),y1:m.t,y2:H-m.b}));
+  const z=E("text",{class:"tk",x:x(0),y:m.t-8,"text-anchor":"middle"});z.textContent="no difference";
+  svg.appendChild(z);
+  const xl=E("text",{class:"tk",x:(m.l+W-m.r)/2,y:H-6,"text-anchor":"middle"});
+  xl.textContent="km, negative = better";svg.appendChild(xl);
+  BOOT.forEach((b,i)=>{const yy=rowY(i),col=cv("--s1");
+    svg.appendChild(E("line",{x1:x(b.lo),x2:x(b.hi),y1:yy,y2:yy,stroke:col,"stroke-width":3,
+      "stroke-linecap":"round",opacity:.42}));
+    [b.lo,b.hi].forEach(v=>svg.appendChild(E("line",{x1:x(v),x2:x(v),y1:yy-6,y2:yy+6,
+      stroke:col,"stroke-width":2,"stroke-linecap":"round"})));
+    svg.appendChild(E("circle",{cx:x(b.d),cy:yy,r:6,fill:col,stroke:cv("--surface-1"),"stroke-width":2}));
+    const n=E("text",{class:"tk",x:m.l-10,y:yy+3.5,"text-anchor":"end"});n.textContent=b.n;
+    svg.appendChild(n);
+    const s=E("text",{class:"dl",x:W-m.r+10,y:yy+3.5,fill:cv("--text-muted")});
+    s.textContent=`p ${b.p.toFixed(3)} · ${b.w}`;svg.appendChild(s);
+    const hit=E("rect",{x:m.l,y:yy-18,width:W-m.l-m.r,height:36,fill:"transparent"});
+    const box=svg.parentNode,tp=document.getElementById("t4");
+    hit.addEventListener("mousemove",ev=>{const r=box.getBoundingClientRect();
+      tip(box,tp,`<b>${b.n}</b><br>${b.d>0?"+":""}${b.d.toFixed(2)} km<br>95% CI [${b.lo.toFixed(2)}, ${b.hi.toFixed(2)}]<br>p ${b.p.toFixed(3)} · wins ${b.w}`,
+        ev.clientX-r.left,ev.clientY-r.top);});
+    hit.addEventListener("mouseleave",()=>tp.style.opacity=0);svg.appendChild(hit);});
+})();
+</script>

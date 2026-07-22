@@ -11,9 +11,10 @@ STORMS = [
     {"sid": "2025203N20124", "name": "Co-may (2025)","thr": 64,  "label": "first Cat-1", "out": "comay"},
     {"sid": "2022239N22150", "name": "Hinnamnor (2022)", "thr": 113, "label": "first Cat-4", "out": "hinnamnor"},
 ]
-V8 = {"Bavi (2026)": {24:185,48:316,72:314,96:201,120:448},
-      "Wayne (1986)": {24:115,48:567,72:904,96:1012,120:1024},
-      "Co-may (2025)": {24:264,48:1034,72:1204,96:1208,120:949}}
+V8 = {"Bavi (2026)": {24:176,48:274,72:235,96:106,120:415},
+      "Wayne (1986)": {24:152,48:758,72:1332,96:1606,120:1236},
+      "Co-may (2025)": {24:167,48:703,72:723,96:653,120:488},
+      "Hinnamnor (2022)": {24:62,48:435,72:895,96:987,120:938}}
 
 def mkm(a,b,c,d):
     dlat=c-a; dlon=((d-b+180)%360)-180
@@ -21,30 +22,51 @@ def mkm(a,b,c,d):
 def ok(v): return v is not None and np.isfinite(v)
 
 g = {"torch": torch, "nn": nn, "F": __import__("torch.nn.functional", fromlist=["x"]), "math": math, "np": np}
-src = open("train_track_v9.py").read()
+src = open("train_track_v13.py").read()
 for blk in [r"KIN_COLS = .*?KIN_DIM, THERMO_DIM, ENV_DIM = len\(KIN_COLS\), len\(THERMO_COLS\), len\(ENV_COLS\)",
             r"def sinusoidal.*?return e", r"def enc\(.*?depth\)",
             r"def dec\(d.*?depth\)", r"class TrackFormerV9.*?torch\.zeros_like\(motion\), ilog\], -1\)"]:
     exec(re.search(blk, src, re.S).group(0), g)
-ck = torch.load("track_build/track_v9_best.pt", map_location="cpu", weights_only=False)
+ck = torch.load("track_build/track_v13_best.pt", map_location="cpu", weights_only=False)
 model = g["TrackFormerV9"]().eval()
 model.load_state_dict({k: (v.float() if torch.is_floating_point(v) else v) for k, v in ck["model"].items()})
 tmean, tstd = ck["track_mean"].astype("float32"), ck["track_std"].astype("float32")
 
 # v9 residual covariance (RMT-cleaned) for the ensemble
-z = np.load("track_build/track_windows_v9.npz", allow_pickle=True)
+z = np.load("track_build/track_windows_v13.npz", allow_pickle=True)
 tm2, ts2 = z["track_mean"].astype("float32"), z["track_std"].astype("float32")
 vv0 = (z["track"][:, -1, 2:4] * ts2[2:4] + tm2[2:4]).astype("float32")
+vvp = (z["track"][:, -2, 2:4] * ts2[2:4] + tm2[2:4]).astype("float32")
+vpair_full = np.concatenate([vv0, vvp], axis=1).astype("float32")
+SLP_ALL = np.load("track_build/slp_patches.npy").astype("float32")/np.array([5.,3.],dtype="float32")[None,:,None,None]
 fi = np.where((z["n_leads"].astype(int) == 20) & (z["year"].astype(int) <= 2019))[0][:60000]
 pmf = np.zeros((len(fi), 20, 2))
 with torch.no_grad():
     for s in range(0, len(fi), 512):
-        b = fi[s:s+512]; pmf[s:s+len(b)] = (model(torch.from_numpy(z["track"][b].astype("float32")), torch.from_numpy(vv0[b]))[0][..., :2]*100).numpy()
+        b = fi[s:s+512]; pmf[s:s+len(b)] = (model(torch.from_numpy(z["track"][b].astype("float32")), torch.from_numpy(vpair_full[b]), torch.from_numpy(SLP_ALL[b]))[0][..., :2]*100).numpy()
 res = (z["target"][fi][..., :2]-pmf).reshape(len(fi), 40); S = np.cov(res.T)
 vals, vecs = np.linalg.eigh((S+S.T)/2); vals = np.clip(vals, 1e-6, None)
 edge = np.mean(np.diag(S))*(1+math.sqrt(40/len(fi)))**2*2.0; sig = vals > edge
 Sc = (vecs*np.where(sig, vals, np.median(vals[~sig]))) @ vecs.T
 L = np.linalg.cholesky((Sc+Sc.T)/2 + 1e-6*np.eye(40))
+
+import netCDF4
+def slp_patch(base_time_ns, blat, blon, year, HALF=8):
+    """storm-centered SLP patch: ch0 = regional anomaly, ch1 = 24h tendency"""
+    d = netCDF4.Dataset(f"track_build/geo/slp/slp.{year}.nc")
+    tv = d.variables["time"]
+    dts = netCDF4.num2date(tv[:], tv.units, only_use_cftime_datetimes=False, only_use_python_datetimes=True)
+    tns = np.array([np.datetime64(x).astype("datetime64[ns]").astype("int64") for x in dts])
+    lat = d.variables["lat"][:].astype("float64"); lon = d.variables["lon"][:].astype("float64")
+    ti = int(np.abs(tns - base_time_ns).argmin()); ti24 = max(0, ti - 4)
+    li = int(np.abs(lat - blat).argmin()); lj = int(np.abs(lon - (blon % 360.0)).argmin())
+    rows = np.clip(np.arange(li-HALF, li+HALF+1), 0, len(lat)-1)
+    cols = np.mod(np.arange(lj-HALF, lj+HALF+1), len(lon))
+    now = np.asarray(d.variables["slp"][ti], dtype="float32")[np.ix_(rows, cols)]/100.0
+    prev = np.asarray(d.variables["slp"][ti24], dtype="float32")[np.ix_(rows, cols)]/100.0
+    d.close()
+    P = np.stack([now-now.mean(), now-prev]).astype("float32")
+    return P / np.array([5.0, 3.0], dtype="float32")[:, None, None]
 
 raw = pd.read_csv("typhoon_build/data/ibtracs_ALL.csv", skiprows=[1], low_memory=False)
 
@@ -92,9 +114,13 @@ def build(storm):
         f[52] = d2l if ok(d2l) else float(tmean[52]); f[53] = max(0., min(31., 30.-0.30*abs(lat_i-thermal)**1.4))
         if hs or hc: pdir = (hs, hc)
         prev = idx
-    seq_n = (seq - tmean)/tstd; v0 = seq[-1, 2:4].astype("float32")
+    seq_n = (seq - tmean)/tstd
+    vpair = np.concatenate([seq[-1, 2:4], seq[-2, 2:4]]).astype("float32")   # v0 + previous velocity
+    yr_base = int(pd.Timestamp(h["t"].iloc[base]).year)
+    sp = slp_patch(t0, fx["lat"][base], fx["lon"][base], yr_base)
     with torch.no_grad():
-        motion = (model(torch.from_numpy(seq_n[None]), torch.from_numpy(v0[None]))[0][0, :, :2].numpy())*100.0
+        motion = (model(torch.from_numpy(seq_n[None]), torch.from_numpy(vpair[None]),
+                        torch.from_numpy(sp[None]))[0][0, :, :2].numpy())*100.0
     def latlon(mot):
         la, lo = fx["lat"][base], fx["lon"][base]; out = [[float(la), float(lo)]]
         for e, n in mot:
@@ -122,7 +148,7 @@ def build(storm):
          "extent": ext, "history": history, "forecast": [[round(a, 2), round(b, 2)] for a, b in fc],
          "observed": observed, "ensemble": [[[round(a, 2), round(b, 2)] for a, b in e] for e in ens],
          "errors": errs, "errors_v8": v8}
-    json.dump(d, open(f"track_build/{storm['out']}_v9_geo.json", "w"))
+    json.dump(d, open(f"track_build/{storm["out"]}_v13_geo.json", "w"))
     return errs
 
 print("=== v9 (triple-stream + env) vs v8 forecast error (km) by lead ===")

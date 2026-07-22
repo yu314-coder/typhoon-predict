@@ -1,0 +1,562 @@
+You are a senior research scientist specializing in tropical-cyclone forecasting, numerical weather prediction, probabilistic machine learning, remote sensing, and large-scale spatiotemporal deep-learning systems.
+
+I am building an experimental AI system for typhoon forecasting. Research the current state of the field, analyze my existing method, identify its weaknesses, and design a substantially better architecture.
+
+You have freedom to propose a completely different structure. Do not assume that the current CNN-GRU model should be preserved. Consider transformers, temporal models, graph neural networks, neural operators, diffusion models, flow matching, mixture-density networks, autoregressive models, multi-task models, hybrid physics-ML systems, or combinations of these.
+
+Do not optimize for making my current model look good. Prioritize data correctness, realistic target availability, honest validation, appropriate uncertainty estimation, and a model size that the available historical cyclone data can support.
+
+============================================================
+1. REQUIRED RESEARCH SOURCES
+============================================================
+
+Search current literature and implementations before proposing the final design.
+
+Required sources:
+
+- arXiv, especially papers about tropical-cyclone track prediction, intensity prediction, storm-size prediction, probabilistic forecasting, diffusion models, flow matching, neural operators, graph neural networks, and spatiotemporal weather prediction.
+- Google DeepMind official science and research pages.
+- Google DeepMind papers and official materials related to GraphCast, GenCast, WeatherNext, Weather Lab, NeuralGCM, StormCast, ensemble weather prediction, diffusion-based forecasting, and any newer relevant systems.
+- Official repositories or research repositories associated with the above systems when available.
+- Official documentation for ERA5, IBTrACS, JTWC, JMA, NOAA, and other proposed data sources.
+
+Use direct links and cite the paper or official page title, authors or organization, year, and URL. Clearly distinguish:
+
+- Original Google DeepMind research
+- Independent research inspired by DeepMind methods
+- General weather-forecasting research
+- Your own proposed architecture
+
+Do not imply that a Google DeepMind model directly solves typhoon track, pressure, wind, or radius prediction unless the source explicitly supports that claim. Explain which ideas are transferable and which are not.
+
+Useful search topics include, but are not limited to:
+
+- tropical cyclone track forecasting deep learning
+- tropical cyclone intensity forecasting deep learning
+- tropical cyclone wind radii prediction
+- tropical cyclone central pressure prediction
+- probabilistic tropical cyclone trajectory forecasting
+- storm-centered ERA5 forecasting
+- GraphCast tropical cyclone evaluation
+- GenCast tropical cyclone or extreme-weather forecasting
+- Weather Lab tropical cyclone prediction
+- diffusion weather forecasting
+- flow matching weather forecasting
+- neural operators for weather prediction
+- ensemble calibration for cyclone forecasts
+
+Search broadly enough to discover better methods, but do not blindly copy a famous model. Evaluate whether the method fits the available data, labels, compute, and inference requirements.
+
+============================================================
+2. PROJECT OBJECTIVE
+============================================================
+
+Build an experimental model that predicts the future state of a tropical cyclone, including:
+
+- Track position
+- Movement speed and direction
+- Maximum sustained wind
+- Central pressure
+- Wind gusts if available
+- Radius of maximum wind if available
+- 34-knot wind radii
+- 50-knot wind radii
+- 64-knot wind radii
+- Wind radii in the northeast, southeast, southwest, and northwest quadrants
+
+The primary geographic focus is the Western Pacific, but the design should be generalizable to other basins if possible.
+
+This is a research model, not an operational warning system. Do not claim operational accuracy.
+
+============================================================
+3. CURRENT CHECKPOINT AND TRAINING CONFIGURATION
+============================================================
+
+The current PyTorch checkpoint is best.pt.
+
+Current checkpoint properties:
+
+- File size: approximately 1.4 MB
+- Trainable parameters: approximately 355,000, or 0.36 million
+- FP32 weights
+- 36 model state tensors
+- 50 stochastic ensemble members
+- Best checkpoint saved around epoch 21
+- Maximum configured training length: 80 epochs
+
+Current training configuration:
+
+- Basin: Western Pacific
+- Training years: 1979 through 2015
+- Validation years: 2016 through 2019
+- ERA5 data beginning around 1979
+- Maximum training windows: 1,024
+- Batch size: 64
+- Learning rate: 0.0002
+- Weight decay: 0.0001
+- Patience: 12 epochs
+- Random seed: 42
+- Target training hardware: Google Colab NVIDIA A100 or H100
+
+Investigate whether 1,024 windows are enough, whether windows from the same storm are leaking across splits, and whether the effective number of independent storms is much smaller than the number of windows.
+
+============================================================
+4. CURRENT INPUTS
+============================================================
+
+Historical track input:
+
+The current model uses four historical cyclone observations. Each observation has approximately nine features:
+
+1. Latitude
+2. Longitude
+3. Maximum wind
+4. Central pressure
+5. Latitude displacement
+6. Longitude displacement
+7. Movement magnitude
+8. Seasonal sine feature
+9. Seasonal cosine feature
+
+Approximate track tensor:
+
+[batch, 4 historical time steps, 9 features]
+
+ERA5 input:
+
+The current model uses one storm-centered ERA5 patch:
+
+[batch, 1 time step, 10 channels, 33, 33 grid]
+
+The grid resolution is approximately 0.5 degrees. The patch covers approximately 16 degrees by 16 degrees around the storm.
+
+Verify the exact definitions of the current ten atmospheric channels. If they are unavailable, state the uncertainty and recommend a better channel list.
+
+Potential ERA5 wind inputs:
+
+- 10-meter eastward wind, u10
+- 10-meter northward wind, v10
+- Wind speed derived from u10 and v10
+- Upper-level eastward and northward wind
+- 200, 300, 500, 700, 850, 925, and 1000 hPa winds
+- Vertical wind shear, especially 200 to 850 hPa
+- Storm-relative steering flow
+- Wind direction derived from vector components
+
+Other possible atmospheric variables:
+
+- Mean sea-level pressure
+- Geopotential height
+- Temperature
+- Relative humidity or specific humidity
+- Sea-surface temperature
+- Precipitation
+- Potential vorticity
+- Surface pressure
+- Divergence
+- Vorticity
+- Land-sea mask
+- Topography
+
+Decide which variables and pressure levels are actually useful. Explain the memory, data-volume, and overfitting cost of each group. Do not include variables simply because they are available.
+
+============================================================
+5. CURRENT ARCHITECTURE
+============================================================
+
+ERA5 branch:
+
+- Conv2D: 10 to 64 channels, kernel size 3
+- GELU
+- BatchNorm
+- Conv2D: 64 to 96 channels, stride 2, kernel size 3
+- GELU
+- BatchNorm
+- Conv2D: 96 to 128 channels, stride 2, kernel size 3
+- GELU
+- Adaptive average pooling
+- Output: 128-dimensional atmospheric embedding
+
+Track branch:
+
+- One-layer bidirectional GRU
+- Input dimension: 9
+- Hidden size: 96 per direction
+- Output: 192-dimensional track embedding
+
+Fusion:
+
+- Concatenate atmospheric and track embeddings
+- 128 plus 192 equals 320 features
+- Linear layer: 320 to 192
+- GELU
+- Dropout: 0.15
+- Linear layer: 192 to 192
+- GELU
+
+Probabilistic heads:
+
+- Mean head: 192 to 28
+- Log-scale head: 192 to 28
+- Latent ensemble head: 32 to 192 to 28
+- Generates 50 stochastic ensemble members
+
+============================================================
+6. CURRENT FORECAST TARGETS
+============================================================
+
+The current model predicts these lead times:
+
+6, 12, 24, 48, 72, 96, and 120 hours.
+
+The current total output size is 28 values, or four values per lead time. The main target is latitude and longitude displacement. Determine exactly what the other target values represent and identify any mismatch between the target definition, training code, checkpoint configuration, and inference code.
+
+For the improved system, consider forecasting the following at every lead time:
+
+- Latitude displacement
+- Longitude displacement
+- Eastward storm-motion component
+- Northward storm-motion component
+- Maximum sustained wind
+- Central pressure in hPa
+- Wind gust if available
+- Radius of maximum wind
+- 34-knot wind radii: northeast, southeast, southwest, northwest
+- 50-knot wind radii: northeast, southeast, southwest, northwest
+- 64-knot wind radii: northeast, southeast, southwest, northwest
+
+Do not blindly use this exact target vector. Decide whether any values are redundant, whether a better parameterization exists, and whether the available data actually supports every target.
+
+============================================================
+7. CURRENT INFERENCE FAILURE
+============================================================
+
+The current local inference script creates the ERA5 input as:
+
+field = np.zeros((1, 1, 10, 33, 33), dtype="float32")
+
+Therefore local inference does not use a real current ERA5 atmospheric field.
+
+The model was trained on real ERA5 fields but is evaluated locally using a zero-filled field. This creates a major train/inference mismatch. The atmospheric branch therefore receives little or no live environmental information, and the forecast is driven mostly by the short historical track.
+
+Analyze how much of the poor result could be caused by:
+
+- Missing ERA5 input
+- Incorrect or missing normalization
+- Incorrect storm-centered patch extraction
+- Incorrect ERA5 timestamp alignment
+- Too little historical track context
+- Too few training windows
+- Weak target definitions
+- Longitude wrapping errors at the 180-degree dateline
+- Weak probabilistic sampling
+- Poor treatment of intensity and storm size
+- Data leakage or weak train/validation splitting
+- Model undercapacity
+- Incorrect or missing wind and pressure labels
+
+Do not recommend increasing model size until the real-data inference pipeline has been fixed and evaluated.
+
+============================================================
+8. DATASET RESEARCH
+============================================================
+
+Research and compare possible data sources for:
+
+- Historical cyclone tracks
+- Maximum wind
+- Central pressure
+- Wind radii
+- Radius of maximum wind
+- Storm intensity and structure
+- ERA5 atmospheric fields
+- Sea-surface temperature
+- Satellite observations if useful
+
+Consider:
+
+- IBTrACS
+- JTWC best-track and ATCF data
+- JMA best-track data
+- NOAA or NHC datasets where relevant
+- ERA5
+- ERA5-derived storm-centered patches
+- IBTrACS wind-radius fields if available
+- Other open tropical-cyclone size datasets
+
+For every proposed dataset, explain:
+
+- Spatial and temporal resolution
+- Available variables
+- Units
+- Missing-value patterns
+- Coverage by basin and year
+- Licensing and access method
+- Automatic-download method
+- Whether it contains wind radii by quadrant
+- Whether it contains central pressure
+- Whether it contains maximum wind
+- Whether it contains radius of maximum wind
+- Whether it is suitable for training
+- Whether it is suitable for redistribution on GitHub or Hugging Face
+
+Do not assume wind-radius labels are complete. Design a missing-label strategy, such as masked losses, task-specific batches, confidence weighting, or a model that predicts only supported targets.
+
+============================================================
+9. ARCHITECTURE DESIGN FREEDOM
+============================================================
+
+Compare multiple possible model families, including but not limited to:
+
+- CNN or ConvNeXt plus a temporal Transformer
+- 3D CNN or video-style spatiotemporal encoder
+- Multi-scale atmospheric encoder with cross-attention to the storm track
+- Graph neural network representing atmospheric variables, storm state, and neighboring grid cells
+- Neural operator or Fourier-based atmospheric encoder
+- Conditional diffusion model for trajectory, intensity, and size ensembles
+- Flow-matching model for probabilistic cyclone trajectories
+- Mixture-density network
+- Autoregressive model predicting future storm state step by step
+- Direct multi-horizon model
+- Hybrid model predicting environmental steering flow before storm motion
+- Multi-task model with shared features and separate track, wind, pressure, and radius heads
+- A smaller model distilling or adapting ideas from larger pretrained weather models
+
+You may recommend a completely different approach if the evidence supports it.
+
+For each candidate, explain:
+
+- Exact inputs
+- Tensor shapes
+- Encoder and decoder structure
+- Whether it is autoregressive
+- How it produces uncertainty
+- How it handles multiple lead times
+- How it handles missing labels
+- Approximate parameter count
+- Approximate VRAM usage
+- Expected training speed on A100 and H100
+- Mac CPU or Apple MPS inference feasibility
+- Main advantages
+- Main risks
+- Data requirements
+- Expected improvement over the current model
+
+============================================================
+10. GOOGLE DEEPMIND AND MODERN WEATHER RESEARCH
+============================================================
+
+Explicitly investigate Google DeepMind research and official materials related to:
+
+- GraphCast
+- GenCast
+- WeatherNext
+- Weather Lab
+- NeuralGCM
+- StormCast
+- Diffusion-based ensemble prediction
+- Large-scale weather representation learning
+- Probabilistic weather forecasting
+- Extreme-weather prediction
+
+For each relevant DeepMind system, explain:
+
+- What the model actually predicts
+- What data and resolution it uses
+- Whether it is deterministic or probabilistic
+- How it represents uncertainty
+- Whether it uses autoregressive rollout or direct prediction
+- Whether it uses a graph, grid, neural operator, diffusion, or another structure
+- What parts could transfer to a tropical-cyclone model
+- What parts cannot transfer directly because of data, resolution, or target differences
+- Whether official code or weights are available
+- Whether the model is practical to fine-tune on A100 or H100
+
+Do not simply recommend using GraphCast or GenCast as a black box. Explain whether it is better to:
+
+- Fine-tune a pretrained global weather model
+- Use a storm-centered regional model
+- Distill a large weather model into a smaller cyclone model
+- Use the global model to provide environmental features
+- Train a specialized model from scratch
+- Combine global and storm-centered predictions
+
+============================================================
+11. MODEL SIZE
+============================================================
+
+Choose a reasonable model size based on the number of independent historical storms, not merely on available GPU memory.
+
+Do not recommend a huge model without explaining how it can be trained, pretrained, or fine-tuned.
+
+Provide at least three sizes:
+
+Minimal baseline:
+
+- Suitable for rapid experiments and Mac inference
+
+Recommended model:
+
+- Best balance between accuracy, data requirements, training cost, and reproducibility
+
+Larger research model:
+
+- Only if the data volume and validation results justify it
+
+For every size, provide:
+
+- Number of parameters
+- Layer dimensions
+- Expected VRAM usage
+- Batch size
+- Training time estimate on A100 and H100
+- Expected inference speed
+- Whether it can run on Apple MPS
+- Risk of overfitting
+- Whether mixed precision is required
+
+============================================================
+12. PHYSICAL CONSISTENCY
+============================================================
+
+Include physically meaningful constraints where justified:
+
+- Longitude must wrap correctly across 180 degrees
+- Latitude must remain within valid geographic limits
+- Wind speed must be non-negative
+- Pressure must use hPa consistently
+- Radii must be non-negative
+- Outer wind radii should generally not be smaller than inner wind radii
+- Radius changes should be temporally smooth
+- Storm translation should not jump unrealistically
+- Pressure and intensity should have a physically plausible relationship
+- Wind should be represented using u/v components instead of raw angles where possible
+- Track, pressure, intensity, and radius predictions should remain mutually plausible
+
+Explain which constraints should be hard constraints, which should be loss penalties, and which should only be evaluated after prediction.
+
+============================================================
+13. TRAINING AND EVALUATION
+============================================================
+
+Design a leakage-safe training strategy.
+
+Use storm-level and time-based splits, not only random windows.
+
+Consider:
+
+- Training, validation, and test years
+- Holding out entire storms
+- Cross-basin validation
+- Storm-centered normalization
+- Per-variable normalization
+- Using only information available before forecast initialization
+- Different storm lifetimes
+- Irregular observations
+- Missing intensity and radius labels
+- Correct ERA5 time alignment
+- Correct forecast lead-time alignment
+- Dateline handling
+- Reproducibility across random seeds
+
+Evaluate the model using:
+
+Track metrics:
+
+- Great-circle track error in kilometers
+- Latitude error
+- Longitude error
+- Along-track error
+- Cross-track error
+- Error at every lead time
+
+Intensity metrics:
+
+- Maximum-wind MAE and RMSE
+- Central-pressure MAE and RMSE
+- Wind-gust error if available
+
+Storm-size metrics:
+
+- Radius MAE and RMSE
+- Error for 34-, 50-, and 64-knot radii
+- Error for each quadrant
+- Radius-of-maximum-wind error
+
+Probabilistic metrics:
+
+- CRPS
+- Negative log-likelihood
+- Ensemble spread versus actual error
+- 50%, 80%, and 95% coverage
+- Reliability diagrams
+- Prediction-region area
+- Calibration by lead time
+
+Always compare against:
+
+- Persistence
+- Climatology
+- A simple statistical track model
+- A track-only neural model
+- An ERA5-only model
+- The current CNN-GRU model
+
+============================================================
+14. RECOMMENDED RESEARCH PLAN
+============================================================
+
+Create a staged plan:
+
+Phase 1: Data audit
+
+Verify variables, labels, timestamps, units, missing values, normalization, and spatial alignment.
+
+Phase 2: Correct baseline
+
+Fix inference so it uses real ERA5 patches. Establish persistence and climatology baselines.
+
+Phase 3: Strong deterministic model
+
+Build a multi-task model for track, wind, pressure, and radius.
+
+Phase 4: Probabilistic model
+
+Add calibrated ensemble generation using the most appropriate method.
+
+Phase 5: Physical validation
+
+Check unrealistic motion, pressure, wind, and radius behavior.
+
+Phase 6: Larger training
+
+Scale up only after data quality and validation are proven.
+
+============================================================
+15. REQUIRED FINAL RESPONSE
+============================================================
+
+Your final response must contain:
+
+1. Diagnosis of why the current model performs poorly
+2. Data audit and recommended data sources
+3. At least three alternative architectures
+4. A recommended architecture
+5. Exact input and output tensor shapes
+6. Track, wind, pressure, and radius target definitions
+7. Recommended model size and parameter count
+8. A smaller baseline and a larger optional version
+9. A100 and H100 training configuration
+10. Mac inference requirements
+11. Loss functions
+12. Ensemble and uncertainty method
+13. Data-splitting strategy
+14. Evaluation metrics
+15. A staged implementation plan
+16. Risks and failure modes
+17. arXiv papers with links
+18. Google DeepMind official research pages and papers with links
+19. Relevant open-source repositories with links
+20. A clear explanation of which recommendations are evidence-based and which are your own design proposals
+
+Be intellectually independent. If my assumptions are wrong, say so clearly. Do not claim that a model is accurate without benchmark evidence. Do not recommend increasing model size until the real ERA5 inference pipeline is working. This project must remain an experimental research system and must not be used for official typhoon warnings without professional meteorological validation.

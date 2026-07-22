@@ -1,0 +1,217 @@
+================================================================================
+HOW v10 DRAWS A TRACK
+What data goes in, what comes out, and what the model actually learned
+================================================================================
+TrackFormer v10  ·  track_build/track_v10_best.pt  ·  16,666,780 parameters
+Measured 549.3 km mean track error, WP+EP storms from 2020 on, all leads pooled.
+
+Everything below is read out of the code and the checkpoint, not described from
+memory. Learned parameter values are the real ones in the saved weights.
+
+
+================================================================================
+1. WHAT IT IS GIVEN
+================================================================================
+
+ONE forecast consumes ONE window:
+
+        9 history steps  x  54 features        (a 9x54 matrix)
+
+The 9 steps are 6 hours apart and end at the moment the forecast is made, so the
+model sees exactly 48 HOURS of the storm's past and nothing else.
+
+  step 0 = t-48h   step 3 = t-30h   step 6 = t-12h
+  step 1 = t-42h   step 4 = t-24h   step 7 = t-6h
+  step 2 = t-36h   step 5 = t-18h   step 8 = t-0h  (initialisation)
+
+*** v10 RECEIVES NO WEATHER FIELDS. ***
+No steering winds. No sea-level pressure. No reanalysis of any kind. No satellite
+imagery. It sees where the storm has been, how strong it was, and where it sits on
+the globe. That is the entire input.
+
+(v13 and later add a 17x17 storm-centred patch of real reanalysis. That is the
+difference between 549 km and 463 km. v10 is deliberately field-free, which is why
+it can be trained on any era without downloading decades of atmospheric data.)
+
+
+THE 54 FEATURES, split into three streams the model encodes SEPARATELY
+--------------------------------------------------------------------------------
+KINEMATIC  (11 columns: 0,1,2,3,21,22,23,40,41,42,43)   -- how it is moving
+    0,1     east / north displacement from the base point, km
+    2,3     east / north displacement from the previous fix, km
+    21,22   seasonal phase, sin and cos
+    23      time offset of this step, hours
+    40,41   heading, sin and cos
+    42      forward speed
+    43      turn rate
+
+THERMODYNAMIC  (36 columns: 4-19, 24-39, 44-47)         -- how strong it is
+    4       vmax, maximum sustained wind (kt)
+    5       central pressure (hPa)
+    6       gust
+    7       radius of maximum wind (km)
+    8-19    twelve wind radii: {34, 50, 64 kt} x {NE, SE, SW, NW}
+    24-39   validity flags for each of the above
+    44,45   24-hour change in vmax and pressure
+    46,47   validity flags for those changes
+
+ENVIRONMENTAL  (7 columns: 48-53, +54 in v10.1)         -- where it is
+    48      latitude
+    49      |latitude|
+    50,51   longitude, sin and cos
+    52      distance to land, km
+    53      sea-surface temperature -- NOTE: a lat x month CLIMATOLOGY, i.e. a
+            smooth seasonal function with ZERO year-to-year variation. It cannot
+            tell an El Nino year from a La Nina one. (v10.1 adds column 54, the
+            real ONI index, precisely to fix this.)
+
+Missing values are written as 0 WITH A VALIDITY FLAG, never invented. Early Tip
+(1979), for example, has vmax = 0 for its first seven history steps because
+IBTrACS has no estimate -- the model must forecast a 165 kt typhoon from a track
+whose intensity history is largely absent.
+
+All 54 columns are then normalised by the TRAINING set's per-column mean and
+standard deviation. Using any other statistics silently feeds the model
+mis-scaled inputs and produces confident nonsense.
+
+Separately, two raw velocity vectors in km are extracted and passed in unchanged,
+bypassing the network entirely: the current 6-hour motion and the previous one.
+These drive the physics baseline in section 3.
+
+
+================================================================================
+2. HOW THE NETWORK PROCESSES IT
+================================================================================
+
+The three streams never mix at the input. Each gets its own projection to 256
+dimensions, its own sinusoidal time encoding, and its own Transformer encoder:
+
+    kinematic     (11) -> Linear(11->256) -> 4-layer encoder
+    thermodynamic (36) -> Linear(36->256) -> 3-layer encoder
+    environmental  (6) -> Linear(6 ->256) -> 2-layer encoder
+
+Then 20 learned query vectors -- one per lead time, +6h through +120h -- cross-
+attend over the memory. The TRACK decoder is shown only the kinematic and
+environmental streams:
+
+    h_track = track_decoder(queries, concat[kinematic, environmental])
+    h_track = h_track + alpha * adapter(mean(thermodynamic).detach())
+
+Intensity reaches the track ONLY through that zero-initialised gated adapter, on
+a detached tensor, so intensity errors can never corrupt the track through
+gradients. See section 4 for what the gate actually learned.
+
+
+================================================================================
+3. THE TRACK ITSELF: PHYSICS FIRST, NETWORK SECOND
+================================================================================
+
+This is the part that matters, and it is the opposite of what people usually
+assume. The network does NOT predict where the storm goes. It predicts a
+CORRECTION to a physical extrapolation.
+
+    s0    = |v0|                          current speed
+    phi0  = atan2(v0)                     current heading
+    omega = wrap(phi0 - heading_prev)     turn rate over the last 6 h
+
+    for each lead L in 1..20:
+        heading[L] = phi0 + gturn[L] * omega        <- extrapolated turn
+        speed[L]   = rho[L] * s0                    <- damped speed
+        base[L]    = speed[L] * (cos heading[L], sin heading[L])
+
+    motion[L] = base[L] + track_res(h_track)[L]     <- network adds only this
+
+rho (speed damping) and gturn (turn extrapolation) are LEARNED, one value per
+lead. They initialise at rho = 1, gturn = 0, and track_res is zero-initialised.
+
+So an untrained v10 outputs EXACTLY straight-line persistence at constant speed.
+Training teaches it how much to curve, how much to slow, and what residual to add.
+The model begins as physics and learns the deviation.
+
+(This curved baseline is the ONLY difference between v9 and v10. Setting
+gturn = 0 makes v10 mathematically identical to v9.)
+
+
+================================================================================
+4. WHAT v10 ACTUALLY LEARNED  (values from the saved checkpoint)
+================================================================================
+
+rho -- speed damping, lead +6h to +120h:
+  0.992 0.978 0.963 0.955 0.951 0.947 0.943 0.940 0.939 0.940
+  0.940 0.940 0.939 0.937 0.937 0.936 0.935 0.935 0.931 0.924
+
+  It learned to damp persistence speed by ~8% and to do most of that damping in
+  the first 24 hours, then hold roughly flat. Storms decelerate relative to naive
+  persistence early, not gradually.
+
+gturn -- how much of the observed turn to extrapolate:
+  +0.076 +0.075 +0.069 +0.059 +0.042 +0.023 +0.005 -0.011 -0.025 -0.036
+  -0.043 -0.049 -0.054 -0.058 -0.061 -0.063 -0.066 -0.069 -0.073 -0.076
+
+  Two things stand out. First, the magnitude is TINY: at best it extrapolates
+  7.6% of the measured turn rate. The 6-hourly turn signal is mostly observational
+  noise, and the model learned to almost ignore it. Second, it CHANGES SIGN around
+  +48 h: beyond two days the model bends slightly the OTHER way. That is a learned
+  correction for the fact that a storm turning right now is, on average, partway
+  through a recurvature that will straighten out.
+
+alpha -- the thermodynamics-to-track gate:
+  all twenty values are EXACTLY 0.000, and the adapter's output weights are
+  exactly zero as well.
+
+  The gate never opened. Intensity information contributes NOTHING to v10's track,
+  and training chose that -- the mechanism was available and was left shut. For a
+  field-free model, knowing how strong a storm is apparently says nothing useful
+  about where it will go, beyond what its motion already says.
+
+
+================================================================================
+5. FROM NUMBERS TO A LINE ON THE MAP
+================================================================================
+
+The model outputs 20 leads x 17 quantities, scaled by
+[100, 100, 35, 20, 50, 50 x 12], giving:
+
+    [0:2]   east / north displacement PER STEP, km    <- the track
+    [2]     vmax (kt)
+    [3]     central pressure (hPa)
+    [4]     radius of maximum wind (km)
+    [5:17]  twelve wind radii (km)
+
+Because the outputs are per-step increments rather than absolute positions, the
+track is their running sum, converted back to coordinates from the base fix:
+
+    cumE, cumN = cumulative sums of the east / north increments
+    lat = base_lat + cumN / 111.2
+    lon = base_lon + cumE / (111.2 * cos(lat))
+
+Predicting increments rather than absolute positions is what keeps long-horizon
+error from compounding through the decoder.
+
+ON THE MAP, one thin line = one forecast from one initialisation. Typhoon Tip has
+105 lines because it produced 105 initialisations with a full 5-day horizon. Each
+line is a genuine forecast: it used only the 48 hours before its own start point
+and knew nothing about anything later.
+
+The bold line is NOT an average of those lines as drawn. It is a consensus
+computed per VALID TIME -- at each moment, all forecasts describing that moment
+are combined, weighted by an inverse error covariance so that short-lead members
+(40 km typical error) count far more than long-lead ones (989 km), then smoothed
+with a constant-velocity Kalman filter so the result turns like a storm rather
+than jumping when the membership rotates. That consensus is an ANALYSIS, not a
+forecast: it leans on recent initialisations and is not comparable to the 120-hour
+forecast error quoted beside it.
+
+
+================================================================================
+6. SUMMARY IN ONE PARAGRAPH
+================================================================================
+
+v10 looks at 48 hours of a storm's own best-track history -- its motion, its
+intensity, and its position -- and nothing else. No weather fields at all. It
+extrapolates the storm forward on damped, slightly curved persistence, and uses a
+transformer to predict a correction to that extrapolation at each of 20 six-hourly
+lead times out to five days. It emits per-step displacements, which are summed and
+converted to latitude and longitude to draw the track. In training it learned to
+damp speed ~8%, to almost entirely distrust the measured turn rate, and to ignore
+intensity completely when predicting where the storm goes.

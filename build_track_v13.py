@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Build a TRACK-ONLY window dataset from all-basin IBTrACS, extended back to 1950 and
-carrying the ONI (El Nino / La Nina) index. Self-contained: downloads
+"""Build a TRACK-ONLY window dataset from all-basin IBTrACS. Self-contained: downloads
 IBTrACS if missing, no ERA5. Fast (searchsorted nearest, not pandas idxmin).
 
 Paths via env (Colab): TRACK_CSV (IBTrACS csv), TRACK_OUT (npz output).
@@ -14,39 +13,12 @@ import numpy as np
 import pandas as pd
 
 CSV = Path(os.environ.get("TRACK_CSV", "typhoon_build/data/ibtracs_ALL.csv"))
-OUT = Path(os.environ.get("TRACK_OUT", "track_build/track_windows_v20.npz"))
-INPUT_DIM = 55  # 48 + 7 env (lat, |lat|, sin/cos lon, dist2land, sst_proxy, ONI)
+OUT = Path(os.environ.get("TRACK_OUT", "track_build/track_windows_v13.npz"))
+INPUT_DIM = 54  # 48 + 6 env (lat, |lat|, sin/cos lon, dist2land, sst_proxy)
 MIN_LEADS = int(os.environ.get("MIN_LEADS", "4"))  # keep windows with >= this many contiguous future leads
 OUT.parent.mkdir(parents=True, exist_ok=True)
 CSV.parent.mkdir(parents=True, exist_ok=True)
 MIN_YEAR = int(os.environ.get("TRACK_MIN_YEAR", "1950"))
-
-# ---- ONI: Oceanic Nino Index, 3-month running SST anomaly in Nino 3.4 -------------------
-# ENSO strongly modulates where WP typhoons form and how far they recurve, and it is a
-# basin-scale signal no storm-centred patch can see. One number per month, 1950-present.
-ONI = {}
-# Prefer the ERSST-derived index: it reaches back to 1854 (the CPC table starts in 1950) and
-# correlates 0.977 with CPC over their 917-month overlap. Without it, pre-1950 storms would be
-# scored with ONI silently zeroed, which biases against any model that uses the feature.
-_ext = "track_build/geo/oni/oni_extended.txt"
-if os.path.exists(_ext):
-    for _ln in open(_ext).read().splitlines():
-        _y, _m, _v = _ln.split()
-        ONI[(int(_y), int(_m))] = float(_v)
-    print(f"ONI (ERSST-extended) loaded: {len(ONI)} months, "
-          f"{min(k[0] for k in ONI)}-{max(k[0] for k in ONI)}")
-_onif = "track_build/geo/oni/oni.data"
-if not ONI and os.path.exists(_onif):
-    for _ln in open(_onif).read().splitlines()[1:]:
-        _p = _ln.split()
-        if len(_p) == 13 and _p[0].isdigit():
-            for _m in range(12):
-                _v = float(_p[_m + 1])
-                if _v > -90:
-                    ONI[(int(_p[0]), _m + 1)] = _v
-    print(f"ONI loaded: {len(ONI)} months, {min(k[0] for k in ONI)}-{max(k[0] for k in ONI)}")
-else:
-    print("WARNING: no ONI file; feature 54 will be zero")
 URL = "https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/ibtracs.ALL.list.v04r01.csv"
 
 HISTORY_STEPS = 9
@@ -216,8 +188,6 @@ for gi, (sid, g) in enumerate(groups):
             f[51] = math.cos(math.radians(lon_i))
             f[52] = d2l if valid_number(d2l) else np.nan                  # NaN -> train mean in normalization
             f[53] = sst
-            _dt = np.datetime64(int(tns[idx]), "ns").astype("datetime64[M]").astype(int)
-            f[54] = ONI.get((1970 + _dt // 12, _dt % 12 + 1), 0.0)
             if hsin or hcos:
                 prev_dir = (hsin, hcos)
             prev = idx
