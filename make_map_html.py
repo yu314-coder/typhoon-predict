@@ -34,7 +34,7 @@ for _t in _want_pre:
 _want = [t.strip() for t in os.environ.get("MAP_MODELS", "v10,v17,v18,v19").split(",") if t.strip()]
 MODELS = [("v10", V10)] if "v10" in _want else []
 for _t in ("v13", "v14", "v17", "v18", "v19", "v10.1", "v10.2", "v10.3", "v10.3s",
-           "v20", "v21", "v22", "v23", "v24"):
+           "v20", "v21", "v22", "v23", "v24", "v25"):
     if _t not in _want:
         continue
     _p = f"{TD}/{_t}_tracks.json"
@@ -61,6 +61,9 @@ COL = {"v10": ("#eda100", "#c98500"), "v13": ("#e87ba4", "#d55181"), "v14": ("#e
        # blue<->orange, which validate. v10 yellow beside v23 orange does NOT: dE 13.7 light /
        # 10.6 dark, under the 15 normal-vision floor. Order matters to the pairlist.
        "v24": ("#2a78d6", "#3987e5"),
+       # v25 magenta: validated against v10 yellow + v21 blue (the trio on this map). Same swatch
+       # v22 used, which cleared the CVD floor against yellow+blue (worst dE 28.0, both modes).
+       "v25": ("#c2185b", "#e0457f"),
        "rmt": ("#e34948", "#e66767")}   # the consensus line, overridable via MAP_COL
 for _ov in os.environ.get("MAP_COL", "").split(","):
     if ":" in _ov:
@@ -81,7 +84,8 @@ NOTE = {"v10": "no environmental field at all",
         "v21": "chain-of-thought: predicts the steering flow, derives the track",
         "v22": "v21 + latent chain-of-thought, 2 weight-tied feedback rounds",
         "v23": "v21 + temporal steering stack: t-24 h, t-12 h and now",
-        "v24": "basin map 100-180E 0-60N, 6-hourly, no mirror augmentation"}
+        "v24": "basin map 100-180E 0-60N, 6-hourly, no mirror augmentation",
+        "v25": "v21 + environmental token: ocean heat, deep-layer shear, mid-level humidity"}
 
 
 def rings_in(lo0, lo1, la0, la1):
