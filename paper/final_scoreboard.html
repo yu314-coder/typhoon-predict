@@ -1,0 +1,101 @@
+<meta charset="utf-8">
+<title>TrackFormer — the corrected scoreboard</title>
+<style>
+:root{color-scheme:light;--bg:#f2f4f6;--surface:#fcfcfb;--ink:#111820;--body:#2c3a47;--muted:#5d6c7a;
+ --line:#d5dce3;--good:#1a9e6f;--bad:#c2185b;
+ --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+ --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;.bar.v10{fill:#eda100;} .sw.v10{background:#eda100;}.bar.v21{fill:#2a78d6;} .sw.v21{background:#2a78d6;}.bar.v23{fill:#eb6834;} .sw.v23{background:#eb6834;}.bar.v25{fill:#c2185b;} .sw.v25{background:#c2185b;}.bar.v26abl{fill:#8f9aa6;} .sw.v26abl{background:#8f9aa6;}.bar.v26{fill:#1a9e6f;} .sw.v26{background:#1a9e6f;}.bar.v27abl{fill:#7a8794;} .sw.v27abl{background:#7a8794;}.bar.v27{fill:#3d4852;} .sw.v27{background:#3d4852;}}
+@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){color-scheme:dark;
+ --bg:#0c1117;--surface:#141c25;--ink:#e8eef4;--body:#c2cdd8;--muted:#8697a5;--line:#26313d;
+ --good:#22b880;--bad:#e0457f;.bar.v10{fill:#c98500;} .sw.v10{background:#c98500;}.bar.v21{fill:#3987e5;} .sw.v21{background:#3987e5;}.bar.v23{fill:#d95926;} .sw.v23{background:#d95926;}.bar.v25{fill:#e0457f;} .sw.v25{background:#e0457f;}.bar.v26abl{fill:#7c8894;} .sw.v26abl{background:#7c8894;}.bar.v26{fill:#22b880;} .sw.v26{background:#22b880;}.bar.v27abl{fill:#98a6b4;} .sw.v27abl{background:#98a6b4;}.bar.v27{fill:#9fb0bd;} .sw.v27{background:#9fb0bd;}}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0c1117;--surface:#141c25;--ink:#e8eef4;--body:#c2cdd8;
+ --muted:#8697a5;--line:#26313d;--good:#22b880;--bad:#e0457f;.bar.v10{fill:#c98500;} .sw.v10{background:#c98500;}.bar.v21{fill:#3987e5;} .sw.v21{background:#3987e5;}.bar.v23{fill:#d95926;} .sw.v23{background:#d95926;}.bar.v25{fill:#e0457f;} .sw.v25{background:#e0457f;}.bar.v26abl{fill:#7c8894;} .sw.v26abl{background:#7c8894;}.bar.v26{fill:#22b880;} .sw.v26{background:#22b880;}.bar.v27abl{fill:#98a6b4;} .sw.v27abl{background:#98a6b4;}.bar.v27{fill:#9fb0bd;} .sw.v27{background:#9fb0bd;}}
+body{background:var(--bg);color:var(--body);font-family:var(--sans);font-size:16px;line-height:1.6;}
+.wrap{max-width:1120px;margin:0 auto;padding:clamp(24px,5vw,52px) clamp(16px,4vw,32px) 80px;
+ display:flex;flex-direction:column;gap:24px;}
+h1{color:var(--ink);font-size:clamp(24px,3.6vw,36px);line-height:1.14;letter-spacing:-.02em;margin:0;font-weight:660;}
+h2{color:var(--ink);font-size:19px;margin:0;font-weight:640;}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);}
+.lede{max-width:82ch;font-size:14.5px;margin:0;}
+header{display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(--line);padding-bottom:20px;}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;}
+.lg{display:flex;align-items:center;gap:7px;}
+.sw{width:15px;height:11px;border-radius:3px;display:inline-block;}
+.call{display:flex;flex-wrap:wrap;gap:10px;}
+.pill{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13px;}
+.pill b{font-family:var(--mono);}
+.good{color:var(--good);} .bad{color:var(--bad);}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px;}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 14px 10px;margin:0;
+ display:flex;flex-direction:column;gap:4px;}
+figcaption h3{color:var(--ink);font-size:14px;font-weight:640;margin:0;}
+.unit{font-size:11.5px;color:var(--muted);margin:0;}
+.chart{width:100%;height:auto;display:block;}
+.ml{font-family:var(--mono);font-size:10px;fill:var(--muted);}
+.val{font-family:var(--mono);font-size:10px;fill:var(--ink);}
+.val.best{fill:var(--good);font-weight:700;}
+.delta{border-top:1px solid var(--line);padding-top:7px;font-size:11.5px;font-family:var(--mono);}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;
+ display:flex;flex-direction:column;gap:10px;}
+.warn{border-left:3px solid var(--bad);padding-left:14px;}
+table{border-collapse:collapse;width:100%;font-size:13px;}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;}
+th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;}
+td.n{font-family:var(--mono);text-align:right;}
+footer{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:var(--muted);max-width:82ch;
+ display:flex;flex-direction:column;gap:8px;}
+</style>
+<div class="wrap">
+ <header>
+  <div class="eyebrow">TrackFormer &middot; every model, one convention</div>
+  <h1>v23 wins track and wind. Neither thing added after it helped.</h1>
+  <p class="lede">Eight models, 10-seed ensembles, 3,763 western- and eastern-Pacific test windows of
+  2020&ndash;2025. Every figure here is <b>pooled</b> over all window&times;lead pairs, each intensity channel
+  masked with its own validity flag. That matters: the earlier version of this page mixed pooled and
+  per-lead-averaged numbers, and fixing it reverses one of its headlines.</p>
+  <div class="call">
+   <span class="pill">best track: <b class="good">v23 434.96 km</b></span>
+   <span class="pill">best wind: <b class="good">v23 16.12 kt</b></span>
+   <span class="pill">v27 vs its own control: <b class="bad">worse on all five</b></span>
+  </div>
+  <div class="legend"><span class="lg"><span class="sw v10"></span><b>v10</b> no environment at all</span><span class="lg"><span class="sw v21"></span><b>v21</b> chain-of-thought steering</span><span class="lg"><span class="sw v23"></span><b>v23</b> + temporal steering stack (t-24 h, t-12 h, now)</span><span class="lg"><span class="sw v25"></span><b>v25</b> + 43 environmental scalars as one token</span><span class="lg"><span class="sw v26abl"></span><b>v26abl</b> v26 with the ocean patch OFF</span><span class="lg"><span class="sw v26"></span><b>v26</b> + ocean-heat patch CNN on the intensity head (AOML)</span><span class="lg"><span class="sw v27abl"></span><b>v27abl</b> v27 with env + ocean OFF (v23-shaped, retrained)</span><span class="lg"><span class="sw v27"></span><b>v27</b> v23 + env token + ocean patch CNN (GODAS)</span></div>
+ </header>
+
+ <div class="grid"><figure class="card"><figcaption><h3>Track position error</h3><p class="unit">mean absolute error, km &middot; lower is better &middot; pooled</p></figcaption><svg viewBox="0 0 380 232" class="chart" role="img" aria-label="Track position error by model"><text class="ml" x="70" y="27" text-anchor="end">v10</text><rect class="bar v10" x="78" y="14" width="208.2" height="18" rx="2"/><text class="val" x="293.2" y="27">549.30</text><text class="ml" x="70" y="52" text-anchor="end">v21</text><rect class="bar v21" x="78" y="39" width="45.1" height="18" rx="2"/><text class="val" x="130.1" y="52">443.62</text><text class="ml" x="70" y="77" text-anchor="end">v23</text><rect class="bar v23" x="78" y="64" width="31.8" height="18" rx="2"/><text class="val best" x="116.8" y="77">434.96</text><text class="ml" x="70" y="102" text-anchor="end">v25</text><rect class="bar v25" x="78" y="89" width="57.8" height="18" rx="2"/><text class="val" x="142.8" y="102">451.86</text><text class="ml" x="70" y="127" text-anchor="end">v26abl</text><rect class="bar v26abl" x="78" y="114" width="59.5" height="18" rx="2"/><text class="val" x="144.5" y="127">452.93</text><text class="ml" x="70" y="152" text-anchor="end">v26</text><rect class="bar v26" x="78" y="139" width="57.7" height="18" rx="2"/><text class="val" x="142.7" y="152">451.77</text><text class="ml" x="70" y="177" text-anchor="end">v27abl</text><rect class="bar v27abl" x="78" y="164" width="38.2" height="18" rx="2"/><text class="val" x="123.2" y="177">439.14</text><text class="ml" x="70" y="202" text-anchor="end">v27</text><rect class="bar v27" x="78" y="189" width="48.6" height="18" rx="2"/><text class="val" x="133.6" y="202">445.90</text></svg><div class="delta">best: <b>v23 434.96 km</b></div></figure><figure class="card"><figcaption><h3>Maximum wind</h3><p class="unit">mean absolute error, kt &middot; lower is better &middot; pooled</p></figcaption><svg viewBox="0 0 380 232" class="chart" role="img" aria-label="Maximum wind by model"><text class="ml" x="70" y="27" text-anchor="end">v10</text><rect class="bar v10" x="78" y="14" width="208.2" height="18" rx="2"/><text class="val" x="293.2" y="27">18.34</text><text class="ml" x="70" y="52" text-anchor="end">v21</text><rect class="bar v21" x="78" y="39" width="83.3" height="18" rx="2"/><text class="val" x="168.3" y="52">16.77</text><text class="ml" x="70" y="77" text-anchor="end">v23</text><rect class="bar v23" x="78" y="64" width="31.8" height="18" rx="2"/><text class="val best" x="116.8" y="77">16.12</text><text class="ml" x="70" y="102" text-anchor="end">v25</text><rect class="bar v25" x="78" y="89" width="97.2" height="18" rx="2"/><text class="val" x="182.2" y="102">16.94</text><text class="ml" x="70" y="127" text-anchor="end">v26abl</text><rect class="bar v26abl" x="78" y="114" width="111.5" height="18" rx="2"/><text class="val" x="196.5" y="127">17.12</text><text class="ml" x="70" y="152" text-anchor="end">v26</text><rect class="bar v26" x="78" y="139" width="43.6" height="18" rx="2"/><text class="val" x="128.6" y="152">16.26</text><text class="ml" x="70" y="177" text-anchor="end">v27abl</text><rect class="bar v27abl" x="78" y="164" width="38.2" height="18" rx="2"/><text class="val" x="123.2" y="177">16.20</text><text class="ml" x="70" y="202" text-anchor="end">v27</text><rect class="bar v27" x="78" y="189" width="82.9" height="18" rx="2"/><text class="val" x="167.9" y="202">16.76</text></svg><div class="delta">best: <b>v23 16.12 kt</b></div></figure><figure class="card"><figcaption><h3>Central pressure</h3><p class="unit">mean absolute error, hPa &middot; lower is better &middot; pooled</p></figcaption><svg viewBox="0 0 380 232" class="chart" role="img" aria-label="Central pressure by model"><text class="ml" x="70" y="27" text-anchor="end">v10</text><rect class="bar v10" x="78" y="14" width="208.2" height="18" rx="2"/><text class="val" x="293.2" y="27">13.78</text><text class="ml" x="70" y="52" text-anchor="end">v21</text><rect class="bar v21" x="78" y="39" width="121.5" height="18" rx="2"/><text class="val" x="206.5" y="52">12.99</text><text class="ml" x="70" y="77" text-anchor="end">v23</text><rect class="bar v23" x="78" y="64" width="32.0" height="18" rx="2"/><text class="val" x="117.0" y="77">12.17</text><text class="ml" x="70" y="102" text-anchor="end">v25</text><rect class="bar v25" x="78" y="89" width="64.9" height="18" rx="2"/><text class="val" x="149.9" y="102">12.47</text><text class="ml" x="70" y="127" text-anchor="end">v26abl</text><rect class="bar v26abl" x="78" y="114" width="68.3" height="18" rx="2"/><text class="val" x="153.3" y="127">12.50</text><text class="ml" x="70" y="152" text-anchor="end">v26</text><rect class="bar v26" x="78" y="139" width="70.1" height="18" rx="2"/><text class="val" x="155.1" y="152">12.52</text><text class="ml" x="70" y="177" text-anchor="end">v27abl</text><rect class="bar v27abl" x="78" y="164" width="31.8" height="18" rx="2"/><text class="val best" x="116.8" y="177">12.17</text><text class="ml" x="70" y="202" text-anchor="end">v27</text><rect class="bar v27" x="78" y="189" width="62.0" height="18" rx="2"/><text class="val" x="147.0" y="202">12.44</text></svg><div class="delta">best: <b>v27abl 12.17 hPa</b></div></figure><figure class="card"><figcaption><h3>Radius of max wind</h3><p class="unit">mean absolute error, nm &middot; lower is better &middot; pooled</p></figcaption><svg viewBox="0 0 380 232" class="chart" role="img" aria-label="Radius of max wind by model"><text class="ml" x="70" y="27" text-anchor="end">v10</text><rect class="bar v10" x="78" y="14" width="208.2" height="18" rx="2"/><text class="val" x="293.2" y="27">12.19</text><text class="ml" x="70" y="52" text-anchor="end">v21</text><rect class="bar v21" x="78" y="39" width="47.7" height="18" rx="2"/><text class="val" x="132.7" y="52">10.79</text><text class="ml" x="70" y="77" text-anchor="end">v23</text><rect class="bar v23" x="78" y="64" width="43.5" height="18" rx="2"/><text class="val" x="128.5" y="77">10.75</text><text class="ml" x="70" y="102" text-anchor="end">v25</text><rect class="bar v25" x="78" y="89" width="44.6" height="18" rx="2"/><text class="val" x="129.6" y="102">10.76</text><text class="ml" x="70" y="127" text-anchor="end">v26abl</text><rect class="bar v26abl" x="78" y="114" width="38.8" height="18" rx="2"/><text class="val" x="123.8" y="127">10.71</text><text class="ml" x="70" y="152" text-anchor="end">v26</text><rect class="bar v26" x="78" y="139" width="31.8" height="18" rx="2"/><text class="val best" x="116.8" y="152">10.65</text><text class="ml" x="70" y="177" text-anchor="end">v27abl</text><rect class="bar v27abl" x="78" y="164" width="46.1" height="18" rx="2"/><text class="val" x="131.1" y="177">10.77</text><text class="ml" x="70" y="202" text-anchor="end">v27</text><rect class="bar v27" x="78" y="189" width="49.6" height="18" rx="2"/><text class="val" x="134.6" y="202">10.81</text></svg><div class="delta">best: <b>v26 10.65 nm</b></div></figure><figure class="card"><figcaption><h3>Wind radii R34/50/64</h3><p class="unit">mean absolute error, nm &middot; lower is better &middot; pooled</p></figcaption><svg viewBox="0 0 380 232" class="chart" role="img" aria-label="Wind radii R34/50/64 by model"><text class="ml" x="70" y="27" text-anchor="end">v10</text><rect class="bar v10" x="78" y="14" width="208.2" height="18" rx="2"/><text class="val" x="293.2" y="27">23.76</text><text class="ml" x="70" y="52" text-anchor="end">v21</text><rect class="bar v21" x="78" y="39" width="31.8" height="18" rx="2"/><text class="val best" x="116.8" y="52">21.97</text><text class="ml" x="70" y="77" text-anchor="end">v23</text><rect class="bar v23" x="78" y="64" width="73.9" height="18" rx="2"/><text class="val" x="158.9" y="77">22.39</text><text class="ml" x="70" y="102" text-anchor="end">v25</text><rect class="bar v25" x="78" y="89" width="113.0" height="18" rx="2"/><text class="val" x="198.0" y="102">22.79</text><text class="ml" x="70" y="127" text-anchor="end">v26abl</text><rect class="bar v26abl" x="78" y="114" width="122.7" height="18" rx="2"/><text class="val" x="207.7" y="127">22.89</text><text class="ml" x="70" y="152" text-anchor="end">v26</text><rect class="bar v26" x="78" y="139" width="132.2" height="18" rx="2"/><text class="val" x="217.2" y="152">22.99</text><text class="ml" x="70" y="177" text-anchor="end">v27abl</text><rect class="bar v27abl" x="78" y="164" width="42.3" height="18" rx="2"/><text class="val" x="127.3" y="177">22.07</text><text class="ml" x="70" y="202" text-anchor="end">v27</text><rect class="bar v27" x="78" y="189" width="66.8" height="18" rx="2"/><text class="val" x="151.8" y="202">22.32</text></svg><div class="delta">best: <b>v21 21.97 nm</b></div></figure></div>
+
+ <section class="panel warn">
+  <h2>The correction: "the ocean patch wins wind" does not survive</h2>
+  <p class="lede">v26 was reported at 16.26 kt against v23's 16.43 and called the wind winner. But 16.26 was
+  <em>pooled</em> and 16.43 was <em>per-lead averaged</em>. Recomputed pooled, <b>v23 scores
+  16.12 kt and beats v26's 16.26</b>. The ranking flips.</p>
+  <p class="lede">What still stands is the narrower, within-run claim: inside the v26 experiment, turning the
+  ocean patch on improved wind by <b>0.86 kt</b> against its own matched ablation. That comparison was
+  always pooled-against-pooled. The ocean patch did something real to its own baseline &mdash; it just never
+  reached the level v23 already had.</p>
+ </section>
+
+ <section class="panel">
+  <h2>v27: stacking v23 and v26 made everything worse</h2>
+  <p class="lede">v27 put the environmental token and the ocean CNN on top of v23's steering stack. v27abl is the
+  identical model with both switched off, trained in the same run &mdash; the matched control. v27 lost on every
+  metric, on both the full test set and the ocean-covered subset, with no exceptions:</p>
+  <div style="overflow-x:auto"><table>
+   <tr><th>metric</th><th style="text-align:right">v27abl</th><th style="text-align:right">v27</th>
+       <th style="text-align:right">delta</th></tr>
+   <tr><td>Track position error</td><td class="n">439.14</td><td class="n">445.90</td><td class="n bad">+6.76</td></tr><tr><td>Maximum wind</td><td class="n">16.20</td><td class="n">16.76</td><td class="n bad">+0.56</td></tr><tr><td>Central pressure</td><td class="n">12.17</td><td class="n">12.44</td><td class="n bad">+0.28</td></tr><tr><td>Radius of max wind</td><td class="n">10.77</td><td class="n">10.81</td><td class="n bad">+0.03</td></tr><tr><td>Wind radii R34/50/64</td><td class="n">22.07</td><td class="n">22.32</td><td class="n bad">+0.25</td></tr>
+  </table></div>
+  <p class="lede">An init assertion proved the ocean token cannot reach the track decoder, so the 6.8&nbsp;km track
+  loss cannot be direct interference. The two paths share the encoders, and the extra intensity objectives evidently
+  pull that shared representation away from what the steering stack needs. <b>The parts are not independent.</b></p>
+ </section>
+
+ <footer>
+  <p>Bars are scaled within each panel's own range so differences of a few tenths stay visible; read the printed
+  number, not the bar length. v26, v26abl and v27abl come from their Colab JSONs &mdash; already pooled, and their
+  checkpoints no longer exist to recompute. Everything else was recomputed locally from checkpoints, with v27
+  reproducing its Colab track to 0.00&nbsp;km and its pooled wind to 16.76 kt exactly, which is what confirms the
+  two harnesses now agree.</p>
+  <p>None of these deltas has been through a paired-storm bootstrap except v23's original -9.09&nbsp;km, which
+  remains the only significance-tested result in the project.</p>
+ </footer>
+</div>
