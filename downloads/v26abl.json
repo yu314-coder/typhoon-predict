@@ -1,0 +1,4 @@
+{"v26abl": {"all": {"track": 452.93, "vmax": 17.12, "pres": 12.50, "rmw": 10.71, "radii": 22.89},
+            "ocean": {"track": 451.83, "vmax": 17.39, "pres": 12.68, "rmw": 10.65, "radii": 22.90}},
+ "use_ocean": 0, "n_seeds": 10, "n_ocean": 3598, "oversample": 0.0,
+ "note": "transcribed from Colab output; checkpoints lost to idle-timeout before download"}

@@ -337,6 +337,15 @@ def train_one(seed, ckpt):
             best, bad = vv, 0
             torch.save({"model": model.state_dict(), "epoch": ep, "best_val": best,
                         "track_mean": tmean, "track_std": tstd}, ckpt)
+            # Mirror to Drive on every improvement. /content is wiped when the runtime idles out,
+            # and that is exactly how the first v26 run lost all 20 checkpoints AFTER producing
+            # its results -- the numbers survived in the JSON, the models did not, so the tracks
+            # could never be drawn without a full retrain. Best-effort: no Drive, no problem.
+            if os.path.isdir(DRIVE):
+                try:
+                    import shutil as _sh; _sh.copy(ckpt, DRIVE)
+                except Exception as _e:
+                    print(f"  (drive mirror failed: {_e})", flush=True)
         else:
             bad += 1
         with torch.no_grad():
