@@ -23,23 +23,22 @@ def am(x):
     return sum(v) / len(v) if v else float("nan")
 
 
-ROWS = ["v10", "v21", "v25", "v26abl", "v26"]
+ROWS = ["v10", "v21", "v23", "v25", "v26abl", "v26"]
 NOTE = {"v10": "no environment at all",
         "v21": "chain-of-thought steering",
+        "v23": "temporal steering stack (t-24 h, t-12 h, now) &mdash; bootstrap-confirmed",
         "v25": "+ 43 environmental scalars (one token)",
         "v26abl": "v26 with the ocean patch switched OFF",
         "v26": "+ 21x21 ocean-heat patch through a CNN into the intensity head"}
-COL = {"v10": ("#eda100", "#c98500"), "v21": ("#2a78d6", "#3987e5"), "v25": ("#c2185b", "#e0457f"),
+COL = {"v10": ("#eda100", "#c98500"), "v21": ("#2a78d6", "#3987e5"),
+       "v23": ("#eb6834", "#d95926"), "v25": ("#c2185b", "#e0457f"),
        "v26abl": ("#7a8794", "#98a6b4"), "v26": ("#1a9e6f", "#22b880")}
 
-D = {
-    "v10": {k: am(AGG["v10"][k]) for k in ("vmax", "pressure", "rmw", "radii")},
-    "v21": {k: am(AGG["v21"][k]) for k in ("vmax", "pressure", "rmw", "radii")},
-    "v25": {k: am(AGG["v25"][k]) for k in ("vmax", "pressure", "rmw", "radii")},
-    "v26abl": {"vmax": V26A["vmax"], "pressure": V26A["pres"], "rmw": V26A["rmw"], "radii": V26A["radii"]},
-    "v26": {"vmax": V26["vmax"], "pressure": V26["pres"], "rmw": V26["rmw"], "radii": V26["radii"]},
-}
-for t in ("v10", "v21", "v25"):
+D = {t: {k: am(AGG[t][k]) for k in ("vmax", "pressure", "rmw", "radii")}
+     for t in ("v10", "v21", "v23", "v25")}
+D["v26abl"] = {"vmax": V26A["vmax"], "pressure": V26A["pres"], "rmw": V26A["rmw"], "radii": V26A["radii"]}
+D["v26"] = {"vmax": V26["vmax"], "pressure": V26["pres"], "rmw": V26["rmw"], "radii": V26["radii"]}
+for t in ("v10", "v21", "v23", "v25"):
     D[t]["track"] = AGG[t]["agg_track"]
 D["v26abl"]["track"] = V26A["track"]; D["v26"]["track"] = V26["track"]
 
@@ -108,7 +107,7 @@ dv = D["v26"]["vmax"] - D["v26abl"]["vmax"]
 dp = D["v26"]["pressure"] - D["v26abl"]["pressure"]
 
 HTML = f"""<meta charset="utf-8">
-<title>v26 — what the ocean-heat patch actually bought</title>
+<title>TrackFormer — which model wins what</title>
 <style>
 :root{{color-scheme:light;--bg:#f2f4f6;--surface:#fcfcfb;--ink:#111820;--body:#2c3a47;--muted:#5d6c7a;
  --line:#d5dce3;--good:#1a9e6f;--bad:#c2185b;
@@ -157,16 +156,18 @@ footer{{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:v
 </style>
 <div class="wrap">
  <header>
-  <div class="eyebrow">TrackFormer v26 &middot; ocean-heat patch &rarr; CNN &rarr; intensity head</div>
-  <h1>What the ocean actually bought &mdash; one metric, not five</h1>
-  <p class="lede">v26 adds a CNN over the raw 21&times;21 ocean-heat patch (OHC, D26, D20) feeding one token into the
-  <b>intensity decoder only</b>. <b>v26abl</b> is the same model with that token switched off, so the gap between them
-  is the ocean effect and nothing else. All figures are 10-seed ensembles on the 3,763 WP+EP test windows of
-  2020&ndash;2025, each channel masked with its own validity flag.</p>
+  <div class="eyebrow">TrackFormer &middot; where the project actually stands</div>
+  <h1>No single best model &mdash; v23 takes four of six, v26 takes two</h1>
+  <p class="lede">Every version scored the same way: 10-seed ensembles on the 3,763 WP+EP test windows of
+  2020&ndash;2025, each intensity channel masked with its own validity flag. <b>v23</b> (temporal steering stack)
+  is the best track model and the only gain in this project that survived a paired-storm bootstrap.
+  <b>v26</b> (ocean-heat patch &rarr; CNN &rarr; intensity head) wins maximum wind and RMW. Reporting either one
+  as "the best model" on its own would be a claim the numbers do not support.</p>
   <div class="call">
-   <span class="pill">max wind: <b class="good">{dv:+.2f} kt</b> &mdash; the one real gain</span>
-   <span class="pill">pressure: <b class="null">{dp:+.2f} hPa</b> &mdash; null</span>
-   <span class="pill">ocean patch on <b>3.9%</b> of training windows vs <b>95.6%</b> of test</span>
+   <span class="pill">best track: <b class="good">v23 {D['v23']['track']:.1f} km</b></span>
+   <span class="pill">best pressure: <b class="good">v23 {D['v23']['pressure']:.2f} hPa</b></span>
+   <span class="pill">best max wind: <b class="good">v26 {D['v26']['vmax']:.2f} kt</b></span>
+   <span class="pill">ocean effect on wind: <b class="good">{dv:+.2f} kt</b> &middot; on pressure <b class="null">{dp:+.2f} hPa</b></span>
   </div>
   <div class="legend">{legend}</div>
  </header>
@@ -189,15 +190,16 @@ footer{{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:v
   {dp:+.2f}. RMW and the wind radii move by less than the run-to-run spread and cancel in sign, so they are null.</p>
  </section>
 
- <section class="panel warn">
-  <h2>What is not on this page, and why</h2>
-  <p class="lede">There is <b>no world map for v26</b>. Two reasons, one principled and one a mistake.
-  The principled one: the ocean token reaches only the intensity decoder, and an init assertion proved the track
-  output is bit-identical with the token on or off &mdash; so a v26 track map would be the v25 map redrawn
-  ({D['v26']['track']:.0f} km vs {D['v25']['track']:.0f} km, a difference with no ocean content in it).
-  The mistake: the Colab runtime idled out before the 20 checkpoints were pulled, and <code>/content</code> is wiped
-  on disconnect, so drawing them now would need a full retrain. The training script has since been changed to
-  mirror every improved checkpoint to Drive.</p>
+ <section class="panel">
+  <h2>The map shows v23, not v26</h2>
+  <p class="lede">The world map that goes with this page draws <b>v23</b>, because the map draws <em>tracks</em> and
+  v23 is the track winner at {D['v23']['track']:.1f} km. Drawing v26 there would add nothing: its ocean token
+  reaches only the intensity decoder, and an init assertion proved the track output is bit-identical with the token
+  on or off, so a v26 track map would be the v25 map redrawn ({D['v26']['track']:.0f} km vs {D['v25']['track']:.0f} km,
+  a difference with no ocean content in it).</p>
+  <p class="lede">Separately, and this one was a mistake: the Colab runtime idled out before v26's 20 checkpoints were
+  pulled, and <code>/content</code> is wiped on disconnect, so they are gone. Its numbers survive only because the
+  results JSON was saved first. The training script now mirrors every improved checkpoint to Drive.</p>
  </section>
 
  <footer>
