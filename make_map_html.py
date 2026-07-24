@@ -34,7 +34,7 @@ for _t in _want_pre:
 _want = [t.strip() for t in os.environ.get("MAP_MODELS", "v10,v17,v18,v19").split(",") if t.strip()]
 MODELS = [("v10", V10)] if "v10" in _want else []
 for _t in ("v13", "v14", "v17", "v18", "v19", "v10.1", "v10.2", "v10.3", "v10.3s",
-           "v20", "v21", "v22", "v23", "v24", "v25", "v27"):
+           "v20", "v21", "v22", "v23", "v24", "v25", "v27", "v28abl", "v28"):
     if _t not in _want:
         continue
     _p = f"{TD}/{_t}_tracks.json"
@@ -72,6 +72,14 @@ COL = {"v10": ("#eda100", "#c98500"), "v13": ("#e87ba4", "#d55181"), "v14": ("#e
        #   python3 validate_palette.py "#3987e5,#d95926,#9fb0bd" dark
        # Near-black scored higher still (36.9/33.6) but collides with the observed-track colour.
        "v27": ("#3d4852", "#9fb0bd"),
+       # v28 trio (v23 orange / v28abl neutral / v28 blue). v23's orange is again the binding
+       # constraint, and the CONTROL is deliberately neutral grey so the eye reads v28's blue as
+       # the treatment. Dark mode needed a darker grey and a lighter blue: #9ca3af vs #6fa8dc came
+       # in WEAK at dE 13.8 (protan), under the 15 floor.
+       #   python3 validate_palette.py "#eb6834,#6b7280,#1f5fa8" light   -> worst dE 17.0 tritan
+       #   python3 validate_palette.py "#d95926,#7b8794,#8cc0f0" dark    -> worst dE 19.9 normal
+       "v28abl": ("#6b7280", "#7b8794"),
+       "v28": ("#1f5fa8", "#8cc0f0"),
        "rmt": ("#e34948", "#e66767")}   # the consensus line, overridable via MAP_COL
 for _ov in os.environ.get("MAP_COL", "").split(","):
     if ":" in _ov:
@@ -94,7 +102,9 @@ NOTE = {"v10": "no environmental field at all",
         "v23": "v21 + temporal steering stack: t-24 h, t-12 h and now",
         "v24": "basin map 100-180E 0-60N, 6-hourly, no mirror augmentation",
         "v25": "v21 + environmental token: ocean heat, deep-layer shear, mid-level humidity",
-        "v27": "v23 + env token + ocean-heat patch CNN (GODAS) on the intensity head"}
+        "v27": "v23 + env token + ocean-heat patch CNN (GODAS) on the intensity head",
+        "v28abl": "v23 architecture, retrained -- the matched control",
+        "v28": "v23 + N-only meridional drift adapter"}
 
 
 def rings_in(lo0, lo1, la0, la1):
