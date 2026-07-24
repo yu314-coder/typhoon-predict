@@ -25,8 +25,18 @@ MIN_YEAR = int(os.environ.get("TRACK_MIN_YEAR", "1950"))
 # ENSO strongly modulates where WP typhoons form and how far they recurve, and it is a
 # basin-scale signal no storm-centred patch can see. One number per month, 1950-present.
 ONI = {}
+# Prefer the ERSST-derived index: it reaches back to 1854 (the CPC table starts in 1950) and
+# correlates 0.977 with CPC over their 917-month overlap. Without it, pre-1950 storms would be
+# scored with ONI silently zeroed, which biases against any model that uses the feature.
+_ext = "track_build/geo/oni/oni_extended.txt"
+if os.path.exists(_ext):
+    for _ln in open(_ext).read().splitlines():
+        _y, _m, _v = _ln.split()
+        ONI[(int(_y), int(_m))] = float(_v)
+    print(f"ONI (ERSST-extended) loaded: {len(ONI)} months, "
+          f"{min(k[0] for k in ONI)}-{max(k[0] for k in ONI)}")
 _onif = "track_build/geo/oni/oni.data"
-if os.path.exists(_onif):
+if not ONI and os.path.exists(_onif):
     for _ln in open(_onif).read().splitlines()[1:]:
         _p = _ln.split()
         if len(_p) == 13 and _p[0].isdigit():

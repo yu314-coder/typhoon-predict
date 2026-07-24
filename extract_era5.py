@@ -27,8 +27,19 @@ transfer it is cropped from.
 PROBE MODE (default): does N days, reports real throughput, writes nothing. Run that first and
 decide before committing to the full pull.
 """
-import os, sys, time, math
+import os, sys, time, math, socket
 import numpy as np
+
+# ERA5 last stalled with every RDA socket in CLOSE_WAIT and all 10 workers blocked on reads that
+# never returned -- netCDF4/HDF5 does no request timeout of its own. A default socket timeout makes
+# a dead connection raise (caught by the per-day retry loop) instead of hanging the whole pull.
+socket.setdefaulttimeout(90)
+
+# macOS defaults to a 256 open-file-descriptor limit. OPeNDAP connections in CLOSE_WAIT linger,
+# so under any real concurrency the cap is reached and new connections fail. Raise it.
+import resource
+_soft, _hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+resource.setrlimit(resource.RLIMIT_NOFILE, (min(4096, _hard), _hard))
 
 try:
     import netCDF4
@@ -177,6 +188,8 @@ W = int(os.environ.get("WORKERS", "24"))
 Y0 = int(os.environ.get("Y0", "1990"))
 STRIDE = int(os.environ.get("STRIDE", "8"))
 TSTRIDE = int(os.environ.get("TSTRIDE", "3"))   # 98.8% of windows sit on the 8 synoptic hours
+YMAX = int(os.environ.get("YMAX", "9999"))      # upper year bound, so two instances can split
+REVERSE = int(os.environ.get("REVERSE", "1"))   # 1 = newest-first (recent half), 0 = oldest-first
 LEV_SL = slice(LEV0, LEV1, STRIDE)
 KEEP3 = list(range(len(range(LEV0, LEV1, STRIDE))))
 LEV_LABEL = [LEV_HPA[k] for k in range(0, len(LEV_HPA), STRIDE)]
@@ -192,7 +205,8 @@ def fetch_day_sl(day_idx):
     for code, dapname, grid in VARS:
         url = (f"{RDA}/{y}{m}/e5.oper.an.pl.{code}.{grid}.{y}{m}{dd}00_{y}{m}{dd}23.nc")
         ok = False
-        for attempt in range(4):
+        for attempt in range(8):
+            nc = None
             try:
                 nc = netCDF4.Dataset(url)
                 # stride the HOUR axis too: time is NOT free per request (24 steps = 22.3 MB /
@@ -200,10 +214,19 @@ def fetch_day_sl(day_idx):
                 # 3-hourly synoptic times.
                 a = np.asarray(nc.variables[dapname][::TSTRIDE, LEV_SL, LAT0:LAT1, LON0:LON1],
                                "float32")
-                nc.close(); out.append(a); ok = True; break
+                out.append(a); ok = True; break
             except Exception as ex:
-                time.sleep(3 * (attempt + 1))
+                time.sleep(min(4 * (attempt + 1), 20))
                 last = str(ex)[:90]
+            finally:
+                # close on EVERY path. The leak that piled 262 CLOSE_WAIT sockets to the FD cap
+                # was a Dataset opened, the read timing out, and close() never reached. THIS is
+                # the real fix; the socket timeout only bounds how long each hang lasts.
+                if nc is not None:
+                    try:
+                        nc.close()
+                    except Exception:
+                        pass
         if not ok:
             return day_idx, None, f"{ds} {dapname}: {last}"
     return day_idx, np.stack(out, 1), None
@@ -218,7 +241,7 @@ _fits = (bla >= 8.0) & (bla <= 52.0) & (_lo360 >= 108.0) & (_lo360 <= 172.0)
 by_year = {}
 for i in range(N):
     y = int(str(np.datetime64(int(snap[i]), "ns").astype("datetime64[Y]")))
-    if y >= Y0 and _bas[i] == BASIN and _fits[i]:
+    if Y0 <= y <= YMAX and _bas[i] == BASIN and _fits[i]:
         by_year.setdefault(y, []).append(i)
 
 print(f"levels {LEV_LABEL} hPa | {W} workers | years {Y0}+ "
@@ -229,7 +252,7 @@ t_all = time.time()
 # NEWEST FIRST. The test period is 2020+, so processing in reverse means the years we evaluate
 # on land within the first couple of hours and the pilot experiment can run while the rest of the
 # archive is still downloading.
-for year in sorted(by_year, reverse=True):
+for year in sorted(by_year, reverse=bool(REVERSE)):
     f = f"{OUT}/era5_{year}.npz"
     if os.path.exists(f):
         print(f"  {year}: present, skipping", flush=True); continue
@@ -264,7 +287,7 @@ for year in sorted(by_year, reverse=True):
     np.savez_compressed(f, q=q, scale=sc, got=got, widx=idx,
                         levels=np.array(LEV_LABEL), vars=np.array(["z", "u", "v"]))
     el = (time.time() - t0) / 60
-    done = sorted(by_year, reverse=True).index(year) + 1
+    done = sorted(by_year, reverse=bool(REVERSE)).index(year) + 1
     eta = (time.time() - t_all) / done * (len(by_year) - done) / 3600
     print(f"  {year}: {len(idx):6,} win {100*got.mean():5.1f}% got  "
           f"{os.path.getsize(f)/1e6:6.1f} MB  {fails:3d} fail  {el:5.1f} min   ETA {eta:4.1f} h",

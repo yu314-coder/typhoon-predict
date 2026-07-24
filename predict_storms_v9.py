@@ -9,6 +9,7 @@ STORMS = [
     {"sid": "2026182N09163", "name": "Bavi (2026)",  "thr": 113, "label": "first Cat-4", "out": "bavi"},
     {"sid": "1986228N19120", "name": "Wayne (1986)", "thr": 64,  "label": "first Cat-1", "out": "wayne"},
     {"sid": "2025203N20124", "name": "Co-may (2025)","thr": 64,  "label": "first Cat-1", "out": "comay"},
+    {"sid": "2022239N22150", "name": "Hinnamnor (2022)", "thr": 113, "label": "first Cat-4", "out": "hinnamnor"},
 ]
 V8 = {"Bavi (2026)": {24:185,48:316,72:314,96:201,120:448},
       "Wayne (1986)": {24:115,48:567,72:904,96:1012,120:1024},
@@ -104,7 +105,7 @@ def build(storm):
     for i, idx in enumerate(fidx):
         if idx == -1: continue
         e, n = mkm(fc[i+1][0], fc[i+1][1], fx["lat"][idx], fx["lon"][idx]); errs[LEADS[i]] = round(math.hypot(e, n))
-    v8 = V8[storm["name"]]
+    v8 = V8.get(storm["name"], {})
     row = " ".join(f"{h_}h v9 {errs.get(h_,'-'):>5} v8 {v8.get(h_,'-'):>5}" for h_ in (24,48,72,96,120))
     print(f"{storm['name']:14s} @{fx['vmax'][base]:.0f}kt | {row}")
     # geo dump for maps

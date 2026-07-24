@@ -1,0 +1,239 @@
+#!/usr/bin/env python3
+"""Build a TRACK-ONLY window dataset from all-basin IBTrACS. Self-contained: downloads
+IBTrACS if missing, no ERA5. Fast (searchsorted nearest, not pandas idxmin).
+
+Paths via env (Colab): TRACK_CSV (IBTrACS csv), TRACK_OUT (npz output).
+Reuses the 9x40 history-feature / 20x17 target logic from the ERA5 pipeline.
+"""
+import os
+import math
+import urllib.request
+from pathlib import Path
+import numpy as np
+import pandas as pd
+
+CSV = Path(os.environ.get("TRACK_CSV", "typhoon_build/data/ibtracs_ALL.csv"))
+OUT = Path(os.environ.get("TRACK_OUT", "track_build/track_windows_v13.npz"))
+INPUT_DIM = 54  # 48 + 6 env (lat, |lat|, sin/cos lon, dist2land, sst_proxy)
+MIN_LEADS = int(os.environ.get("MIN_LEADS", "4"))  # keep windows with >= this many contiguous future leads
+OUT.parent.mkdir(parents=True, exist_ok=True)
+CSV.parent.mkdir(parents=True, exist_ok=True)
+MIN_YEAR = int(os.environ.get("TRACK_MIN_YEAR", "1950"))
+URL = "https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/ibtracs.ALL.list.v04r01.csv"
+
+HISTORY_STEPS = 9
+LEAD_HOURS = list(range(6, 121, 6))
+RADIUS_NAMES = [f"r{t}_{q}" for t in (34, 50, 64) for q in ("ne", "se", "sw", "nw")]
+
+if not CSV.exists():
+    print(f"downloading IBTrACS (all basins) -> {CSV} ...")
+    urllib.request.urlretrieve(URL, CSV)
+    print("download done")
+
+
+def numeric(s):
+    v = pd.to_numeric(s, errors="coerce").astype("float32")
+    return v.mask(v < -900).mask(v > 1e6)
+
+
+def first_existing(frame, names):
+    for n in names:
+        if n in frame.columns:
+            return n
+    return None
+
+
+print(f"loading {CSV} ...")
+raw = pd.read_csv(CSV, skiprows=[1], low_memory=False)
+cols = {
+    "sid": raw["SID"].astype(str),
+    "basin": raw["BASIN"].astype(str),
+    "time": pd.to_datetime(raw["ISO_TIME"], errors="coerce", utc=True),
+    "lat": numeric(raw["LAT"]),
+    "lon": numeric(raw["LON"]),
+    "vmax": numeric(raw[first_existing(raw, ["USA_WIND", "WMO_WIND"])]),
+    "pressure": numeric(raw[first_existing(raw, ["USA_PRES", "WMO_PRES"])]),
+    "dist2land": numeric(raw["DIST2LAND"]) if "DIST2LAND" in raw.columns else np.float32(np.nan),
+}
+gc = first_existing(raw, ["USA_GUST", "WMO_GUST"])
+rc = first_existing(raw, ["USA_RMW", "WMO_RMW"])
+cols["gust"] = numeric(raw[gc]) if gc else np.float32(np.nan)
+cols["rmw"] = numeric(raw[rc]) if rc else np.float32(np.nan)
+track = pd.DataFrame(cols)
+for t in (34, 50, 64):
+    for q in ("ne", "se", "sw", "nw"):
+        c = first_existing(raw, [f"USA_R{t}_{q.upper()}", f"WMO_R{t}_{q.upper()}"])
+        track[f"r{t}_{q}"] = numeric(raw[c]) if c else np.float32(np.nan)
+
+track = track[track["time"].notna() & track["lat"].notna() & track["lon"].notna()].copy()
+track["year"] = track["time"].dt.year.astype(int)
+track = track[track["year"] >= MIN_YEAR].copy()
+track["lon"] = ((track["lon"] + 180.0) % 360.0) - 180.0
+track = track.sort_values(["sid", "time"]).reset_index(drop=True)
+print(f"{track['sid'].nunique()} storms, {len(track)} rows, years {track['year'].min()}-{track['year'].max()}, basins {sorted(track['basin'].dropna().unique())}")
+
+FEATCOLS = ["lat", "lon", "vmax", "pressure", "gust", "rmw", "dist2land"] + RADIUS_NAMES
+TOL_NS = int(1.5 * 3600 * 1e9)
+
+
+def valid_number(v):
+    return v is not None and np.isfinite(v)
+
+
+def local_motion_km(lat0, lon0, lat1, lon1):
+    dlat = lat1 - lat0
+    dlon = ((lon1 - lon0 + 180.0) % 360.0) - 180.0
+    return dlon * 111.2 * math.cos(math.radians((lat0 + lat1) / 2.0)), dlat * 111.2
+
+
+tracks, targets, masks, sids, years, basins, nleads = [], [], [], [], [], [], []
+btime, blat, blon = [], [], []   # base-fix time/position -> lets us index reanalysis fields
+groups = list(track.groupby("sid", sort=False))
+hist_off_ns = [int(-6 * i * 3600 * 1e9) for i in range(HISTORY_STEPS - 1, -1, -1)]
+lead_off_ns = [int(h * 3600 * 1e9) for h in LEAD_HOURS]
+atm_none = 0
+
+for gi, (sid, g) in enumerate(groups):
+    tns = g["time"].dt.tz_convert(None).to_numpy().astype("datetime64[ns]").astype("int64")  # ns, sorted
+    feat = {c: g[c].values.astype("float64") for c in FEATCOLS}
+    basin = str(g["basin"].values[0])
+    doy = g["time"].dt.dayofyear.values
+    mon = g["time"].dt.month.values
+
+    def nidx(target_ns):
+        p = np.searchsorted(tns, target_ns)
+        best, bd = -1, TOL_NS + 1
+        for cand in (p - 1, p):
+            if 0 <= cand < len(tns):
+                d = abs(int(tns[cand]) - target_ns)
+                if d < bd:
+                    bd, best = d, cand
+        return best if bd <= TOL_NS else -1
+
+    for k in range(len(tns)):
+        t0 = int(tns[k]); base = k
+        hidx = [nidx(t0 + o) for o in hist_off_ns]
+        fidx = [nidx(t0 + o) for o in lead_off_ns]
+        if -1 in hidx:                       # full 9-step history is required (defines the inputs + v0)
+            continue
+        n_lead = 0                           # length of the leading contiguous run of valid future leads
+        for x in fidx:
+            if x == -1:
+                break
+            n_lead += 1
+        if n_lead < MIN_LEADS:               # keep short/ending storms too, but need a usable horizon
+            continue
+        # history features (9 x INPUT_DIM)
+        seq = np.zeros((HISTORY_STEPS, INPUT_DIM), dtype="float32")
+        prev = -1
+        prev_dir = None          # previous step's (heading_sin, heading_cos) for turn-rate
+        phase = 2.0 * math.pi * float(doy[base]) / 365.25
+        for i, idx in enumerate(hidx):
+            e, n = local_motion_km(feat["lat"][base], feat["lon"][base], feat["lat"][idx], feat["lon"][idx])
+            if prev < 0:
+                se, sn = 0.0, 0.0
+            else:
+                se, sn = local_motion_km(feat["lat"][prev], feat["lon"][prev], feat["lat"][idx], feat["lon"][idx])
+            f = seq[i]
+            f[0:4] = [e, n, se, sn]
+            vals = [feat["vmax"][idx], feat["pressure"][idx], feat["gust"][idx], feat["rmw"][idx]]
+            for j in range(4):
+                f[4 + j] = vals[j] if valid_number(vals[j]) else 0.0
+            for j, nm in enumerate(RADIUS_NAMES):
+                rv = feat[nm][idx]
+                f[8 + j] = rv if valid_number(rv) else 0.0
+            f[20] = 0.0
+            f[21:23] = [math.sin(phase), math.cos(phase)]
+            f[23] = (t0 - int(tns[idx])) / 3.6e12
+            fields = vals + [feat[nm][idx] for nm in RADIUS_NAMES]
+            f[24:28] = [float(valid_number(x)) for x in fields[:4]]
+            f[28:40] = [float(valid_number(x)) for x in fields[4:]]
+
+            # --- motion dynamics (indices 40:48) ---
+            # step heading (unit vector of this step's motion) + speed
+            speed = math.hypot(se, sn)                       # km moved this ~6h step
+            if speed > 1e-3 and prev >= 0:
+                hsin, hcos = se / speed, sn / speed          # unit heading: east/north components
+            else:
+                hsin, hcos = 0.0, 0.0
+            f[40] = hsin
+            f[41] = hcos
+            f[42] = speed
+            # turn: signed sin of heading change vs previous step (cross product of unit dirs).
+            # >0 = turning left/counterclockwise (poleward recurvature in NH). 0 if either undefined.
+            if prev_dir is not None and (hsin or hcos) and (prev_dir[0] or prev_dir[1]):
+                f[43] = prev_dir[0] * hcos - prev_dir[1] * hsin
+            else:
+                f[43] = 0.0
+            # intensity / pressure trend over this step (idx vs previous history point)
+            if prev >= 0:
+                v0, v1 = feat["vmax"][prev], feat["vmax"][idx]
+                p0, p1 = feat["pressure"][prev], feat["pressure"][idx]
+                dv_ok = valid_number(v0) and valid_number(v1)
+                dp_ok = valid_number(p0) and valid_number(p1)
+                f[44] = (v1 - v0) if dv_ok else 0.0
+                f[45] = (p1 - p0) if dp_ok else 0.0
+                f[46] = float(dv_ok)
+                f[47] = float(dp_ok)
+            # else stays 0
+            # --- environment features (indices 48:54), all IBTrACS-derived ---
+            lat_i = feat["lat"][idx]; lon_i = feat["lon"][idx]; d2l = feat["dist2land"][idx]
+            m = int(mon[idx])
+            delta = 23.44 * math.sin(2.0 * math.pi * (m - 3) / 12.0)      # ~solar declination
+            thermal = 0.5 * delta                                         # thermal equator shift
+            sst = max(0.0, min(31.0, 30.0 - 0.30 * abs(lat_i - thermal) ** 1.4))  # climatological SST proxy
+            f[48] = lat_i
+            f[49] = abs(lat_i)
+            f[50] = math.sin(math.radians(lon_i))
+            f[51] = math.cos(math.radians(lon_i))
+            f[52] = d2l if valid_number(d2l) else np.nan                  # NaN -> train mean in normalization
+            f[53] = sst
+            if hsin or hcos:
+                prev_dir = (hsin, hcos)
+            prev = idx
+        # targets (20x17); only the first n_lead leads are valid, the rest stay zero/masked-out
+        tgt = np.zeros((len(fidx), 17), dtype="float32")
+        msk = np.zeros((len(fidx), 17), dtype=bool)
+        prev = base
+        for i in range(n_lead):
+            idx = fidx[i]
+            e, n = local_motion_km(feat["lat"][prev], feat["lon"][prev], feat["lat"][idx], feat["lon"][idx])
+            tgt[i, 0:2] = [e, n]; msk[i, 0:2] = True
+            for j, nm in enumerate(["vmax", "pressure", "rmw"] + RADIUS_NAMES, start=2):
+                rv = feat[nm][idx]
+                if valid_number(rv):
+                    tgt[i, j] = rv; msk[i, j] = True
+            prev = idx
+        tracks.append(seq); targets.append(tgt); masks.append(msk)
+        sids.append(str(sid)); years.append(int(g["year"].values[base])); basins.append(basin)
+        nleads.append(n_lead)
+        btime.append(int(tns[base])); blat.append(float(feat['lat'][base])); blon.append(float(feat['lon'][base]))
+    if gi % 1000 == 0:
+        print(f"  {gi}/{len(groups)} storms, {len(tracks)} windows", flush=True)
+
+track_arr = np.asarray(tracks, dtype="float32")
+print(f"\nbuilt {len(track_arr)} track-only windows")
+
+years_a = np.asarray(years, dtype="int16"); sids_a = np.asarray(sids)
+fy = {s: int(years_a[sids_a == s].min()) for s in np.unique(sids_a)}
+train_idx = np.where(np.isin(sids_a, [s for s, y in fy.items() if y <= 2015]))[0]
+means = np.zeros(INPUT_DIM, dtype="float32"); stds = np.ones(INPUT_DIM, dtype="float32")
+for c in range(INPUT_DIM):
+    col = track_arr[train_idx, :, c].astype("float64")
+    m, s = np.nanmean(col), np.nanstd(col)
+    means[c] = 0.0 if not np.isfinite(m) else m
+    stds[c] = 1.0 if (not np.isfinite(s) or s < 1e-6) else s
+    track_arr[:, :, c] = (track_arr[:, :, c] - means[c]) / stds[c]
+np.nan_to_num(track_arr, copy=False)
+print(f"normalized on {len(train_idx)} train windows; overall mean {track_arr.mean():+.4f} std {track_arr.std():.4f}")
+
+nleads_a = np.asarray(nleads, dtype="int16")
+np.savez_compressed(OUT, track=track_arr, target=np.asarray(targets, dtype="float32"),
+                    target_mask=np.asarray(masks, dtype="bool"), storm_id=sids_a,
+                    year=years_a, basin=np.asarray(basins), track_mean=means, track_std=stds,
+                    n_leads=nleads_a, base_time=np.asarray(btime, dtype='int64'),
+                    base_lat=np.asarray(blat, dtype='float32'), base_lon=np.asarray(blon, dtype='float32'))
+tw = int((years_a <= 2015).sum()); vw = int(((years_a >= 2016) & (years_a <= 2019)).sum()); ew = int((years_a >= 2020).sum())
+full = int((nleads_a == 20).sum())
+print(f"saved {OUT} ({OUT.stat().st_size/1e6:.1f} MB) | split windows train={tw} valid={vw} test={ew} | "
+      f"storms={len(fy)} | full-20-lead windows={full} ({100*full/len(nleads_a):.0f}%)")

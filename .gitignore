@@ -20,3 +20,7 @@ typhoon_build/
 typhoon_build_smoke/
 watchdog.sh
 watchdog_status.log
+.DS_Store
+downloads/
+_v9work/
+_fieldtest/
