@@ -260,5 +260,5 @@ print("     solves a conditioning problem the per-lead cone does not have.")
 json.dump({"n_val_storms": nvs, "n_test_storms": nts, "y": y, "linear_a": a_lw,
            "mp_signal_kept": k_mp, "joint": jointrows, "cone": conerows,
            "gaussian_cone_cov90": float(np.mean(gcov))},
-          open("track_build/rmt_v23.json", "w"), indent=1)
+          open("track_build/rmt_v23.json", "w"), indent=1, default=float)  # np.float64 -> float
 print("\nwrote track_build/rmt_v23.json")
