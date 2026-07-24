@@ -1,0 +1,418 @@
+================================================================================
+TRACKFORMER — FULL VERSION HISTORY, RESULTS, AND DATA
+A briefing document for an outside reviewer (e.g. ChatGPT Pro) asked to propose
+a better model structure.
+Compiled 2026-07-24 from the project's own result files and bootstraps.
+================================================================================
+
+--------------------------------------------------------------------------------
+0. WHAT THE SYSTEM IS
+--------------------------------------------------------------------------------
+TrackFormer forecasts tropical cyclone TRACK and INTENSITY out to 120 hours
+(20 leads x 6 h) from a 48-hour history window.
+
+Architecture (stable since ~v10, everything after is a modification of it):
+  - Three parallel transformer ENCODERS over the 9-step history:
+        kinematic (position, motion, heading, turn rate, speed)
+        thermodynamic (vmax, pressure, wind radii, their validity flags)
+        environmental (lat, lon, season sin/cos, ONI, ...)
+  - A CNN over a storm-centred 17x17 field patch at 2.5 deg ("steer_cnn")
+  - Two transformer DECODERS with 20 learned lead queries:
+        track decoder   -> per-lead E/N displacement
+        intensity decoder -> vmax, pressure, RMW, 12 wind radii
+  - A CURVED-PERSISTENCE baseline: the model predicts a residual on top of an
+    extrapolation of the current damped turn rate, not a raw position.
+  - Seed ensembling: 10 seeds, outputs averaged. This is worth ~5-10%.
+
+Output vector = 17 channels per lead:
+     0,1   E,N displacement per 6 h step (km)   [cumsum -> position]
+     2     vmax (kt)
+     3     central pressure (hPa)
+     4     RMW, radius of maximum wind (nm)
+     5-16  R34/R50/R64 in NE/SE/SW/NW quadrants (nm)
+  TARGET_SCALE = [100,100,35,20,50] + [50]*12
+
+--------------------------------------------------------------------------------
+1. EVALUATION PROTOCOL (important — read before comparing any numbers)
+--------------------------------------------------------------------------------
+Split is BY STORM, by the storm's first year (no window from a storm can appear
+in two splits):
+    train  storms first seen <= 2015     153,378 windows
+    valid  2016-2019                      16,342 windows
+    test   >= 2020                        23,889 windows
+Headline scoring set: WP+EP basins, full 20-lead horizon, 2020+ = 3,763 windows.
+
+TRACK ERROR = mean great-circle distance between cumulative predicted and
+observed position, averaged over all windows AND all 20 leads. So "434.96 km"
+is an all-lead mean, not a 120 h error. The 120 h figure is ~2.3x larger.
+
+*** METRIC CONVENTION — a bug that invalidated several earlier comparisons ***
+Two averages were being mixed:
+    POOLED      np.abs(pred-obs)[mask].mean() over all (window, lead) pairs
+    UNWEIGHTED  mean of the 20 per-lead means
+Later leads have larger error AND fewer valid targets, so UNWEIGHTED
+up-weights them. Gap is ~0.3 kt on vmax — the same size as the effects being
+claimed. ALL NUMBERS IN SECTION 3 ARE POOLED. Any older document quoting
+16.43 kt for v23 was using the unweighted convention.
+
+Each intensity channel is masked with ITS OWN validity flag. An earlier run
+scored pressure against the POSITION mask and reported ~140 hPa MAE; the real
+figure is ~12-13 hPa.
+
+SIGNIFICANCE: paired bootstrap resampling STORMS (not windows), 2000 resamples,
+two-sided. Only ONE result in this project has ever passed it (v23).
+
+--------------------------------------------------------------------------------
+2. DATA SOURCES
+--------------------------------------------------------------------------------
+BEST TRACK (the labels)
+  IBTrACS / JTWC best track. 193,609 windows total, 1980-2026, all basins.
+  Carries lat, lon, vmax, pressure, RMW, R34/50/64 x 4 quadrants, plus
+  per-field validity flags. Wind radii are frequently missing -> masks matter.
+
+FIELD PATCHES (storm-centred 17x17 at 2.5 deg, int8-quantised)
+  steer5_int8.npz (86 MB) — 5 channels: SLP anomaly, SLP tendency,
+      u500, v500, SST-28C. From NCEP R1 reanalysis + NOAA OISST v2 weekly 1 deg
+      (ERSST v5 filling 1980-81 and 2023-26).
+  dlm4_int8.npz (67 MB) — deep-layer-mean steering, 850/500/200 hPa.
+  basin_all_int8.npz (261 MB) — a WIDE basin map 100-180E, 0-60N, 6-hourly.
+      Used only by v24. FAILED.
+
+ENVIRONMENTAL SCALARS
+  ships_features.npz — SHIPS developmental data (RAMMB), 37 predictors:
+      ocean heat content, D26, deep-layer shear, RH at 3 levels, upper-level
+      flow, storm age, distance to land, etc.
+      LEAKAGE GUARD: only the -12/-6/0 hour columns are used. The forward
+      columns in the SHIPS file are best-track truth and would leak.
+      Coverage problem: SHIPS ends 2021 -> only 7% of the 2020+ test set.
+
+OCEAN SUBSURFACE (two independent sources, both derived to OHC / D26 / D20
+on an identical 21x21 patch at 0.25 deg centred on the storm)
+  AOML (ERDDAP, altimetry-derived), DAILY, 0.25 deg, 2013-2026.
+      Coverage: 95.6% of the test set but only 3.9% of TRAINING windows,
+      because training is storms <= 2015 and the archive starts 2013.
+      THIS COVERAGE MISMATCH IS THE MEASURED CEILING ON v26.
+  GODAS (NCEP ocean reanalysis, NOAA PSL OPeNDAP), MONTHLY, 1 deg x 1/3 deg,
+      1980-present. 47 years pulled, 76,076 windows.
+      Coverage: train 40.4%, test 93.3% — a 10x improvement on training.
+      Derivation: D26/D20 = depth where the potential-temperature profile
+      crosses 26/20 C (linear interp); OHC = rho*cp*Integral(T-26)dz to D26.
+      CAUSALITY: uses the PREVIOUS month's field, never the month containing
+      t0 — a monthly mean spanning the storm includes the storm's own cold wake.
+      Cross-validated against AOML on 18,084 shared windows:
+          OHC r=0.790  D26 r=0.840  D20 r=0.800
+          (GODAS reads ~12 kJ/cm2 low on OHC; harmless because ONE source is
+           used on both sides of the split.)
+
+ERA5 0.25 deg (NCAR RDA, partial — 7 years including all 6 test years 2020-2025)
+  Geopotential + u/v at 200/550/850 hPa, WP box. Intended for a
+  higher-resolution steering experiment that has NOT yet been run.
+
+AUGMENTATION
+  Equatorial mirror (N-S flip), p=0.5. Physically validated and self-inverse:
+  latitude negates, speed/vmax/|displacement| preserved, v500 negates, scalar
+  fields flip without sign change, wind-radius quadrants swap NE<->SE, NW<->SW.
+  Worth 545.7 -> 519.1 km on WP when introduced.
+
+--------------------------------------------------------------------------------
+3. VERSION-BY-VERSION RESULTS
+--------------------------------------------------------------------------------
+NOTE ON COMPARABILITY: v9-v16 were scored on a WP-only set and/or before a
+major data repair (see v16 below), so their numbers are NOT on the same scale
+as v17+. They are given for narrative continuity only.
+
+--- EARLY ERA (WP-only scoring, pre-repair) -----------------------------------
+v9      first working transformer version. Superseded; no clean archived number.
+v10     BASELINE. Triple-stream encoders + track/intensity decoders.
+        NO environmental field of any kind.
+        WP-only: 614.19 km.  Repaired WP+EP all-lead: 549.30 km.
+        Data: track history only.
+v13     + surface SLP patch only.  WP-only: 618.66 km  (NO better than v10)
+        Repaired WP+EP: 554.6 km. Lesson: SLP alone is not steering.
+v14     + 500 hPa steering (u500/v500).  WP-only: 545.74 km.
+        First real gain. Repaired: 489.3 km.
+v14.1   + steering dropout (whole-field, p=0.20) and clipping at 4 sigma.
+        Repaired: 500.2 km.
+v15     + equatorial-mirror augmentation. WP ensemble: 519.09 km.
+
+--- THE DATA REPAIR (the single most important fix in the project) ------------
+v16     Two changes:
+        (1) BUG FIX. extract_steer.py had matched each storm window to the
+            nearest reanalysis timestep with an UNBOUNDED argmin. The 2026 NCEP
+            file stops on 2026-03-17, so every later 2026 storm was handed a
+            MARCH wind field. That is how v14 predicted Bavi moving EAST
+            (+1360 km) when it moved WEST (-2029 km) — a 106 deg bearing error
+            worth 3442 km. Extractors now reject any match outside a tolerance
+            and mark the window steering-unavailable instead.
+            Measured, same v14 weights: Bavi 120 h 3442 -> 1539 km;
+            Hinnamnor (clean control year) 1095 -> 1095 km, unchanged as it must be.
+        (2) Real observed SST as a 5th channel, replacing a lat+month
+            climatology proxy that had ZERO interannual variability.
+            corr(centre SST, peak future vmax) = +0.313
+            corr(|lat|,      peak future vmax) = -0.197  <- what the proxy encoded
+            SST 20-26C -> mean peak vmax 48.7 kt
+            SST 26-28C -> 69.9 kt   (the 26 C threshold, learned from data)
+            SST 28-29C -> 80.2 kt
+            SST 29-35C -> 83.1 kt
+        v16 WP+EP repaired: 479.1 km (v16 without SST: 466.3 km).
+
+--- MODERN ERA (all figures WP+EP 2020+, all-lead mean, POOLED) ---------------
+Model    track km   vmax kt  pres hPa   rmw nm  radii nm   what changed
+v10       549.30     18.34     13.78    12.19     23.76    no environment
+v17       462.82        -         -         -        -     steering + repaired
+                                                            data + 4-term track loss
+v18          -          -         -         -        -     v17 + EMA, stronger
+                                                            dropout, input jitter.
+                                                            Did not beat v17.
+v19          -          -         -         -        -     v17 + intensity
+                                                            persistence baseline,
+                                                            rarity/speed weighting.
+                                                            Did not beat v17.
+v20       452.47     16.34     12.37    10.79     22.17    deep-layer mean
+                                                            steering 850/500/200
+v21       443.62     16.77     12.99    10.79     21.97*   CHAIN-OF-THOUGHT:
+                                                            predicts the steering
+                                                            FLOW per lead, then
+                                                            derives the track from it
+v22       443.40        -         -         -        -     v21 + LATENT CoT
+                                                            (2 weight-tied feedback
+                                                            rounds, arXiv:2605.11262)
+v23       434.96*    16.12*    12.17    10.75     22.39    v21 + TEMPORAL STEERING
+                                                            STACK: the steering field
+                                                            at t-24 h, t-12 h AND now
+v24       529.05        -         -         -        -     basin map REPLACES the
+                                                            storm-centred patch
+v25       451.86     16.94     12.47    10.76     22.79    v21 + 43 environmental
+                                                            scalars as ONE token
+v26abl    452.93     17.12     12.50    10.71     22.89    v25, ocean patch OFF
+v26       451.77     16.26     12.52    10.65*    22.99    v25 + ocean-heat PATCH
+                                                            through a CNN into the
+                                                            INTENSITY decoder (AOML)
+v27abl    439.14     16.20     12.17*   10.77     22.07    v27 with env+ocean OFF
+                                                            (= v23-shaped, retrained)
+v27       445.90     16.76     12.44    10.81     22.32    v23 + env token + ocean
+                                                            patch CNN (GODAS)
+  * = best in column.
+
+BOOTSTRAP RESULTS (paired, resampling STORMS, n=144 test storms, 2000 resamples)
+  v20 vs v17    delta -10.35 km  CI [-22.54, +0.82]  p=0.040   marginal
+  v21 vs v20    delta  -8.85 km  CI [-18.30, +1.31]  p=0.047   marginal
+  v22 vs v21    delta  -0.21 km  CI [ -6.22, +5.38]  p=0.939   NULL
+  v23 vs v23abl delta  -9.09 km  CI [-16.37, -1.95]  p=0.011   *** SIGNIFICANT ***
+  v23 vs v21    delta  -8.66 km  CI [-16.11, -1.71]  p=0.008   *** SIGNIFICANT ***
+  v24 vs v24abl delta +86.51 km  CI [+64.19,+111.11] p=0.000   *** CATASTROPHIC ***
+  v25/v26/v27   not bootstrapped (checkpoints for two ablations were lost).
+
+--------------------------------------------------------------------------------
+4. WHAT EACH FAILURE ACTUALLY TAUGHT
+--------------------------------------------------------------------------------
+v13 (SLP alone, no gain)
+    Surface pressure is not steering. The mid-troposphere wind is.
+
+v22 (latent CoT, p=0.939)
+    Adding weight-tied recurrence on top of an already-explicit reasoning step
+    bought nothing. Explicit CoT (v21) worked; latent CoT did not.
+    (Caution: v22 was FIRST reported as "+8.30 km worse" — that was a 3-seed vs
+     5-seed artifact. Matched seeds gave -0.22 km. Always match seed counts.)
+
+v24 (basin map replaces patch, +86.5 km, p=0.000)
+    ADDITIVE, NOT SUBSTITUTIVE. Removing the storm-centred vortex view and
+    replacing it with a wider basin map destroyed the model. The vortex-scale
+    field is what the track decoder actually needs; the basin context cannot
+    substitute for it. Every later version ADDS and keeps what worked.
+
+v25 (env scalars, null on intensity)
+    43 environmental numbers compressed into a single MLP'd token added to the
+    decoder memory is too blunt an injection. The features were being consumed
+    (the token's weight norm grew during training) but produced no skill.
+
+v26 (ocean patch CNN, +0.86 kt vs its own ablation, but never beat v23)
+    The patch CNN DID work against its own baseline — that comparison was clean
+    and pooled-against-pooled. But the branch trained on only 3.9% of training
+    windows while being scored on 95.6% of test windows, a 24x mismatch. The
+    ceiling was DATA COVERAGE, not architecture. Hence the GODAS backfill.
+    NOTE: an earlier claim that "v26 wins max wind" was WRONG — an artifact of
+    the pooled/unweighted mixup. Corrected, v23 wins wind at 16.12 vs 16.26.
+
+v27 (v23 + v25 + v26 combined — WORSE ON ALL FIVE METRICS)
+    vs its own matched control v27abl, same run, same pipeline:
+        track  +6.76 km   vmax +0.56 kt   pres +0.27 hPa
+        rmw    +0.04 nm   radii +0.25 nm
+    Not a single metric improved, on either the full test set or the
+    ocean-covered subset. A wash would scatter signs; this did not.
+    An init assertion PROVED the ocean token cannot reach the track decoder
+    (track output bit-identical with the token on or off), so the 6.8 km track
+    loss is not direct interference. The two paths SHARE THE ENCODERS, and the
+    extra intensity objectives evidently pull the shared representation away
+    from what the steering stack needs.
+    *** THE PARTS ARE NOT INDEPENDENT. This is the central open puzzle. ***
+
+--------------------------------------------------------------------------------
+5. THE DECISIVE DIAGNOSTIC — WHERE THE ERROR ACTUALLY LIVES
+--------------------------------------------------------------------------------
+A "flow oracle" experiment replaced the model's PREDICTED steering flow with
+the TRUE steering flow, leaving everything else identical:
+
+        v21 as-is                  443.62 km
+        v21 with perfect steering  328.59 km
+        ----------------------------------------
+        headroom from steering     -115 km
+
+The entire architecture chain from v17 to v23 is worth about 19 km more than v17
+was, and about 28 km more than v20.
+
+    ==> STEERING-FLOW PREDICTION IS THE BOTTLENECK, BY A FACTOR OF ~5.
+        Not model capacity. Not more input features bolted onto the decoder.
+
+Supporting diagnostics:
+    flow_share_pct = 28.2   (fraction of track variance the flow term explains)
+    corr(predicted vs true flow), E component = 0.805
+    corr(predicted vs true flow), N component = 0.460   <- the weak axis
+    persistence baseline corr, E = 0.660, N = 0.335
+So the model beats persistence on flow, but the MERIDIONAL (north-south) flow
+is predicted far worse than the zonal — and N-error is what drives recurvature
+misses.
+
+Also measured: at 24 h lead, the model beats a constant-velocity persistence
+baseline on only 29.6% of windows, and the flow oracle is worth just -1 km.
+    ==> The short-lead error (~75 km at 24 h) is NOT a steering problem.
+        It is something else — likely initial-position/motion estimation.
+
+--------------------------------------------------------------------------------
+6. KNOWN PITFALLS IN THIS CODEBASE (so a reviewer does not re-suggest them)
+--------------------------------------------------------------------------------
+- Seed noise: per-seed SD is 3.8-7.3 km on track. ALWAYS match seed counts
+  before quoting a delta. A 3-vs-5 seed comparison once produced a fake 8.3 km.
+- Never rewrite the model's forward() by hand. Doing so broke v15, v21 and the
+  first draft of v23 (it returned 19 channels where 17 were expected because
+  the intensity tail was written from memory). The working pattern is: WRAP a
+  submodule, stash context on the parent, and INHERIT the parent forward
+  VERBATIM.
+- Every version must ship an INIT ASSERTION: with the new feature switched off,
+  the model must reproduce its parent at max-diff exactly 0; with it on, the
+  output must MOVE. v23's first assertion was vacuous (a zero-init residual made
+  the output independent of the new branch) and hid a state_dict key mismatch.
+- "Unavailable" data is stored as EXACT ZEROS behind a presence mask, and the
+  mask is fed to the model as a first-class input. Never fabricate a value.
+- Silent data failures are the recurring enemy. Three separate ones:
+    (a) unbounded argmin time-matching handed storms a 4-month-old wind field;
+    (b) GODAS land fill is -9.96921e+36 — NEGATIVE and FINITE, so isfinite()
+        passes it straight through and every land cell reads as -1e36 C;
+    (c) a 12-month 4-D OPeNDAP request returns FULLY-MASKED ZEROS with no error
+        raised, while the identical single-month 3-D request returns real data.
+  All three would have produced plausible-looking garbage. Abort guards on
+  coverage caught them.
+
+--------------------------------------------------------------------------------
+7. HOW OPERATIONAL CENTRES ACTUALLY DO THIS  (reference / inspiration)
+--------------------------------------------------------------------------------
+Written from general domain knowledge, not fetched — treat specifics as
+starting points to verify, not citations.
+
+7.1 THE FOUR FAMILIES
+  (a) DYNAMICAL — integrate the primitive equations.
+      Global: ECMWF IFS, GFS, UKMO, ICON. Regional/hurricane-specific:
+      HWRF and HMON (retiring) -> HAFS (NOAA's current operational hurricane
+      model), moving nests at 1-2 km with ocean coupling (HYCOM/MOM6).
+      Strength: track. Weakness: expensive; intensity still limited by
+      convective-scale physics.
+  (b) STATISTICAL-DYNAMICAL — regression on predictors taken FROM a dynamical
+      model's forecast fields. This is the family this project most resembles.
+      SHIPS (Statistical Hurricane Intensity Prediction Scheme) and LGEM
+      (Logistic Growth Equation Model) are the operational intensity workhorses.
+      SHIPS predictors: deep-layer shear, SST/OHC, mid-level RH, upper-level
+      divergence, persistence of past intensity change, storm translation
+      speed, distance to land, and MPI (maximum potential intensity).
+      RII (Rapid Intensification Index) is a SHIPS derivative that outputs a
+      PROBABILITY of >=30 kt intensification in 24 h.
+  (c) STATISTICAL/CLIMATOLOGY BASELINES — CLIPER5 (climatology+persistence,
+      track) and SHIFOR5 (intensity). These exist to be the skill floor:
+      an operational model is only "skillful" if it beats CLIPER.
+      *** This project has NO CLIPER-equivalent baseline. That is a real gap. ***
+  (d) CONSENSUS — and this is the part most worth stealing. Operational centres
+      do NOT ship a single model. They ship a weighted multi-model consensus:
+      TVCN/TVCA (track variable consensus), IVCN (intensity), HCCA (a
+      corrected-consensus using bias-corrected members). Consensus beats every
+      individual member almost always. Simple equal-weight averaging captures
+      most of the gain; bias-correcting members first captures more.
+
+7.2 CONCEPTS FROM THE FIELD THIS PROJECT HAS NOT USED
+  - MPI / potential intensity (Emanuel). A thermodynamic CEILING on intensity
+    computed from SST and the atmospheric sounding. Operational intensity
+    guidance uses "current intensity relative to MPI" as a predictor, because
+    a storm near its ceiling cannot intensify further regardless of how warm
+    the water is. This project feeds raw OHC/SST with no ceiling concept.
+  - BETA DRIFT. A vortex on a rotating planet self-propagates poleward and
+    westward (~1-3 m/s) due to the meridional gradient of planetary vorticity,
+    INDEPENDENT of the steering flow. The project's curved-persistence baseline
+    does not encode this explicitly. Given that the MERIDIONAL flow is the badly
+    predicted axis (corr 0.46 vs 0.81 zonal), an explicit beta-drift term is a
+    directly targeted idea.
+  - DEEP-LAYER MEAN STEERING WEIGHTED BY STORM DEPTH. Operationally, the
+    steering layer depends on how deep the vortex is: a shallow TD is steered
+    by ~850-700 hPa, a mature typhoon by a mass-weighted 850-200 hPa layer.
+    v20 used a FIXED 850/500/200 mean. Making the weighting a function of
+    predicted intensity is a physically-motivated coupling of the two heads.
+  - VORTEX INITIALISATION / relocation. Operational models spend enormous effort
+    getting the initial vortex position and structure right, because 24 h error
+    is dominated by initialisation. This project's 24 h error is 75 km with the
+    flow oracle worth only -1 km there — i.e. the short-lead problem is
+    initialisation-shaped, and is currently unaddressed.
+  - ENSEMBLE SPREAD AS AN OUTPUT. Operational guidance issues a cone of
+    uncertainty derived from ensemble spread. This project ensembles 10 seeds
+    but throws the spread away and reports only the mean.
+  - ERROR DECOMPOSITION into ALONG-track and CROSS-track components in the
+    observed-motion frame. Along-track error is a speed-bias problem;
+    cross-track is a direction problem. They have different causes and different
+    fixes. (This project HAS the machinery for this — _errdecomp.py — but it has
+    not driven a design decision.)
+
+--------------------------------------------------------------------------------
+8. THE QUESTION FOR THE REVIEWER
+--------------------------------------------------------------------------------
+Given all of the above, propose a better model structure.
+
+Constraints that are real:
+  - Training runs on a single Colab T4. 10 seeds x ~25 min/seed = ~4 h per arm.
+    A two-arm experiment is ~8 h. Budget accordingly.
+  - The test set is fixed: WP+EP, 2020+, 3,763 full-horizon windows, split by
+    storm-first-year. Do not propose changing the split; it would break
+    comparability with every number above.
+  - Any proposal must come with an ABLATION that isolates ONE variable, and an
+    init assertion that the feature-off model reproduces its parent exactly.
+    This discipline is what made v23 confirmable and v24 diagnosable.
+
+The specific things worth attacking, in the order the evidence supports:
+  1. MERIDIONAL STEERING FLOW. corr 0.46 vs 0.81 zonal. The flow oracle says
+     115 km sits behind better flow prediction, and the N axis is where it is
+     lost. Beta drift, or a flow model with an explicit poleward-propagation
+     term, is the physically-targeted idea.
+  2. WHY DO THE TRACK AND INTENSITY PATHS INTERFERE? v27 is the puzzle:
+     two changes that are provably disjoint at the output level still degraded
+     each other through the shared encoders. Options a reviewer might weigh:
+     separate encoders per head; gradient surgery / PCGrad; loss re-weighting;
+     freezing the steering path while the intensity path trains; or simply
+     accepting two specialist models plus a consensus.
+  3. THE 24-HOUR PROBLEM. 75 km of error that steering cannot explain, where
+     the model beats persistence only 29.6% of the time. Likely an
+     initialisation / current-motion-estimation issue.
+  4. NO SKILL FLOOR. There is no CLIPER-equivalent baseline in this project.
+     Every number above is compared to a previous version, never to the
+     climatology+persistence floor the field uses.
+  5. CONSENSUS INSTEAD OF A SINGLE MODEL. Operational practice says a
+     bias-corrected multi-model consensus beats any member. This project has
+     v21, v23, v27abl and others that make DIFFERENT errors; it has never
+     combined them at the OUTPUT level, only tried to merge them
+     architecturally (v27), which failed.
+
+FILES A REVIEWER MIGHT WANT
+  colab_v26_train.py   v21, the chain-of-thought base
+  colab_v28_train.py   v23, the temporal steering stack (the best model)
+  colab_v31_train.py   v25, env token
+  colab_v32_train.py   v26, ocean patch CNN
+  colab_v33_train.py   v27, the combination
+  extract_godas.py     ocean reanalysis extraction, 1980-2026
+  merge_ocean.py       single-source ocean patch file + AOML cross-check
+  track_build/pooled_metrics.json   every number in section 3
+  track_build/bootstrap*.json       every significance test
+================================================================================
