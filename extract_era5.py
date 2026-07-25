@@ -252,9 +252,10 @@ t_all = time.time()
 # NEWEST FIRST. The test period is 2020+, so processing in reverse means the years we evaluate
 # on land within the first couple of hours and the pilot experiment can run while the rest of the
 # archive is still downloading.
-# clear any leftover .tmp from a write interrupted by a previous kill
+# clear any leftover temp from a write interrupted by a previous kill -- matches both the correct
+# era5_YYYY.npz.tmp and the legacy buggy era5_YYYY.npz.tmp.npz artifact ('.tmp' appears in both)
 for _t in os.listdir(OUT):
-    if _t.endswith(".tmp"):
+    if ".tmp" in _t:
         os.remove(os.path.join(OUT, _t))
 
 for year in sorted(by_year, reverse=bool(REVERSE)):
@@ -302,8 +303,13 @@ for year in sorted(by_year, reverse=bool(REVERSE)):
     # only ever leave era5_YYYY.npz.tmp (cleared on the next start) -- never a half-written
     # era5_YYYY.npz that resume would wrongly skip. This is what makes stop-anytime safe.
     _tmp = f + ".tmp"
-    np.savez_compressed(_tmp, q=q, scale=sc, got=got, widx=idx,
-                        levels=np.array(LEV_LABEL), vars=np.array(["z", "u", "v"]))
+    # np.savez_compressed APPENDS ".npz" to a path that doesn't already end in .npz -- passing
+    # "era5_YYYY.npz.tmp" would silently write "era5_YYYY.npz.tmp.npz" and make os.replace fail.
+    # Handing it an open file object writes the bytes verbatim (no extension munging), so the
+    # temp really is era5_YYYY.npz.tmp and the atomic rename below is correct.
+    with open(_tmp, "wb") as _fh:
+        np.savez_compressed(_fh, q=q, scale=sc, got=got, widx=idx,
+                            levels=np.array(LEV_LABEL), vars=np.array(["z", "u", "v"]))
     os.replace(_tmp, f)
     el = (time.time() - t0) / 60
     done = sorted(by_year, reverse=bool(REVERSE)).index(year) + 1
