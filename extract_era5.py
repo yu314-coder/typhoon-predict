@@ -252,10 +252,24 @@ t_all = time.time()
 # NEWEST FIRST. The test period is 2020+, so processing in reverse means the years we evaluate
 # on land within the first couple of hours and the pilot experiment can run while the rest of the
 # archive is still downloading.
+# clear any leftover .tmp from a write interrupted by a previous kill
+for _t in os.listdir(OUT):
+    if _t.endswith(".tmp"):
+        os.remove(os.path.join(OUT, _t))
+
 for year in sorted(by_year, reverse=bool(REVERSE)):
     f = f"{OUT}/era5_{year}.npz"
     if os.path.exists(f):
-        print(f"  {year}: present, skipping", flush=True); continue
+        # verify the existing file is INTACT before trusting it -- a year killed mid-write (before
+        # the atomic rename below existed) could have left a truncated npz that np.load would fail
+        # on. Re-extract those rather than silently feeding a corrupt year to training.
+        try:
+            with np.load(f) as _chk:
+                _ = _chk["got"].shape       # forces a real read; truncation raises here
+            print(f"  {year}: present, skipping", flush=True); continue
+        except Exception:
+            print(f"  {year}: existing file is corrupt -- re-extracting", flush=True)
+            os.remove(f)
     idx = np.array(by_year[year]); t0 = time.time()
     nlev = len(LEV_LABEL)
     P = np.zeros((len(idx), 3, nlev, 2 * HALF + 1, 2 * HALF + 1), "float32")
@@ -284,8 +298,13 @@ for year in sorted(by_year, reverse=bool(REVERSE)):
                 got[s_] = 1.0
     sc = np.array([max(np.abs(P[:, v]).max(), 1e-6) / 127.0 for v in range(3)], "float32")
     q = np.clip(np.round(P / sc[None, :, None, None, None]), -127, 127).astype("int8")
-    np.savez_compressed(f, q=q, scale=sc, got=got, widx=idx,
+    # ATOMIC write: save to a .tmp on the same filesystem, then rename. A kill during savez can
+    # only ever leave era5_YYYY.npz.tmp (cleared on the next start) -- never a half-written
+    # era5_YYYY.npz that resume would wrongly skip. This is what makes stop-anytime safe.
+    _tmp = f + ".tmp"
+    np.savez_compressed(_tmp, q=q, scale=sc, got=got, widx=idx,
                         levels=np.array(LEV_LABEL), vars=np.array(["z", "u", "v"]))
+    os.replace(_tmp, f)
     el = (time.time() - t0) / 60
     done = sorted(by_year, reverse=bool(REVERSE)).index(year) + 1
     eta = (time.time() - t_all) / done * (len(by_year) - done) / 3600
