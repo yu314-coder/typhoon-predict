@@ -1,0 +1,430 @@
+"""v31 on Colab -- v23 plus a land-interaction correction, built directly on v23 (not stacked on
+the null v29), applied ALONG the storm's current heading.
+
+    !wget -q -O /content/v31.py https://raw.githubusercontent.com/yu314-coder/typhoon-predict/<SHA>/colab_v36_train.py
+    import os; os.environ["V31_SEEDS"]="5"; exec(open('/content/v31.py').read())
+
+WHY. _landtest.py found a bootstrap-confirmed (not a naive z-test) difference in v23's along-track
+error between storms with land nearby along their current heading vs open ocean, at 36-48h leads:
+-22.7 km (36h, 95% CI [-40.7,-4.2], p=0.008) and -32.4 km (48h, CI [-57.7,-7.2], p=0.006). A ridge
+regression pooling ALL leads found nothing -- underpowered, since only 13.5% of windows have land
+within 500 km ahead, diluting a real, localized effect to near-zero density. The DIRECT group
+comparison has far more power for exactly this shape of effect.
+
+THE 120h FLIP, AND WHY IT IS NOT TARGETED HERE. At 120h the sign reverses (+164 km, near-land
+storms show SMALLER error) -- refining the feature to "will the storm plausibly reach land within
+THIS lead's horizon at its current speed" (rather than static distance) made the flip WORSE, not
+better (+219 km), which rules out "wrong lead window" as the explanation. The more likely story:
+storms with land ahead at forecast time often make landfall/dissipate for real by 120h, so their
+OBSERVED track is naturally shorter -- v23's chronic under-prediction of speed happens to match
+that shortened reality by coincidence at long leads, not because it understands land. Rather than
+hand-pick which leads to trust, LandDrag gets a FREE (not sign-constrained, not hard-gated by lead)
+per-lead learned magnitude via knot interpolation, zero-init -- exactly MeridionalDrift's
+philosophy: give the model an informative feature and a flexible-but-constrained way to use it,
+and let training (which optimises on the real loss and can discover whichever leads the signal
+actually holds at) decide, rather than baking in a possibly-wrong manual read of 3 test points.
+
+FEATURES (5, from the storm's CURRENT state -- no future information):
+  dist_to_nearest_land/1000, dist_to_land_ahead/1000, terrain_ahead/1000, current_speed/100, |lat|/30
+'ahead' = within a +/-30 deg cone of the CURRENT heading, out to 2000 km.
+
+MIRROR CONSISTENCY. Land geometry is NOT locally mirror-symmetric like atmospheric fields -- Taipei
+has no mirror-image city at 24S. But 'ahead' is a DIRECTIONAL query against REAL terrain at the
+storm's REAL (never-mirrored) position, and the direction is exactly `vp`'s heading -- which the
+existing pipeline already mirrors consistently (vp[1] = -vp[1] on a mirrored sample). So land
+features are computed from the SAME (possibly-mirrored) vp used everywhere else, AFTER mirroring:
+this is a real terrain lookup in a locally-reflected search direction, precisely analogous to how
+the SLP patch's mirror is not a real alternate atmosphere either, just a physically self-consistent
+augmented view. dist_to_nearest_land needs no heading and is identical either way (position is
+real, never altered by mirroring).
+
+SCOPE. terrain_wp.npz covers WP only (100-148E, 3-47N) -- EP windows get land_ok=0, exact zero
+contribution, same "missing == zero, never fabricated" contract as every other partial-coverage
+feature in this codebase.
+"""
+
+import os, re, json, time, math, urllib.request
+import numpy as np, torch, torch.nn as nn, torch.nn.functional as F
+
+RAW = "https://raw.githubusercontent.com/yu314-coder/typhoon-predict/main"
+N_SEEDS = int(os.environ.get("V31_SEEDS", "5"))
+USE_LAND = int(os.environ.get("V31_USE_LAND", "1"))     # 0 = ablation, v23 with the same code path
+A_MAX = float(os.environ.get("V31_AMAX", "0.65"))        # per-lead cap, channel units (65 km)
+TAG = os.environ.get("V31_TAG", "v31" if USE_LAND else "v31abl")
+KM6H = 6 * 3600 / 1000.0
+R_KM = 111.2
+
+for fn in ("track_windows_v13.npz", "dlm4_int8.npz", "lead_flow.npz"):
+    dst = "/content/d/" + fn if fn == "track_windows_v13.npz" else "/content/" + fn
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    if not os.path.exists(dst):
+        print(f"fetching {fn} ...", flush=True)
+        urllib.request.urlretrieve(f"{RAW}/track_build/{fn}", dst)
+if not os.path.exists("/content/terrain_wp.npz"):
+    print("fetching terrain_wp.npz ...", flush=True)
+    urllib.request.urlretrieve(f"{RAW}/track_build/terrain_wp.npz", "/content/terrain_wp.npz")
+
+nb = json.load(open(urllib.request.urlretrieve(f"{RAW}/colab_train_v17.ipynb",
+                                               "/content/_v17.ipynb")[0]))
+cells = ["".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code"]
+body = "\n\n".join(cells[2:7])
+assert body.count("steer5_int8.npz") == 1
+body = body.replace('"/content/d/steer5_int8.npz"', '"/content/dlm4_int8.npz"')
+G = {"__name__": "v17exec", "torch": torch, "nn": nn, "F": F, "np": np, "os": os, "json": json,
+     "time": time, "math": __import__("math")}
+exec(compile(body, "<v17-notebook>", "exec"), G)
+
+DEVICE = G["DEVICE"]; TARGET_SCALE = G["TARGET_SCALE"]
+Base = G["TrackFormerV17"]; SLP = G["SLP"]; track = G["track"]; target = G["target"]
+mask = G["mask"]; vpair = G["vpair"]; z = G["z"]; basins = G["basins"].astype(str)
+tr_idx, va_idx, te_idx = G["tr_idx"], G["va_idx"], G["te_idx"]
+mirror = G["mirror"]
+EPOCHS, PATIENCE, BATCH = G["EPOCHS"], G["PATIENCE"], G["BATCH"]
+LR, WEIGHT_DECAY, MIRROR_P = G["LR"], G["WEIGHT_DECAY"], G["MIRROR_P"]
+TM = torch.tensor(G["tmean"]); TS = torch.tensor(G["tstd"])
+
+sid = z["storm_id"].astype(str); bt = z["base_time"].astype("int64")
+SIX = int(6 * 3600 * 1e9)
+_key = {}
+for i in range(len(sid)):
+    _key[(sid[i], int(bt[i]))] = i
+HIST = np.full((len(sid), 2), -1, dtype=np.int64)
+for i in range(len(sid)):
+    for c, back in enumerate((2, 4)):
+        j = _key.get((sid[i], int(bt[i]) - back * SIX), -1)
+        HIST[i, c] = j
+HAVE = (HIST >= 0).astype("float32")
+HIST_S = np.where(HIST >= 0, HIST, np.arange(len(sid))[:, None])
+
+_lf = np.load("/content/lead_flow.npz")
+FLOW_T = _lf["flow"].astype("float32"); FLOW_M = _lf["got"].astype("float32")
+DSC = np.load("/content/dlm4_int8.npz")["scale"][2:4].astype("float32")
+_ii, _jj = np.meshgrid(np.arange(17) - 8, np.arange(17) - 8, indexing="ij")
+_d = np.hypot(_ii, _jj) * 2.5
+ANN = torch.tensor(((_d >= 3.0) & (_d <= 8.0)).astype("float32"), device=DEVICE)
+
+CLS = r"class TrackFormerCoT\(Base\):.*?torch\.zeros_like\(motion\), ilog\], -1\), flow_pred\)"
+_g21 = {"Base": Base, "torch": torch, "nn": nn, "F": F, "math": G["math"], "G": G, "ANN": ANN,
+        "DSC": DSC, "KM6H": KM6H, "R_ROUNDS": 0, "USE_FLOW": 1}
+exec(re.search(CLS, urllib.request.urlopen(f"{RAW}/colab_v26_train.py").read().decode(),
+               re.S).group(0), _g21)
+V21 = _g21["TrackFormerCoT"]
+
+_v28src = urllib.request.urlopen(f"{RAW}/colab_v28_train.py").read().decode()
+_hs = re.search(r"class HistStem\(nn\.Module\):.*?\n        return st\n", _v28src, re.S).group(0)
+_tf = re.search(r"class TrackFormerHist\(V21\):.*?G\[\"STEER_DROP\"\] = sd\n", _v28src, re.S).group(0)
+_g23 = {"V21": V21, "torch": torch, "nn": nn, "F": F, "math": G["math"], "G": G, "ANN": ANN,
+        "DSC": DSC, "KM6H": KM6H, "USE_HIST": 1}
+exec(_hs, _g23); exec(_tf, _g23)
+V23 = _g23["TrackFormerHist"]
+
+# ---- land geometry ----
+_T = np.load("/content/terrain_wp.npz")
+T_LAT, T_LON, LSM, ELEV = _T["lat"], _T["lon"], _T["lsm"], _T["elev"]
+_LAND = LSM > 0.5
+LAND_LAT = T_LAT[np.where(_LAND)[0]]
+LAND_LON = T_LON[np.where(_LAND)[1]]
+LAND_ELEV = ELEV[_LAND]
+_bas_full = basins  # WP-basin windows are the only ones ever land_ok=1
+
+
+def land_features_np(lat, lon, heading_rad):
+    """[dist_nearest_km, dist_ahead_km, terrain_ahead_m] for a batch of (lat, lon, heading)."""
+    n = len(lat)
+    dlat = LAND_LAT[None, :] - lat[:, None]
+    dlon = (LAND_LON[None, :] - lon[:, None]) * np.cos(np.radians(lat[:, None]))
+    dy = dlat * R_KM; dx = dlon * R_KM
+    dist = np.hypot(dx, dy)
+    bearing = np.arctan2(dx, dy)
+    dphi = np.arctan2(np.sin(bearing - heading_rad[:, None]), np.cos(bearing - heading_rad[:, None]))
+    cone = np.abs(dphi) <= np.radians(30.0)
+    ahead = np.where(cone, dist, np.inf)
+    dist_nearest = dist.min(1)
+    dist_ahead = ahead.min(1)
+    dist_ahead = np.where(np.isfinite(dist_ahead), dist_ahead, 3000.0)
+    near_ahead = ahead < 500.0
+    terr_ahead = np.array([LAND_ELEV[near_ahead[k]].max() if near_ahead[k].any() else 0.0
+                            for k in range(n)])
+    return np.stack([dist_nearest, dist_ahead, terr_ahead], 1).astype("float32")
+
+
+class LandDrag(nn.Module):
+    """5 features -> 4 lead-knots -> interp to 20 -> tanh -> signed along-track push. Exact zero
+    at init (weight AND bias), matching HistStem/Era5Stem's convention. Unlike MeridionalDrift
+    there is no forced odd/antisymmetric sign -- land drag has no reason to flip across the
+    equator, so the MLP is free to learn whatever sign the data supports."""
+
+    def __init__(self, leads=20, knots=4, a_max=A_MAX):
+        super().__init__()
+        self.a_max = a_max
+        self.mlp = nn.Sequential(nn.Linear(5, 32), nn.GELU(), nn.Linear(32, knots))
+        kl = torch.tensor([0., 3., 11., 19.])
+        Wi = torch.zeros(leads, knots)
+        for i in range(leads):
+            L = float(i)
+            if L <= kl[0]:
+                Wi[i, 0] = 1.0
+            elif L >= kl[-1]:
+                Wi[i, -1] = 1.0
+            else:
+                for k in range(knots - 1):
+                    if kl[k] <= L <= kl[k + 1]:
+                        f = (L - kl[k]) / (kl[k + 1] - kl[k])
+                        Wi[i, k] = 1 - f; Wi[i, k + 1] = f
+                        break
+        self.register_buffer("Wi", Wi)
+        nn.init.zeros_(self.mlp[-1].weight); nn.init.zeros_(self.mlp[-1].bias)
+
+    def forward(self, feat):
+        knots = self.mlp(feat)
+        return self.a_max * torch.tanh(knots @ self.Wi.t())
+
+
+class TrackFormerLand(V23):
+    """v23 with a land-drag correction added along the current heading. forward() calls V23's
+    verbatim via super(), then splits the along-track push into (E,N) using the CURRENT heading."""
+
+    def __init__(self, **kw):
+        super().__init__(**kw)
+        self.land = LandDrag()
+
+    def forward(self, tr, vp, slp, hist=None, have=None, landfeat=None, land_ok=None):
+        s, ls, fp = super().forward(tr, vp, slp, hist, have)
+        if USE_LAND and landfeat is not None:
+            s = s.clone()
+            delta = self.land(landfeat)                       # [b,20]
+            v0 = vp[:, :2]
+            hunit = v0 / v0.norm(dim=1, keepdim=True).clamp(min=1e-3)   # [b,2]
+            ok = land_ok.view(-1, 1)
+            s[..., 0] = s[..., 0] + delta * hunit[:, 0:1] * ok
+            s[..., 1] = s[..., 1] + delta * hunit[:, 1:2] * ok
+        return s, ls, fp
+
+
+def landfeat_of(idx_np, lat_np, lon_np, heading_np, basin_np):
+    """[n,5] normalized land features + [n] availability, for a batch of window indices."""
+    wp = basin_np == "WP"
+    n = len(idx_np)
+    out = np.zeros((n, 3), "float32")
+    if wp.any():
+        out[wp] = land_features_np(lat_np[wp], lon_np[wp] % 360, heading_np[wp])
+    return out, wp.astype("float32")
+
+
+# ---- init assertions ----
+with torch.no_grad():
+    _j = np.array([0, 1, 2, 3])
+    _t = torch.from_numpy(track[_j]).to(DEVICE); _v = torch.from_numpy(vpair[_j]).to(DEVICE)
+    _s = torch.from_numpy(SLP[_j]).to(DEVICE)
+    _hn = np.concatenate([SLP[HIST_S[_j, 0]], SLP[HIST_S[_j, 1]]], 1)
+    _h = torch.from_numpy(_hn).to(DEVICE); _a = torch.from_numpy(HAVE[_j]).to(DEVICE)
+    _bla = z["base_lat"].astype("float64")[_j]; _blo = z["base_lon"].astype("float64")[_j] % 360
+    _phi = np.arctan2(vpair[_j, 1], vpair[_j, 0])
+    _lf3, _lok = landfeat_of(_j, _bla, _blo, _phi, basins[_j])
+    _spd = np.hypot(vpair[_j, 0], vpair[_j, 1])
+    _latv = track[_j, -1, 48] * G["tstd"][48] + G["tmean"][48]
+    _lf5 = np.concatenate([_lf3 / np.array([1000., 1000., 1000.], "float32"),
+                            (_spd / 100.0)[:, None].astype("float32"),
+                            (np.abs(_latv) / 30.0)[:, None].astype("float32")], 1)
+    _lf = torch.from_numpy(_lf5).to(DEVICE); _lo = torch.from_numpy(_lok).to(DEVICE)
+
+    _p, _q = V23().to(DEVICE).eval(), TrackFormerLand().to(DEVICE).eval()
+    torch.manual_seed(13)
+    nn.init.normal_(_p.track_res.weight, std=0.02); nn.init.normal_(_p.track_res.bias, std=0.02)
+    _sd = _p.state_dict()
+    _miss, _unexp = _q.load_state_dict(_sd, strict=False)
+    assert not _unexp, f"unexpected keys loading v23 into v31: {list(_unexp)[:5]}"
+    assert all(m.startswith("land.") for m in _miss), f"v23 weights failed to transfer: {list(_miss)[:5]}"
+    assert float(_q.land.mlp[-1].weight.abs().max()) == 0.0, "land path is not zero-init"
+
+    _d1 = float((_p(_t, _v, _s, _h, _a)[0] - _q(_t, _v, _s, _h, _a, _lf, _lo)[0]).abs().max())
+    assert _d1 < 1e-5, f"{TAG} does not reduce to v23 at init: {_d1}"
+    nn.init.normal_(_q.land.mlp[-1].weight, std=0.05)
+    _d2 = float((_p(_t, _v, _s, _h, _a)[0] - _q(_t, _v, _s, _h, _a, _lf, _lo)[0]).abs().max())
+    nn.init.zeros_(_q.land.mlp[-1].weight)
+    assert not USE_LAND or _d2 > 1e-4, f"{TAG}: opening the land path moved the track by {_d2:.2e} -- DEAD"
+    print(f"init check: land off max|v31 - v23| = {_d1:.2e} (v31 starts as exactly v23)")
+    print(f"init check: land on  max|v31 - v23| = {_d2:.2e} (land path is live)", flush=True)
+
+_q.train()
+nn.init.normal_(_q.land.mlp[-1].weight, std=0.05)
+_mo, _, _ = _q(_t, _v, _s, _h, _a, _lf, _lo)
+_mo.sum().backward()
+_g = _q.land.mlp[0].weight.grad
+assert _g is not None and float(_g.abs().max()) > 0, "land mlp is not reachable by gradient"
+nn.init.zeros_(_q.land.mlp[-1].weight)
+_q.zero_grad(); _q.eval()
+print(f"init check: land mlp gradient reachable, max|grad| = {float(_g.abs().max()):.2e}")
+del _p, _q
+print(f"\n{TAG} ready. USE_LAND={USE_LAND}, A_MAX={A_MAX}, {N_SEEDS} seeds.", flush=True)
+
+
+class DS(torch.utils.data.Dataset):
+    def __init__(self, idx, aug):
+        self.idx = np.asarray(idx); self.aug = aug
+
+    def __len__(self):
+        return len(self.idx)
+
+    def __getitem__(self, i):
+        j = int(self.idx[i])
+        tr = torch.from_numpy(track[j]); tg = torch.from_numpy(target[j])
+        mk = torch.from_numpy(mask[j]); sp = torch.from_numpy(SLP[j])
+        vp = torch.from_numpy(vpair[j]).clone()
+        fl = torch.from_numpy(FLOW_T[j].copy()); fm = torch.from_numpy(FLOW_M[j].copy())
+        hs = torch.from_numpy(np.concatenate([SLP[HIST_S[j, 0]], SLP[HIST_S[j, 1]]], 0).copy())
+        hv = torch.from_numpy(HAVE[j].copy())
+        mirrored = self.aug and torch.rand(()) < MIRROR_P
+        if mirrored:
+            tr, tg, mk, sp = mirror(tr, tg, mk, sp)
+            vp[1] = -vp[1]; vp[3] = -vp[3]
+            fl = fl.clone(); fl[:, 1] = -fl[:, 1]
+            hs = torch.flip(hs, dims=[1]).clone(); hs[3] = -hs[3]; hs[7] = -hs[7]
+        # land features from the (possibly mirrored) vp -- see module docstring on why this is
+        # the physically self-consistent choice, not a bug.
+        bla = float(z["base_lat"][j]); blo = float(z["base_lon"][j]) % 360
+        phi = math.atan2(float(vp[1]), float(vp[0]))
+        lf3, lok = landfeat_of(np.array([j]), np.array([bla]), np.array([blo]), np.array([phi]),
+                                np.array([basins[j]]))
+        spd = math.hypot(float(vp[0]), float(vp[1]))
+        latv = float(track[j, -1, 48]) * float(G["tstd"][48]) + float(G["tmean"][48])
+        lf5 = np.concatenate([lf3[0] / np.array([1000., 1000., 1000.], "float32"),
+                              [spd / 100.0], [abs(latv) / 30.0]]).astype("float32")
+        lf = torch.from_numpy(lf5); lo = torch.tensor(float(lok[0]))
+        return tr, vp, sp, tg, mk, fl, fm, hs, hv, lf, lo
+
+
+def loader(idx, sh, aug=False):
+    return torch.utils.data.DataLoader(DS(idx, aug), batch_size=BATCH, shuffle=sh, num_workers=2,
+                                       pin_memory=True, persistent_workers=True, drop_last=sh)
+
+
+def total_loss(s, ls, fp, tgt, m, fl, fm):
+    base = G["total_loss"](s, ls, tgt, m)
+    fmm = fm.unsqueeze(-1)
+    flow = (F.smooth_l1_loss(fp, fl, reduction="none") * fmm).sum() / fmm.sum().clamp(min=1)
+    return base + 0.3 * flow, float(flow.detach())
+
+
+def train_one(seed, ckpt):
+    torch.manual_seed(seed); np.random.seed(seed)
+    model = TrackFormerLand().to(DEVICE)
+    print(f"seed {seed} | params {sum(p.numel() for p in model.parameters()):,}", flush=True)
+    opt = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
+    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=EPOCHS)
+    scaler = torch.cuda.amp.GradScaler()
+    tl, vl = loader(tr_idx, True, aug=True), loader(va_idx, False)
+
+    def run(ld, train):
+        model.train(train); tot = cnt = 0.0; fa = 0.0
+        for tr, v0, sp, tg, m, fl, fm, hs, hv, lf, lo in ld:
+            tr, v0, sp, tg, m, fl, fm, hs, hv, lf, lo = [x.to(DEVICE, non_blocking=True)
+                for x in (tr, v0, sp, tg, m, fl, fm, hs, hv, lf, lo)]
+            with torch.set_grad_enabled(train), torch.cuda.amp.autocast():
+                s, ls, fp = model(tr, v0, sp, hs, hv, lf, lo)
+                loss, fv = total_loss(s, ls, fp.float(), tg, m, fl, fm)
+            if train:
+                opt.zero_grad(set_to_none=True); scaler.scale(loss).backward()
+                scaler.unscale_(opt); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                scaler.step(opt); scaler.update()
+            tot += float(loss.detach()) * len(tr); fa += fv * len(tr); cnt += len(tr)
+        return tot / cnt, fa / cnt
+
+    best, bad, t0 = 1e9, 0, time.time()
+    for ep in range(EPOCHS):
+        te = time.time(); trl, trf = run(tl, True)
+        with torch.no_grad():
+            vv, vf = run(vl, False)
+        sched.step()
+        if vv < best:
+            best, bad = vv, 0
+            torch.save({"model": model.state_dict(), "epoch": ep, "best_val": best,
+                        "track_mean": G["tmean"], "track_std": G["tstd"]}, ckpt)
+            if os.path.isdir("/content/drive/MyDrive/typhoon"):
+                try:
+                    import shutil as _sh; _sh.copy(ckpt, "/content/drive/MyDrive/typhoon")
+                except Exception as ex:
+                    print("Drive mirror failed:", ex)
+        else:
+            bad += 1
+        with torch.no_grad():
+            lw = float(model.land.mlp[-1].weight.abs().mean())
+        print(f"ep {ep:03d} | train {trl:.5f} | val {vv:.5f} | best {best:.5f} | "
+              f"flow {vf:.3f} | landW {lw:.5f} | {time.time()-te:.0f}s", flush=True)
+        if bad >= PATIENCE:
+            print("early stop", ep); break
+    print(f"done in {(time.time()-t0)/60:.1f} min | best_val {best:.5f}\n", flush=True)
+    return ckpt
+
+
+CK = []
+for _s in range(N_SEEDS):
+    _c = f"/content/{TAG}_seed{_s}.pt"
+    if os.path.exists(_c):
+        print(f"seed {_s}: checkpoint already present, reusing", flush=True)
+    else:
+        train_one(_s, _c)
+    CK.append(_c)
+print(f"{TAG} trained: {len(CK)} seeds (USE_LAND={USE_LAND})", flush=True)
+
+full = z["n_leads"].astype(int) == 20
+wpep = np.array([i for i in te_idx if full[i] and basins[i] in ("WP", "EP")])
+wp_only = np.array([i for i in wpep if basins[i] == "WP"])
+SC = TARGET_SCALE
+
+
+@torch.no_grad()
+def track_err(ms, idx):
+    P = []
+    for i in range(0, len(idx), 128):
+        j = idx[i:i + 128]
+        hs = torch.from_numpy(np.concatenate([SLP[HIST_S[j, 0]], SLP[HIST_S[j, 1]]], 1)).to(DEVICE)
+        hv = torch.from_numpy(HAVE[j]).to(DEVICE)
+        bla = z["base_lat"].astype("float64")[j]; blo = z["base_lon"].astype("float64")[j] % 360
+        phi = np.arctan2(vpair[j, 1], vpair[j, 0])
+        lf3, lok = landfeat_of(j, bla, blo, phi, basins[j])
+        spd = np.hypot(vpair[j, 0], vpair[j, 1])
+        latv = track[j, -1, 48] * G["tstd"][48] + G["tmean"][48]
+        lf5 = np.concatenate([lf3 / np.array([1000., 1000., 1000.], "float32"),
+                              (spd / 100.0)[:, None].astype("float32"),
+                              (np.abs(latv) / 30.0)[:, None].astype("float32")], 1)
+        lf = torch.from_numpy(lf5).to(DEVICE); lo = torch.from_numpy(lok).to(DEVICE)
+        a = [torch.from_numpy(track[j]).to(DEVICE), torch.from_numpy(vpair[j]).to(DEVICE),
+             torch.from_numpy(SLP[j]).to(DEVICE), hs, hv, lf, lo]
+        P.append((torch.stack([m(*a)[0] for m in ms]).mean(0) * SC).float().cpu().numpy())
+    C = np.cumsum(np.concatenate(P)[..., :2], 1)
+    T = np.cumsum(target[idx][..., :2], 1)
+    return float(np.sqrt(((C - T) ** 2).sum(-1)).mean())
+
+
+def load_m(c):
+    m = TrackFormerLand().to(DEVICE).eval()
+    m.load_state_dict(torch.load(c, map_location=DEVICE, weights_only=False)["model"]); return m
+
+
+MS = [load_m(c) for c in CK]
+n_land_test = int((basins[wpep] == "WP").sum())
+print(f"\nWP+EP 2020+, {len(wpep)} windows ({len(wp_only)} WP-only, land-covered "
+      f"{100*n_land_test/len(wpep):.0f}%)")
+print("  BASELINE  v23 434.96 km (the bar -- same architecture, land branch off)")
+for i, c in enumerate(CK):
+    print(f"  {TAG} seed{i}  full {track_err([load_m(c)], wpep):.2f} km  "
+          f"WP-only {track_err([load_m(c)], wp_only):.2f} km", flush=True)
+e_full = track_err(MS, wpep)
+e_wp = track_err(MS, wp_only)
+print(f"\n  {TAG} ENSEMBLE ({len(MS)} seeds)  full WP+EP {e_full:.2f} km  |  WP-only {e_wp:.2f} km")
+print(f"  vs v23 434.96 (full): {e_full - 434.96:+.2f} km", flush=True)
+print("  NOTE: seed spread is ~19 km. WP-only isolates the effect where land geometry is actually "
+      "\n  available; EP windows always see the branch at zero.", flush=True)
+json.dump({TAG: {"full": e_full, "wp_only": e_wp}, "use_land": USE_LAND, "a_max": A_MAX,
+           "n_seeds": len(MS)}, open(f"/content/{TAG}.json", "w"))
+try:
+    from google.colab import files
+    import subprocess
+    subprocess.run(f"tar cf /content/{TAG}_seeds.tar /content/{TAG}_seed*.pt", shell=True)
+    if os.path.isdir("/content/drive/MyDrive/typhoon"):
+        import shutil as _sh; _sh.copy(f"/content/{TAG}_seeds.tar", "/content/drive/MyDrive/typhoon")
+        print(f"checkpoints tarred to Drive: /content/drive/MyDrive/typhoon/{TAG}_seeds.tar", flush=True)
+    files.download(f"/content/{TAG}.json"); files.download(f"/content/{TAG}_seeds.tar")
+except Exception as ex:
+    print("download skipped:", ex)
