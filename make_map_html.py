@@ -34,7 +34,7 @@ for _t in _want_pre:
 _want = [t.strip() for t in os.environ.get("MAP_MODELS", "v10,v17,v18,v19").split(",") if t.strip()]
 MODELS = [("v10", V10)] if "v10" in _want else []
 for _t in ("v13", "v14", "v17", "v18", "v19", "v10.1", "v10.2", "v10.3", "v10.3s",
-           "v20", "v21", "v22", "v23", "v24", "v25", "v27", "v28abl", "v28", "v29"):
+           "v20", "v21", "v22", "v23", "v24", "v25", "v27", "v28abl", "v28", "v29", "v31"):
     if _t not in _want:
         continue
     _p = f"{TD}/{_t}_tracks.json"
@@ -85,6 +85,11 @@ COL = {"v10": ("#eda100", "#c98500"), "v13": ("#e87ba4", "#d55181"), "v14": ("#e
        #   python3 validate_palette.py "#eb6834,#2a78d6" light   -> worst dE 48.5 normal
        #   python3 validate_palette.py "#d95926,#3987e5" dark    -> worst dE 48.0 normal
        "v29": ("#2a78d6", "#3987e5"),
+       # v31 reuses v27's slate -- not sharing a map with v27, and already validated against v23
+       # orange (worst dE 40.4 light / 38.1 dark, well clear of the 15 floor).
+       #   python3 validate_palette.py "#eb6834,#3d4852" light   -> worst dE 40.4 protan
+       #   python3 validate_palette.py "#d95926,#9fb0bd" dark    -> worst dE 38.1 protan
+       "v31": ("#3d4852", "#9fb0bd"),
        "rmt": ("#e34948", "#e66767")}   # the consensus line, overridable via MAP_COL
 for _ov in os.environ.get("MAP_COL", "").split(","):
     if ":" in _ov:
@@ -111,7 +116,9 @@ NOTE = {"v10": "no environmental field at all",
         "v28abl": "v23 architecture, retrained -- the matched control",
         "v28": "v23 + N-only meridional drift adapter",
         "v29": "v23 + 0.25-degree ERA5 steering wind (u/v @ 200/550/850 hPa) -- null: "
-               "+3.74 km worse on full WP+EP test, every seed above the v23 bar"}
+               "+3.74 km worse on full WP+EP test, every seed above the v23 bar",
+        "v31": "v23 + land-drag correction (distance/terrain ahead -> along-track push) -- "
+               "null: +8.11 km worse on full WP+EP test, every seed above the v23 bar"}
 
 
 def rings_in(lo0, lo1, la0, la1):
