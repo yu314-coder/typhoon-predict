@@ -241,16 +241,17 @@ with torch.no_grad():
     print(f"init check: era5 off max|v29 - v23| = {_d1:.2e} (v29 starts as exactly v23)")
     print(f"init check: era5 on  max|v29 - v23| = {_d2:.2e} (era5 path is live)", flush=True)
 
-    # gradient reachability: does a loss on the track output actually reach Era5Stem's stem?
-    _q.train()
-    nn.init.normal_(_q.steer_cnn.base.out.weight, std=0.05)
-    _mo, _, _ = _q(_t, _v, _s, _h, _a, _e, _eo)
-    _mo.sum().backward()
-    _g = _q.steer_cnn.base.stem[0].weight.grad
-    assert _g is not None and float(_g.abs().max()) > 0, "era5 stem is not reachable by gradient"
-    nn.init.zeros_(_q.steer_cnn.base.out.weight)
-    _q.zero_grad(); _q.eval()
-    print(f"init check: era5 stem gradient reachable, max|grad| = {float(_g.abs().max()):.2e}")
+# gradient reachability -- MUST run outside no_grad(), or the forward output carries no grad_fn
+# and .backward() fails with "does not require grad" regardless of whether the path is wired up.
+_q.train()
+nn.init.normal_(_q.steer_cnn.base.out.weight, std=0.05)
+_mo, _, _ = _q(_t, _v, _s, _h, _a, _e, _eo)
+_mo.sum().backward()
+_g = _q.steer_cnn.base.stem[0].weight.grad
+assert _g is not None and float(_g.abs().max()) > 0, "era5 stem is not reachable by gradient"
+nn.init.zeros_(_q.steer_cnn.base.out.weight)
+_q.zero_grad(); _q.eval()
+print(f"init check: era5 stem gradient reachable, max|grad| = {float(_g.abs().max()):.2e}")
 del _p, _q
 print(f"\n{TAG} ready. USE_ERA5={USE_ERA5}, ERA5_DROP={ERA5_DROP}, {N_SEEDS} seeds.", flush=True)
 
