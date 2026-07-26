@@ -190,16 +190,51 @@ MS = {"v23": load(V23, sorted(glob.glob("downloads/x/v23_seed*.pt"))),
       "v31": load(TrackFormerLand, sorted(glob.glob("downloads/v31ck/**/v31_seed*.pt", recursive=True)))}
 print(f"v23: {len(MS['v23'])} seeds | v31: {len(MS['v31'])} seeds")
 
-ZERO_SLP = torch.zeros(1, 4, 17, 17)          # steering unavailable -- honest zero, not fabricated
 ZERO_HIST = torch.zeros(1, 8, 17, 17)
 ZERO_HAVE = torch.zeros(1, 2)
+
+# ---- REAL deep-layer-mean steering (850/500/200 hPa u/v, weighted 0.269/0.500/0.231 -- the exact
+# recipe extract_tip_dlm.py uses), fetched from NOAA's GFS analysis via _fetch_noul_steering.py.
+# Channels 0-1 (SLPanom, SLPtend) stay zero -- no real SLP source for this storm. Normalized with
+# the TRAINING scale, not Noul's own statistics (extract_tip_dlm.py's rule: "Rescaling to Tip's own
+# statistics would hand the model an input distribution it never saw").
+_dlm_scale = np.load("track_build/dlm4_int8.npz")["scale"][2:4].astype("float32")
+_dlm_raw = np.load("track_build/noul_dlm4_real.npz")
+_ISSUE_KEYS = ["20260723_06", "20260723_12", "20260723_18", "20260724_00", "20260724_06",
+               "20260724_12", "20260724_18", "20260725_00", "20260725_06", "20260725_12",
+               "20260725_18", "20260726_00"]
+
+
+def real_slp(base):
+    uv = _dlm_raw[_ISSUE_KEYS[base]]   # [2,17,17] raw m/s
+    uv_n = np.clip(uv / _dlm_scale[:, None, None], -4.0, 4.0)
+    slp = np.zeros((1, 4, 17, 17), "float32")
+    slp[0, 2:4] = uv_n
+    return torch.from_numpy(slp)
+
+
+# ---- REAL t-12h/t-24h historical steering, for free: our issues are spaced exactly 6h apart, so
+# "2 steps back" (12h) and "4 steps back" (24h) land exactly on earlier issues we already fetched
+# real DLM data for. Genuinely unavailable only for the two earliest issues (before 07-23T06).
+def real_hist(base):
+    hist = np.zeros((1, 8, 17, 17), "float32")
+    have = np.zeros((1, 2), "float32")
+    for c, back in enumerate((2, 4)):
+        j = base - back
+        if j >= 0:
+            uv = _dlm_raw[_ISSUE_KEYS[j]]
+            uv_n = np.clip(uv / _dlm_scale[:, None, None], -4.0, 4.0)
+            hist[0, c * 4 + 2:c * 4 + 4] = uv_n
+            have[0, c] = 1.0
+    return torch.from_numpy(hist), torch.from_numpy(have)
 
 
 @torch.no_grad()
 def forecast(tag, base):
     seq_n, vpair, n_padded = build_window(base)
     tr = torch.from_numpy(seq_n[None]); vp = torch.from_numpy(vpair[None])
-    args = [tr, vp, ZERO_SLP, ZERO_HIST, ZERO_HAVE]
+    h, hv = real_hist(base)
+    args = [tr, vp, real_slp(base), h, hv]
     if tag == "v31":
         phi = math.atan2(vpair[1], vpair[0])
         lf3 = land_features_np(np.array([lat_a[base]]), np.array([lon_a[base] % 360]), np.array([phi]))
@@ -279,4 +314,4 @@ d10["Noul"] = {"lat": [observed_lat] * len(issue_idx), "lon": [observed_lon] * l
                "n": len(issue_idx)}
 json.dump(d10, open(p10, "w"))
 print(f"added Noul to {p10} (observed reference)")
-print("\ndone -- steering was UNAVAILABLE for this run (no live source), land geometry was REAL")
+print("\ndone -- steering (current + t-12h/t-24h history) was REAL GFS data, land geometry was REAL")
