@@ -212,8 +212,21 @@ def landfeat_of(idx_np, lat_np, lon_np, heading_np, basin_np):
 
 
 # ---- init assertions ----
+# pick probe windows that GUARANTEE at least one real land-covered WP window -- an all-uncovered
+# probe would trivially (and WRONGLY) trip the "opening the land path moved nothing -- DEAD"
+# check, since the availability gate zeroes the contribution regardless of weight magnitude.
+_wp_sample = np.random.default_rng(0).choice(np.where(basins == "WP")[0],
+                                              size=min(4000, (basins == "WP").sum()), replace=False)
+_bla_s = z["base_lat"].astype("float64")[_wp_sample]; _blo_s = z["base_lon"].astype("float64")[_wp_sample] % 360
+_phi_s = np.arctan2(vpair[_wp_sample, 1], vpair[_wp_sample, 0])
+_lf_s, _ = landfeat_of(_wp_sample, _bla_s, _blo_s, _phi_s, basins[_wp_sample])
+_near_s = _wp_sample[_lf_s[:, 1] <= 300.0]
+assert len(_near_s) > 0, "no near-land probe window found in the WP sample"
+_ep_sample = np.where(basins == "EP")[0]
+
 with torch.no_grad():
-    _j = np.array([0, 1, 2, 3])
+    _j = np.array([_near_s[0], _near_s[1] if len(_near_s) > 1 else _near_s[0],
+                    _ep_sample[0], _ep_sample[1]])
     _t = torch.from_numpy(track[_j]).to(DEVICE); _v = torch.from_numpy(vpair[_j]).to(DEVICE)
     _s = torch.from_numpy(SLP[_j]).to(DEVICE)
     _hn = np.concatenate([SLP[HIST_S[_j, 0]], SLP[HIST_S[_j, 1]]], 1)
