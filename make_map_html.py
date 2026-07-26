@@ -290,12 +290,13 @@ for nm, yr in STORMS:
         if src is None or nm not in src:
             continue
         rec = src[nm]
+        _lh = rec.get("lead_h", 120)   # storms with a shorter verified window than 120h say so
         cards.append(
             f'<figure class="panel" data-model="{tag}">'
             f'<figcaption><h3>{tag}<span class="sub">{NOTE[tag]}</span></h3>'
             f'<p><b>{rec["err120_mean"]:.0f} km</b> '
-            + (f'error at 120 h' if rec["n"] == 1
-               else f'mean 120 h error over {rec["n"]} forecasts') + '</p>'
+            + (f'error at {_lh:.0f} h' if rec["n"] == 1
+               else f'mean {_lh:.0f} h error over {rec["n"]} forecasts') + '</p>'
             f'</figcaption>{panel(tag, rec, obs_lat, obs_lon, storm=nm)}</figure>')
     sections.append(f"""
   <section class="storm">
