@@ -205,7 +205,9 @@ class TrackFormerEra5(V23):
 # ---- init assertions: same rigor as v23/v26/v28 -- off reduces EXACTLY to v23, on moves the
 # output, gradient is reachable, state-dict remaps clean, mirror is self-inverse. ----
 with torch.no_grad():
-    _j = np.arange(4)
+    # mix of era5-covered and uncovered probe windows -- an all-uncovered probe would trivially
+    # pass "moves the output" for the wrong reason (the availability gate, not live weights).
+    _j = np.concatenate([ERA5_WIDX[:2], np.array([0, 1])])
     _t = torch.from_numpy(track[_j]).to(DEVICE); _v = torch.from_numpy(vpair[_j]).to(DEVICE)
     _s = torch.from_numpy(SLP[_j]).to(DEVICE)
     _hn = np.concatenate([SLP[HIST_S[_j, 0]], SLP[HIST_S[_j, 1]]], 1)
@@ -226,7 +228,8 @@ with torch.no_grad():
     _miss, _unexp = _q.load_state_dict(_sd, strict=False)
     assert not _unexp, f"unexpected keys loading v23 into v29: {list(_unexp)[:5]}"
     assert all(m.startswith("steer_cnn.base.stem") or m.startswith("steer_cnn.base.out")
-               for m in _miss), f"v23 weights failed to transfer into v29: {list(_miss)[:5]}"
+               or m == "steer_cnn.base.era5_scale" for m in _miss), \
+        f"v23 weights failed to transfer into v29: {list(_miss)[:5]}"
     assert float(_q.steer_cnn.base.out.weight.abs().max()) == 0.0, "era5 path is not zero-init"
 
     _d1 = float((_p(_t, _v, _s, _h, _a)[0] - _q(_t, _v, _s, _h, _a, _e, _eo)[0]).abs().max())
