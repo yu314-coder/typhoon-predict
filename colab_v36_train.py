@@ -83,6 +83,11 @@ EPOCHS, PATIENCE, BATCH = G["EPOCHS"], G["PATIENCE"], G["BATCH"]
 LR, WEIGHT_DECAY, MIRROR_P = G["LR"], G["WEIGHT_DECAY"], G["MIRROR_P"]
 TM = torch.tensor(G["tmean"]); TS = torch.tensor(G["tstd"])
 
+# materialize base_lat/base_lon as REAL arrays, not lazy z["..."] access: z is an NpzFile with a
+# live zip handle, and DS.__getitem__ runs inside forked DataLoader worker processes -- concurrent
+# lazy reads on the SAME (forked, shared fd) zip handle from multiple workers corrupts each other's
+# reads ("zipfile.BadZipFile: Overlapped entries ... possible zip bomb"), hit on the first real run.
+BLA = z["base_lat"].astype("float64"); BLO = z["base_lon"].astype("float64") % 360
 sid = z["storm_id"].astype(str); bt = z["base_time"].astype("int64")
 SIX = int(6 * 3600 * 1e9)
 _key = {}
@@ -217,7 +222,7 @@ def landfeat_of(idx_np, lat_np, lon_np, heading_np, basin_np):
 # check, since the availability gate zeroes the contribution regardless of weight magnitude.
 _wp_sample = np.random.default_rng(0).choice(np.where(basins == "WP")[0],
                                               size=min(4000, (basins == "WP").sum()), replace=False)
-_bla_s = z["base_lat"].astype("float64")[_wp_sample]; _blo_s = z["base_lon"].astype("float64")[_wp_sample] % 360
+_bla_s = BLA[_wp_sample]; _blo_s = BLO[_wp_sample]
 _phi_s = np.arctan2(vpair[_wp_sample, 1], vpair[_wp_sample, 0])
 _lf_s, _ = landfeat_of(_wp_sample, _bla_s, _blo_s, _phi_s, basins[_wp_sample])
 _near_s = _wp_sample[_lf_s[:, 1] <= 300.0]
@@ -231,7 +236,7 @@ with torch.no_grad():
     _s = torch.from_numpy(SLP[_j]).to(DEVICE)
     _hn = np.concatenate([SLP[HIST_S[_j, 0]], SLP[HIST_S[_j, 1]]], 1)
     _h = torch.from_numpy(_hn).to(DEVICE); _a = torch.from_numpy(HAVE[_j]).to(DEVICE)
-    _bla = z["base_lat"].astype("float64")[_j]; _blo = z["base_lon"].astype("float64")[_j] % 360
+    _bla = BLA[_j]; _blo = BLO[_j]
     _phi = np.arctan2(vpair[_j, 1], vpair[_j, 0])
     _lf3, _lok = landfeat_of(_j, _bla, _blo, _phi, basins[_j])
     _spd = np.hypot(vpair[_j, 0], vpair[_j, 1])
@@ -295,7 +300,7 @@ class DS(torch.utils.data.Dataset):
             hs = torch.flip(hs, dims=[1]).clone(); hs[3] = -hs[3]; hs[7] = -hs[7]
         # land features from the (possibly mirrored) vp -- see module docstring on why this is
         # the physically self-consistent choice, not a bug.
-        bla = float(z["base_lat"][j]); blo = float(z["base_lon"][j]) % 360
+        bla = float(BLA[j]); blo = float(BLO[j])
         phi = math.atan2(float(vp[1]), float(vp[0]))
         lf3, lok = landfeat_of(np.array([j]), np.array([bla]), np.array([blo]), np.array([phi]),
                                 np.array([basins[j]]))
@@ -393,7 +398,7 @@ def track_err(ms, idx):
         j = idx[i:i + 128]
         hs = torch.from_numpy(np.concatenate([SLP[HIST_S[j, 0]], SLP[HIST_S[j, 1]]], 1)).to(DEVICE)
         hv = torch.from_numpy(HAVE[j]).to(DEVICE)
-        bla = z["base_lat"].astype("float64")[j]; blo = z["base_lon"].astype("float64")[j] % 360
+        bla = BLA[j]; blo = BLO[j]
         phi = np.arctan2(vpair[j, 1], vpair[j, 0])
         lf3, lok = landfeat_of(j, bla, blo, phi, basins[j])
         spd = np.hypot(vpair[j, 0], vpair[j, 1])
