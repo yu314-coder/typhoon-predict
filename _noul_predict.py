@@ -24,7 +24,10 @@ WHAT IS HONESTLY MISSING, NOT FABRICATED (unavailable == exact zero + flagged, p
 
 Sources: Wunderground (wunderground.com/hurricane/western-pacific/2026/typhoon-noul),
 Zoom Earth (zoom.earth/storms/noul-2026), PredictWind (predictwind.com/weather/severe-storms/
-typhoon-noul), Weathernews (wxtech.weathernews.com/en/news/20260724-01).
+typhoon-noul), Weathernews (wxtech.weathernews.com/en/news/20260724-01). Post-landfall extension
+(Jul 26 06h/12h, verification-only) from HKO (hko.gov.hk/textonly/v2/tc/tcp.htm), cross-checked
+against Zoom Earth for wind/pressure -- see inline comment at the RAW list for the sourcing detail
+and why HKO was preferred over a second candidate (taifengshuo.com) that diverged badly pre-landfall.
 """
 import json, re, math, os, sys, glob, numpy as np, torch, torch.nn as nn, torch.nn.functional as F
 
@@ -47,6 +50,19 @@ RAW = [
     ("2026-07-25T12:00", 21.8, 115.9, 90, 970),
     ("2026-07-25T18:00", 22.4, 115.1, 100, 967),
     ("2026-07-26T00:00", 22.9, 114.5, 85, None),
+    # ---- post-landfall extension, verification-only (never issued as a forecast: no fetched
+    # steering for these times, and by now the system is a dissipating inland remnant). Position
+    # from HKO's textonly track (hko.gov.hk/textonly/v2/tc/tcp.htm, HKT converted to UTC), chosen
+    # over a second candidate source (taifengshuo.com) because HKO's pre-landfall points matched
+    # this list's already-cross-validated Wunderground/Zoom Earth positions to within ~0.1-0.4 deg
+    # throughout, while the alternate source diverged by 2+ deg during the early depression phase.
+    # Wind at 06:00 is Zoom Earth's real reading at that exact hour (110 km/h, 985 hPa, both exact
+    # matches to HKO's independent classification); wind at 12:00 has no exact-hour reading in any
+    # source, so it's linearly interpolated between Zoom Earth's real 06:00 and 18:00 values
+    # (110 -> 75 km/h) -- bounded by two real observations, not invented from nothing. Pressure at
+    # 12:00 is left unavailable since the 18:00 bracket lacks a reported pressure to interpolate.
+    ("2026-07-26T06:00", 23.5, 114.1, 68, 985),
+    ("2026-07-26T12:00", 24.4, 113.7, 57, None),
 ]
 N = len(RAW)
 tns = np.array([np.datetime64(r[0]).astype("datetime64[ns]").astype("int64") for r in RAW])
@@ -215,8 +231,13 @@ def real_slp(base):
 
 # ---- REAL t-12h/t-24h historical steering, for free: our issues are spaced exactly 6h apart, so
 # "2 steps back" (12h) and "4 steps back" (24h) land exactly on earlier issues we already fetched
-# real DLM data for. Genuinely unavailable only for the two earliest issues (before 07-23T06).
+# real DLM data for. Genuinely unavailable only for the two earliest issues (before 07-23T06) --
+# matching _v31tracks.py's verified (Colab-reproducing) convention for that case: fall back to the
+# CURRENT window's own steering with have=0, not zero. HistStem was trained on that exact fallback
+# pattern (self-repeat + an explicit have-channel telling it so), never on an all-zero history
+# plane, so zero-filling would hand it an input distribution it never saw.
 def real_hist(base):
+    cur = real_slp(base).numpy()[0]   # [4,17,17], this window's own real steering
     hist = np.zeros((1, 8, 17, 17), "float32")
     have = np.zeros((1, 2), "float32")
     for c, back in enumerate((2, 4)):
@@ -226,6 +247,8 @@ def real_hist(base):
             uv_n = np.clip(uv / _dlm_scale[:, None, None], -4.0, 4.0)
             hist[0, c * 4 + 2:c * 4 + 4] = uv_n
             have[0, c] = 1.0
+        else:
+            hist[0, c * 4:(c + 1) * 4] = cur
     return torch.from_numpy(hist), torch.from_numpy(have)
 
 
@@ -252,10 +275,11 @@ def forecast(tag, base):
     return lats[1:], lons[1:], n_padded
 
 
-# ---- issue times: ALL 12 raw points. Early ones (base < HIST-1) use padded pre-genesis history
-# (see build_window docstring); this is flagged per-issue below, not hidden. The very last point
-# (Jul 26 00h) has no forward step to verify against -- shown anyway, as a live forecast would be.
-issue_idx = list(range(N))
+# ---- issue times: the 12 real named-storm points only (not the 2 post-landfall extension points
+# appended above -- those have no fetched steering and are verification-only ground truth). Early
+# issues (base < HIST-1) use padded pre-genesis history (see build_window docstring), flagged
+# per-issue below, not hidden.
+issue_idx = list(range(12))
 print(f"{len(issue_idx)} issue times: {[RAW[i][0] for i in issue_idx]}")
 
 out = {tag: {"lat": [], "lon": [], "base_time": [], "base_lat": [], "base_lon": [], "n": 0}
@@ -290,6 +314,36 @@ for tag in ("v23", "v31"):
     out[tag]["n"] = len(issue_idx)
     print(f"  {tag}: mean {VERIFY_LEAD_H}h error {out[tag]['err120_mean']:.0f} km "
           f"(over {len(verifiable)}/{len(issue_idx)} issues with a forward point to check)")
+
+# ---- landfall-window check: does v31's land-drag correction actually help here? The 2
+# post-landfall extension points (idx 12-13, Jul 26 06h/12h) push several issues' longer leads
+# (18-78h) into range against REAL post-landfall truth for the first time. Every (issue, lead)
+# pair whose target lands on our uniform 6h grid gets compared; split into "near/at landfall"
+# (target idx 9-13, i.e. truth from Jul 25 12h onward -- within ~500km of the coast through well
+# inland) vs "open ocean" (target idx <= 8) to isolate where land interaction actually matters,
+# rather than mixing it into one aggregate the way the full WP+EP test set did.
+print("\nlandfall-window check (v31 vs v23, split by how close the VERIFIED target is to land):")
+bucket_errs = {"open_ocean": {"v23": [], "v31": []}, "near_landfall": {"v23": [], "v31": []}}
+for i in issue_idx:
+    row = issue_idx.index(i)
+    for l in range(20):
+        tgt = i + l + 1
+        if tgt >= N:
+            break
+        lead_h = 6 * (l + 1)
+        bucket = "near_landfall" if tgt >= 9 else "open_ocean"
+        for tag in ("v23", "v31"):
+            la1, lo1 = out[tag]["lat"][row][l], out[tag]["lon"][row][l]
+            e, n = mkm(la1, lo1, lat_a[tgt], lon_a[tgt])
+            bucket_errs[bucket][tag].append(math.hypot(e, n))
+for bucket in ("open_ocean", "near_landfall"):
+    n23, n31 = len(bucket_errs[bucket]["v23"]), len(bucket_errs[bucket]["v31"])
+    if n23:
+        m23 = float(np.mean(bucket_errs[bucket]["v23"])); m31 = float(np.mean(bucket_errs[bucket]["v31"]))
+        print(f"  {bucket:13s} (n={n23:3d}): v23 {m23:6.1f} km | v31 {m31:6.1f} km | "
+              f"v31 {'better' if m31 < m23 else 'worse'} by {abs(m31 - m23):5.1f} km")
+out["v23"]["landfall_check"] = {b: float(np.mean(bucket_errs[b]["v23"])) if bucket_errs[b]["v23"] else None for b in bucket_errs}
+out["v31"]["landfall_check"] = {b: float(np.mean(bucket_errs[b]["v31"])) if bucket_errs[b]["v31"] else None for b in bucket_errs}
 
 # ---- observed continuation, for the map's dotted "what actually happened" line ----
 observed_lat = [round(float(x), 3) for x in lat_a]
