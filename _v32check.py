@@ -232,16 +232,23 @@ BLA = z["base_lat"].astype("float64"); BLO = z["base_lon"].astype("float64") % 3
 tr_idx = G["tr_idx"]
 
 
-def land_weight(idx):
-    bla = BLA[idx]; blo = BLO[idx]
-    phi = np.arctan2(vpair[idx, 1], vpair[idx, 0])
-    lf3, lok = landfeat_of(bla, blo, phi, basins[idx])
-    dist_ahead, terr_ahead = lf3[:, 1], lf3[:, 2]
-    near = lok.astype(bool) & (dist_ahead <= 500.0)
-    mountain = near & (terr_ahead >= MOUNTAIN_M)
-    w = np.ones(len(idx), "float64")
-    w[near] = NEAR_W
-    w[mountain] = MOUNTAIN_W
+def land_weight(idx, chunk=4000):
+    """Chunked -- land_features_np broadcasts every row against all 12,660 land cells at once;
+    the full ~153k-row training set in one shot allocates tens of GB of intermediates and OOM'd
+    Colab's High-RAM runtime (this local run survived, slowly, only because this machine has
+    enough RAM/swap to absorb it -- not something to rely on)."""
+    n = len(idx)
+    w = np.ones(n, "float64"); near = np.zeros(n, bool); mountain = np.zeros(n, bool)
+    for i in range(0, n, chunk):
+        j = idx[i:i + chunk]
+        bla = BLA[j]; blo = BLO[j]
+        phi = np.arctan2(vpair[j, 1], vpair[j, 0])
+        lf3, lok = landfeat_of(bla, blo, phi, basins[j])
+        dist_ahead, terr_ahead = lf3[:, 1], lf3[:, 2]
+        near_i = lok.astype(bool) & (dist_ahead <= 500.0)
+        mountain_i = near_i & (terr_ahead >= MOUNTAIN_M)
+        wi = np.ones(len(j), "float64"); wi[near_i] = NEAR_W; wi[mountain_i] = MOUNTAIN_W
+        w[i:i + chunk] = wi; near[i:i + chunk] = near_i; mountain[i:i + chunk] = mountain_i
     return w, near, mountain
 
 

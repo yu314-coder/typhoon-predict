@@ -247,21 +247,31 @@ def landfeat_of(idx_np, lat_np, lon_np, heading_np, basin_np):
     return out, wp.astype("float32")
 
 
-def land_weight(idx):
+def land_weight(idx, chunk=4000):
     """Per-window train sample weight: NEAR_W for near-land (dist_ahead<=500km), MOUNTAIN_W for
     near-land AND mountainous (terrain_ahead>=MOUNTAIN_M) -- see module docstring. This is the
     actual fix: v31's LandDrag already had these exact features, but a uniform-random train
     sampler meant mountainous-near-land windows (~1-2% of all training data, per
-    _landtest_cross.py) barely contributed gradient. computed ONCE over tr_idx, not per-seed."""
-    bla = BLA[idx]; blo = BLO[idx]
-    phi = np.arctan2(vpair[idx, 1], vpair[idx, 0])
-    lf3, lok = landfeat_of(idx, bla, blo, phi, basins[idx])
-    dist_ahead, terr_ahead = lf3[:, 1], lf3[:, 2]
-    near = lok.astype(bool) & (dist_ahead <= 500.0)
-    mountain = near & (terr_ahead >= MOUNTAIN_M)
-    w = np.ones(len(idx), "float64")
-    w[near] = NEAR_W
-    w[mountain] = MOUNTAIN_W
+    _landtest_cross.py) barely contributed gradient. computed ONCE over tr_idx, not per-seed.
+
+    Chunked: land_features_np broadcasts every row against all 12,660 land cells at once, so
+    calling it on the full ~153k-row training set in one shot allocates 153k x 12,660 float64
+    intermediates (dlat/dlon/dist/bearing/...) -- tens of GB, enough to OOM even a Colab
+    High-RAM runtime. 4000 rows at a time keeps peak memory in the tens-of-MB range instead."""
+    n = len(idx)
+    w = np.ones(n, "float64")
+    for i in range(0, n, chunk):
+        j = idx[i:i + chunk]
+        bla = BLA[j]; blo = BLO[j]
+        phi = np.arctan2(vpair[j, 1], vpair[j, 0])
+        lf3, lok = landfeat_of(j, bla, blo, phi, basins[j])
+        dist_ahead, terr_ahead = lf3[:, 1], lf3[:, 2]
+        near = lok.astype(bool) & (dist_ahead <= 500.0)
+        mountain = near & (terr_ahead >= MOUNTAIN_M)
+        wi = np.ones(len(j), "float64")
+        wi[near] = NEAR_W
+        wi[mountain] = MOUNTAIN_W
+        w[i:i + chunk] = wi
     return w
 
 
