@@ -34,7 +34,7 @@ for _t in _want_pre:
 _want = [t.strip() for t in os.environ.get("MAP_MODELS", "v10,v17,v18,v19").split(",") if t.strip()]
 MODELS = [("v10", V10)] if "v10" in _want else []
 for _t in ("v13", "v14", "v17", "v18", "v19", "v10.1", "v10.2", "v10.3", "v10.3s",
-           "v20", "v21", "v22", "v23", "v24", "v25", "v27", "v28abl", "v28", "v29", "v31"):
+           "v20", "v21", "v22", "v23", "v24", "v25", "v27", "v28abl", "v28", "v29", "v31", "v33"):
     if _t not in _want:
         continue
     _p = f"{TD}/{_t}_tracks.json"
@@ -90,6 +90,11 @@ COL = {"v10": ("#eda100", "#c98500"), "v13": ("#e87ba4", "#d55181"), "v14": ("#e
        #   python3 validate_palette.py "#eb6834,#3d4852" light   -> worst dE 40.4 protan
        #   python3 validate_palette.py "#d95926,#9fb0bd" dark    -> worst dE 38.1 protan
        "v31": ("#3d4852", "#9fb0bd"),
+       # v33 (green) -- validated against v23 orange (worst dE 19.0 protan light / 19.4 deutan
+       # dark, clear of the 15 floor). Distinct from v31's slate since both may share a map.
+       #   python3 validate_palette.py "#eb6834,#0d6b42" light  -> worst dE 19.0 protan
+       #   python3 validate_palette.py "#d95926,#5bbf8a" dark   -> worst dE 19.4 deutan
+       "v33": ("#0d6b42", "#5bbf8a"),
        "rmt": ("#e34948", "#e66767")}   # the consensus line, overridable via MAP_COL
 for _ov in os.environ.get("MAP_COL", "").split(","):
     if ":" in _ov:
@@ -118,7 +123,10 @@ NOTE = {"v10": "no environmental field at all",
         "v29": "v23 + 0.25-degree ERA5 steering wind (u/v @ 200/550/850 hPa) -- null: "
                "+3.74 km worse on full WP+EP test, every seed above the v23 bar",
         "v31": "v23 + land-drag correction (distance/terrain ahead -> along-track push) -- "
-               "null: +8.11 km worse on full WP+EP test, every seed above the v23 bar"}
+               "null: +8.11 km worse on full WP+EP test, every seed above the v23 bar",
+        "v33": "v31's land-drag, storm-normalized oversampled training -- +7.37 km worse on full "
+               "WP+EP test (closest of any land-drag attempt), but beats v23 on both real "
+               "out-of-training storms tested (Tip 1979, Noul 2026)"}
 
 
 def rings_in(lo0, lo1, la0, la1):
