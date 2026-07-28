@@ -34,7 +34,7 @@ for _t in _want_pre:
 _want = [t.strip() for t in os.environ.get("MAP_MODELS", "v10,v17,v18,v19").split(",") if t.strip()]
 MODELS = [("v10", V10)] if "v10" in _want else []
 for _t in ("v13", "v14", "v17", "v18", "v19", "v10.1", "v10.2", "v10.3", "v10.3s",
-           "v20", "v21", "v22", "v23", "v24", "v25", "v27", "v28abl", "v28", "v29", "v31", "v33"):
+           "v20", "v21", "v22", "v23", "v24", "v25", "v27", "v28abl", "v28", "v29", "v31", "v33", "v34"):
     if _t not in _want:
         continue
     _p = f"{TD}/{_t}_tracks.json"
@@ -95,6 +95,11 @@ COL = {"v10": ("#eda100", "#c98500"), "v13": ("#e87ba4", "#d55181"), "v14": ("#e
        #   python3 validate_palette.py "#eb6834,#0d6b42" light  -> worst dE 19.0 protan
        #   python3 validate_palette.py "#d95926,#5bbf8a" dark   -> worst dE 19.4 deutan
        "v33": ("#0d6b42", "#5bbf8a"),
+       # v34 (magenta-purple) -- validated against v23 orange + v33 green together (the trio this
+       # map draws): worst dE 19.0 protan light / 18.4 tritan dark, both clear of the 15 floor.
+       #   python3 validate_palette.py "#eb6834,#0d6b42,#8b2fb0" light
+       #   python3 validate_palette.py "#d95926,#5bbf8a,#c07de0" dark
+       "v34": ("#8b2fb0", "#c07de0"),
        "rmt": ("#e34948", "#e66767")}   # the consensus line, overridable via MAP_COL
 for _ov in os.environ.get("MAP_COL", "").split(","):
     if ":" in _ov:
@@ -126,7 +131,12 @@ NOTE = {"v10": "no environmental field at all",
                "null: +8.11 km worse on full WP+EP test, every seed above the v23 bar",
         "v33": "v31's land-drag, storm-normalized oversampled training -- +7.37 km worse on full "
                "WP+EP test (closest of any land-drag attempt), but beats v23 on both real "
-               "out-of-training storms tested (Tip 1979, Noul 2026)"}
+               "out-of-training storms tested (Tip 1979, Noul 2026)",
+        "v34": "MoE-style gate on a FROZEN, already-trained v23_seed0 backbone (only the gate/"
+               "expert train) -- isolates the land effect from retrain noise for the first time: "
+               "-0.33 km vs its own v23_seed0 backbone, essentially null in every bucket including "
+               "mountainous-near-land. Mixed on the two real storms: beats v23 and v33 on Tip 1979 "
+               "(795 km), worse than both on Noul 2026"}
 
 
 def rings_in(lo0, lo1, la0, la1):
