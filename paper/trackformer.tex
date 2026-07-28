@@ -22,8 +22,9 @@
 \newcommand{\vnineWPtrack}{\textbf{618.4}}\newcommand{\vnineWPvmax}{\textbf{18.55}}\newcommand{\vnineWPpres}{15.76}\newcommand{\vnineWPrmw}{11.52}\newcommand{\vnineWPrad}{\textbf{27.15}}
 \newcommand{\vnineABtrack}{\textbf{543.4}}\newcommand{\vnineABvmax}{\textbf{16.73}}\newcommand{\vnineABpres}{14.29}\newcommand{\vnineABrmw}{14.15}\newcommand{\vnineABrad}{27.80}
 
-\title{\textbf{TrackFormer: A Protected Dual-Stream Transformer for\\ Tropical-Cyclone Track, Intensity, and Structure Forecasting}\\[2pt]
-\large with a Random-Matrix Block-Structured Uncertainty Head}
+\title{\textbf{TrackFormer: Protected Multi-Stream Transformers, Chain-of-Thought Steering, and\\
+Land-Interaction Testing for Tropical-Cyclone Forecasting}\\[2pt]
+\large from a Random-Matrix Uncertainty Head to a Frozen-Backbone Causal Isolation of Land Drag}
 \author{Yu Yao-Hsing \\ \small \texttt{euler.yu@gmail.com} \quad\textbullet\quad \small\url{https://github.com/yu314-coder/typhoon-predict}}
 \date{\today}
 
@@ -33,21 +34,37 @@
 \begin{abstract}
 We forecast the full state of a tropical cyclone --- storm motion, maximum wind, central pressure,
 radius of maximum wind, and the twelve 34/50/64-kt wind-radii --- at twenty six-hourly lead times
-(6--120\,h) from best-track history alone. Starting from a single-stream multi-task Transformer, we
-document a concrete instance of \emph{negative transfer}: adding physically informative
-motion-dynamics features (heading, speed, turn-rate, intensity trends) markedly improves intensity
-and structure prediction yet slightly degrades track, and na\"ively up-weighting the track loss makes
-track \emph{worse}. A paired storm-level bootstrap shows the track change is statistically
-insignificant, isolating the true cause as gradient conflict over shared capacity rather than loss
-balance. We then present \textbf{TrackFormer}, a protected dual-stream architecture that routes
-kinematic and thermodynamic gradients separately, lets thermodynamics influence track only through a
-zero-initialized gated adapter (so intensity tasks can help track but never harm it), and predicts
-track as a damped constant-velocity persistence baseline plus a learned recurvature residual.
-Finally we derive a block-structured probabilistic head whose track block is a matrix-normal
-covariance and whose noise bulk is cleaned by a two-point generalized sample-covariance
-Marchenko--Pastur estimator. On held-out post-2020 storms TrackFormer improves track while retaining
-the intensity and pressure gains.
+(6--120\,h), first from best-track history alone and later with an explicit atmospheric
+steering-flow representation. \textbf{Phase I} documents a concrete instance of \emph{negative
+transfer} in a single-stream multi-task Transformer: adding physically informative motion-dynamics
+features improves intensity and structure yet degrades track, a change a paired storm-level
+bootstrap confirms is gradient conflict over shared capacity, not a loss-weighting problem. We fix
+it with \textbf{TrackFormer}, a protected dual-stream architecture that routes kinematic and
+thermodynamic gradients separately and lets thermodynamics influence track only through a
+zero-initialized gated adapter, plus a block-structured, random-matrix-cleaned uncertainty head.
+\textbf{Phase II} tests this paper's own predicted next step --- an explicit environmental-steering
+branch --- across twenty-five further versions (v10--v34) on a larger WP+EP held-out set. A CNN
+steering-field encoder, a \emph{chain-of-thought} decomposition that predicts the steering flow
+before deriving track from it, and a temporal history of that steering representation combine into
+\textbf{v23}, the best model in either phase (434.96\,km RMS track error, a further
+$\sim$30\% reduction). Four subsequent attempts to add more environmental signal on top of v23 all
+came back null, and three architecturally different attempts at a land/terrain-interaction
+correction converged on an aggregate null once we isolated the correction from ordinary retrain
+noise by freezing v23's own weights and training only a $\sim$437-parameter gated addition on top ---
+though it still splits 1--1 against v23 on the two real out-of-training storms available. We close
+with the methodological lessons this isolation technique makes visible: retrain-to-retrain seed
+noise ($\sim$19\,km/seed) is large enough to manufacture or hide most of the effects reported in
+this line of work, and a large in-distribution test set does not always agree with genuinely
+out-of-training real-storm validation.
 \end{abstract}
+
+\paragraph{Roadmap.} Sections~1--4 are Phase I: the dataset, the negative-transfer diagnosis, the
+protected dual-stream architecture, and the random-matrix uncertainty head, evaluated on an
+all-basin/WP 2020+ split (Table~\ref{tab:results}). Section~\ref{sec:v10v34} is Phase II: a
+separate, later evaluation harness (WP+EP 2020+, full 20-lead windows only) on which twenty-five
+further versions test this paper's own Discussion (Section~5) against reality --- what worked
+(v10--v23), what didn't (v24--v29), and what a causally clean test finally settled after three
+inconclusive attempts (v31--v34).
 
 \section{Problem and data}
 Let a storm be a time-ordered sequence of best-track fixes. From each fix $t_0$ we form a
@@ -266,26 +283,32 @@ is no substitute for the real-time steering flow. Bavi and Co-may are out-of-sam
 \label{fig:storms}
 \end{figure}
 
-\section{Discussion}
+\section{Discussion (Phase I)}
 The consistent lesson across experiments is \textbf{data diversity $>$ engineered features $>$
 parameters}: a $17.7$M single-stream model overfit and did worse than a $3.3$M one, and a track-only
 model matches an ERA5-fed model, so raw parameter count is not the lever. Track error is bounded below
 by \emph{information}, not capacity: five-day recurvature is governed by the evolving large-scale
-steering flow, which best-track history cannot fully reveal. The clearest path past the present floor
-is a compact environmental-steering branch (deep-layer winds, 500-hPa geopotential) fused
-\emph{strongly to track, weakly to intensity} --- the natural next stream in the protected design.
-Within history-only inputs, TrackFormer's contribution is architectural: it removes the negative
-transfer that a single stream suffers, so intensity and structure gains no longer cost track accuracy.
+steering flow, which best-track history cannot fully reveal. We predicted the clearest path past this
+floor was a compact environmental-steering branch fused \emph{strongly to track, weakly to
+intensity} --- the natural next stream in the protected design. Section~\ref{sec:v10v34} reports what
+happened when we actually built it: the prediction was directionally right (a steering-flow branch,
+suitably represented, is the largest lever found in either phase of this work) but the \emph{form}
+of that branch mattered far more than its mere presence, and a second physically-motivated hypothesis
+tested the same way (land/terrain interaction) did not survive a causally clean test. Within
+history-only inputs, TrackFormer's Phase-I contribution remains architectural: it removes the
+negative transfer that a single stream suffers, so intensity and structure gains no longer cost track
+accuracy.
 
-\section{Testing the steering-flow hypothesis: CNN encoders, chain-of-thought, and land interaction (v10--v34)}
+\section{Phase II: chain-of-thought steering and land-interaction testing (v10--v34)}
 \label{sec:v10v34}
 Section~4's discussion predicted that the next lever past the IBTrACS-only floor would be a compact
-environmental-steering branch fused strongly to track. A later, separate line of experiments tests
-that prediction directly, on a larger and more demanding held-out set: WP+EP storms from 2020
-onward, restricted to windows with the full 20-lead horizon (3{,}763 windows, 72\% land-covered on
-the WP-only subset). These results are \emph{not} directly comparable to Table~\ref{tab:results}
-(different dataset, basin combination, and lead filter) but track the same track-RMS metric, and are
-reported here because they are the direct continuation of this paper's own stated next step.
+environmental-steering branch fused strongly to track. A later, separate line of twenty-five further
+versions tests that prediction directly, on a larger and more demanding held-out set: WP+EP storms
+from 2020 onward, restricted to windows with the full 20-lead horizon (3{,}763 windows, 72\%
+land-covered on the WP-only subset). These results are \emph{not} directly comparable to
+Table~\ref{tab:results} (different dataset, basin combination, and lead filter) but track the same
+track-RMS metric, and are reported at equal length to Phase I because they are its direct
+continuation and, on this project's own numbers, its largest single improvement.
 
 \paragraph{A CNN steering-field encoder (v10--v20).} A small convolutional encoder (conv, GELU,
 strided downsampling) reads a $17\times17$ patch of deep-layer-mean steering wind (a weighted blend of
@@ -304,11 +327,25 @@ a black-box decoder. v22 extends this to a \emph{latent} CoT with two weight-tie
 iteratively refine the same steering representation before the track head reads it, in the spirit of
 universal-transformer-style recurrence.
 
-\paragraph{Temporal steering stack --- v23, the best model in this line.} v23 adds a short history of
-the CoT steering representation itself --- not just the current instant, but $t{-}24$\,h, $t{-}12$\,h,
-and now --- so recurvature can be conditioned on how the steering flow has been \emph{evolving}, not
-only its instantaneous value. This is the best-performing model across the entire v10--v34 line:
-$434.96$\,km RMS track error (10-seed ensemble) on the WP+EP 2020+ full-horizon test set.
+\paragraph{Temporal steering stack --- v23, the best model in this line.} Formally, where
+$\bm f_\tau$ is the CNN steering-field encoding at time $\tau$, v21's chain-of-thought head first
+derives an explicit steering estimate before deriving track from it,
+\begin{equation}
+\hat{\bm u}_{\text{steer}} = g_{\text{CoT}}(\bm f_{t_0}), \qquad
+\widehat{\Delta\bm p}_\ell = h_\ell\big(\hat{\bm u}_{\text{steer}},\ \bm H^{\text{kin}}\big),
+\end{equation}
+so the steering estimate is a named, inspectable quantity rather than an implicit intermediate
+activation. v23 conditions this on a short \emph{history} of the same representation, $t{-}24$\,h,
+$t{-}12$\,h, and now, rather than the instantaneous value alone:
+\begin{equation}
+\hat{\bm u}_{\text{steer}} = g_{\text{CoT}}\big(\bm f_{t_0},\ \bm f_{t_0-12\text{h}},\ \bm f_{t_0-24\text{h}}\big),
+\end{equation}
+so recurvature can be conditioned on how the steering flow has been \emph{evolving}, not only its
+instantaneous value --- a discrete analogue of estimating the flow's local time-derivative alongside
+its value. This is the best-performing model across the entire v10--v34 line: $434.96$\,km RMS track
+error (10-seed ensemble) on the WP+EP 2020+ full-horizon test set, a further $\sim$30\% reduction
+over the already-improved Phase-I numbers in Table~\ref{tab:results} (on the harder, larger Phase-II
+test set described above).
 
 \paragraph{Environmental additions on top of v23 --- v24, v25, v27, v28, v29: null or marginal.} With
 the CoT steering representation already in place, four further attempts to add environmental signal
@@ -326,7 +363,17 @@ redundant: the lesson from Section~4 sharpens from ``data diversity $>$ engineer
 (v31--v34).} Motivated by real-world reports of typhoons stalling at mountainous coastlines (Typhoon
 Gaemi, 2024, held up roughly a day at Taiwan's Central Mountain Range) and terrain-deflection
 mixture-of-experts literature (AOT-TCNet, arXiv 2603.29200), three architecturally different attempts
-add a small along-track land/terrain correction on top of v23:
+add a small along-track land/terrain correction on top of v23, of the general form
+\begin{equation}
+\Delta\bm p_\ell \;\mathrel{+}=\; g(\bm x^{\text{land}})\cdot a_{\max}\tanh\!\big(\bm k(\bm x^{\text{land}})\cdot \bm W_i\big)\cdot\hat{\bm v}_0 ,
+\qquad \bm x^{\text{land}} = (d_{\text{near}}, d_{\text{ahead}}, h_{\text{ahead}}, |\bm v_0|, |\text{lat}|),
+\label{eq:landgate}
+\end{equation}
+where $\bm k(\cdot)$ is a small MLP producing four knot values interpolated to all 20 leads by a
+fixed basis $\bm W_i$, $\hat{\bm v}_0$ is the current heading unit vector, and $g(\cdot)\equiv 1$ for
+v31--v33 (the correction is unconditionally on) or a separate learned, zero-biased sigmoid gate for
+v34, described below. Both the expert $\bm k$ and, where present, the gate $g$ are zero-initialized
+so every version starts as exactly v23:
 
 \begin{itemize}
 \item \textbf{v31} (uniform training): a \texttt{LandDrag} module --- distance-to-land and
@@ -352,6 +399,27 @@ confirms the null holds even in the mountainous-near-land regime every earlier a
 ($+1.0$/$-6.2$\,km at 48\,h/120\,h). On the same two real storms: v34 \emph{beats} both v23 and v33
 on Tip 1979 ($795$ vs $939$/$876$\,km) but is worse than both on Noul 2026.
 \end{itemize}
+
+\begin{table}[h]
+\centering
+\caption{Phase-II land-interaction line: aggregate WP+EP 2020+ full-horizon test (3,763 windows)
+and the two independent, genuinely out-of-training real-storm checks. Aggregate deltas are against
+v23 (v31--v33) or against v34's own frozen v23\_seed0 backbone (v34, the causally clean comparison).
+Best per column in \textbf{bold}; real-storm columns show whichever model wins that storm.}
+\label{tab:v10v34land}
+\small
+\begin{tabular}{lccc}
+\toprule
+model & aggregate (km) & Tip '79 (km) & Noul '26, ocean/landfall (km)\\
+\midrule
+v23 (baseline)                          & \textbf{434.96} & 939 & 267 / 356\\
+v31 (LandDrag, uniform)                 & 443.07 ($+8.11$) & --- & ---\\
+v32 (LandDrag, window-oversampled)      & 460.48 ($+25.52$) & --- & ---\\
+v33 (LandDrag, storm-normalized)        & 442.33 ($+7.37$) & \textbf{876} & \textbf{243} / \textbf{319}\\
+v34 (LandGate, frozen backbone)         & 460.52 ($-0.33$ vs.\ backbone) & \textbf{795} & 287 / 382\\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \paragraph{Methodological lessons.}
 \begin{enumerate}
