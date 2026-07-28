@@ -221,7 +221,14 @@ def panel(tag, rec, obs_lat, obs_lon, storm=None, W=520, H=380):
         o.append(f'<text class="tk" x="{x+3:.1f}" y="{H-5}">{((g+180)%360)-180:.0f}°E</text>')
         g += step
     solo = " solo" if len(LAT) == 1 else ""   # one line at 30% opacity is invisible
-    for a in range(0 if os.environ.get("MAP_NOSPAG") else len(LAT)):
+    # cap the number of individual forecasts actually drawn (storms with 100+ full-horizon
+    # forecasts turn into unreadable spaghetti); the MEAN below still averages every forecast,
+    # only the drawn subset is thinned. Evenly spaced over the full set, not the first N, so the
+    # sample still spans the whole storm lifetime rather than just its early issues.
+    _max_spag = int(os.environ.get("MAP_MAXSPAG", "0")) or None
+    _spag_idx = (list(range(len(LAT))) if not _max_spag or len(LAT) <= _max_spag else
+                 sorted(set(round(i * (len(LAT) - 1) / (_max_spag - 1)) for i in range(_max_spag))))
+    for a in ([] if os.environ.get("MAP_NOSPAG") else _spag_idx):
         d = "M" + " L".join(f"{PX(lo):.1f},{PY(la):.1f}" for la, lo in zip(LAT[a], LON[a]))
         o.append(f'<path class="spag{solo}" d="{d}"/>')
     labels = []
@@ -323,8 +330,11 @@ for nm, yr in STORMS:
         "A single forecast, launched from the filled dot using only the 48 hours before it. The "
         "hollow dot is where the storm formed; dotted black is what it actually did."
         if V10[nm]['n'] == 1 else
-        (f"Every full-horizon forecast this storm produced — {V10[nm]['n']} of them — drawn as one "
-        "thin line each. " if not os.environ.get("MAP_NOSPAG") else "") + (("Bold is the +120 h forecast track"
+        ((f"Every full-horizon forecast this storm produced — {V10[nm]['n']} of them — drawn as one "
+        "thin line each. " if not (os.environ.get("MAP_MAXSPAG") and int(os.environ["MAP_MAXSPAG"]) < V10[nm]['n'])
+        else f"{V10[nm]['n']} full-horizon forecasts in all; {os.environ['MAP_MAXSPAG']} shown here, evenly "
+        "spaced across the storm's life, one thin line each. ")
+        if not os.environ.get("MAP_NOSPAG") else "") + (("Bold is the +120 h forecast track"
         + ("; dashed is the mean of launches at least 48 h old." if _anycausal else
            ", and each hairline joins a forecast to where the storm actually was."))
         if os.environ.get("MAP_NOCONS") else "Bold is the mean by valid time;")
