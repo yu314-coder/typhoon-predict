@@ -133,3 +133,14 @@ patches add little over past-track history plus more storms. See [MODEL_COMPARIS
 
 Reproducible pipeline: `build_windows.py` / `build_track_only.py` (dataset), `fix_windows.py`
 (NaN-fill + normalization), `model_v2.py` / `train_track.py` (models + training), `eval_compare.py`.
+
+### Ongoing research (2026-07): TrackFormer v17–v34
+
+A later, separate line of experiments pushes a WP-focused TrackFormer further on a fuller WP+EP
+2020+ full-lead test set. **v23** (chain-of-thought steering + a temporal steering stack of t-24h/
+t-12h/now) is the current best model in the project at **434.96 km** full-track error, ahead of
+every later architecture tried on top of it — an ERA5 steering-wind addition (v29), and three
+attempts at a land/terrain drag correction (v31–v34) — which all came back null or mixed on the
+aggregate test set. These are research checkpoints, not yet converted into this repo's release
+format; see [the model card](models/README.md#ongoing-research-2026-07-trackformer-v17v34-wpep-full-lead-track-error)
+for the full results table and honest caveats.

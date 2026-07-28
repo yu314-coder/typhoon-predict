@@ -24,3 +24,4 @@ watchdog_status.log
 downloads/
 _v9work/
 _fieldtest/
+track_build/v23_storm_resid.npz

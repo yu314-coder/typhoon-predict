@@ -93,3 +93,37 @@ window npz; TrackFormer: `track_mean`/`track_std` in the checkpoint). Multiply p
 - The real ceiling is storm **diversity** (~13k storms exist); bigger models overfit.
 - Sparse/missing wind-radius labels; no calibration or comparison to official agencies.
 - Pre-satellite (older) track/intensity labels are lower quality.
+
+## Ongoing research (2026-07): TrackFormer v17–v34, WP+EP full-lead track error
+
+A separate, later line of experiments (`colab_train_v17.ipynb` onward, `colab_v2*`–`colab_v39_train.py`)
+iterates a WP-focused TrackFormer on a fuller test set (WP+EP, 2020+, full 20-lead windows) than the
+table above. These checkpoints are research artifacts (not yet converted/released to this directory)
+but the results are tracked here since **v23 is the current best model in the whole project**:
+
+| model | full WP+EP track (km) | change |
+|---|---|---|
+| v21 — chain-of-thought: predicts steering flow, derives track | — | baseline for this line |
+| **v23 — v21 + temporal steering stack (t-24h, t-12h, now)** | **434.96** (10-seed ensemble) | best so far |
+| v29 — v23 + 0.25° ERA5 steering wind (200/550/850 hPa) | 438.70 | +3.74, null |
+| v31 — v23 + land-drag correction (terrain-ahead → along-track push) | 443.07 | +8.11, null |
+| v32 — v31 + window-level oversampled near-land training | 460.48 | +25.52, backfired |
+| v33 — v31 + storm-normalized oversampled training | 442.33 | +7.37, closest land-drag attempt |
+| v34 — MoE-style gate on a **frozen**, already-trained v23 backbone | 460.52 | −0.33 vs its own frozen backbone (see below) |
+
+**Why v34 is the methodologically cleanest of the land-drag attempts.** v31–v33 all retrained the
+*entire* architecture from scratch, so each number above also carries ~19 km/seed of ordinary
+retrain noise on top of whatever the land correction did. v34 instead loads a real, already-trained
+v23 checkpoint, freezes every parameter except a new ~437-param gated correction, and trains only
+that — a true same-backbone-plus-one-addition comparison. Result: **−0.33 km vs its own v23 backbone,
+essentially null in every distance/terrain bucket tested, including the mountainous-near-land
+regime the whole line of experiments targeted.** The three architecturally different attempts at a
+small along-track land add-on (uniform sampling, oversampling, gated MoE) have now converged on no
+clean aggregate win, though v33 and v34 each beat v23 on one of the two real out-of-training storms
+tested (Tip 1979, Noul 2026) and lose on the other — a small-n, storm-to-storm result, not a
+reliable effect.
+
+Full narrative and every intermediate result: see the `land-interaction-lever`,
+`flow-oracle-ceiling`, and `seed-noise-dominates-versions` research notes referenced in commit
+messages from `2761fd8` onward, and `paper/all_storms_v23_v33_v34_mean_map.html` for the real-storm
+tracks on a map.
