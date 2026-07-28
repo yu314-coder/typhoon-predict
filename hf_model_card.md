@@ -75,3 +75,19 @@ data under its own access and licensing terms.
 - The real ceiling is storm **diversity** (~13k storms have ever existed); larger models overfit.
 - Wind-radius labels are sparse; no calibration or comparison against official agency forecasts.
 - Pre-satellite track/intensity labels are lower quality.
+
+## Further research (2026-07, unreleased): v10–v34
+
+A later, separate line of experiments (not the checkpoints above) pushes a WP-focused TrackFormer
+further with a CNN steering-field encoder, chain-of-thought steering (predicts the steering flow,
+then derives track from it), and a temporal steering-history stack. That last model, **v23**, is
+the best-performing model in the whole project: 434.96 km RMS track error on a larger WP+EP 2020+,
+full-20-lead held-out set (3,763 windows) — a different test harness than the table above, so the
+numbers are not directly comparable. Further additions (raw ERA5 steering wind, ocean-heat tokens,
+a land/terrain-drag correction motivated by Typhoon Gaemi 2024 stalling at Taiwan) were tested on
+top of v23 across four more versions and came back null on the aggregate test set, though the
+land-drag corrections beat v23 on one of two real out-of-training storms checked (Typhoon Tip 1979,
+Typhoon Noul 2026) in each case. These checkpoints are research artifacts, not yet converted to this
+card's release format. Full results, architecture notes, and an honest discussion of what didn't
+work: see the "Testing the steering-flow hypothesis" section of `paper/trackformer.pdf` in the
+GitHub repo.

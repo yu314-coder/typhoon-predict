@@ -277,7 +277,101 @@ is a compact environmental-steering branch (deep-layer winds, 500-hPa geopotenti
 Within history-only inputs, TrackFormer's contribution is architectural: it removes the negative
 transfer that a single stream suffers, so intensity and structure gains no longer cost track accuracy.
 
+\section{Testing the steering-flow hypothesis: CNN encoders, chain-of-thought, and land interaction (v10--v34)}
+\label{sec:v10v34}
+Section~4's discussion predicted that the next lever past the IBTrACS-only floor would be a compact
+environmental-steering branch fused strongly to track. A later, separate line of experiments tests
+that prediction directly, on a larger and more demanding held-out set: WP+EP storms from 2020
+onward, restricted to windows with the full 20-lead horizon (3{,}763 windows, 72\% land-covered on
+the WP-only subset). These results are \emph{not} directly comparable to Table~\ref{tab:results}
+(different dataset, basin combination, and lead filter) but track the same track-RMS metric, and are
+reported here because they are the direct continuation of this paper's own stated next step.
+
+\paragraph{A CNN steering-field encoder (v10--v20).} A small convolutional encoder (conv, GELU,
+strided downsampling) reads a $17\times17$ patch of deep-layer-mean steering wind (a weighted blend of
+850/500/200-hPa $u,v$) centered on the storm --- the same family of field-encoder design as
+StormFusion-MT's ERA5 branch (Section~1), now applied to a physically motivated \emph{derived}
+steering field rather than raw multi-level reanalysis. Successive versions repaired data alignment
+bugs, added a four-term track loss, EMA and stronger regularization, and an intensity-persistence
+baseline with rarity/speed reweighting (v13--v19), converging on v20's deep-layer-mean steering patch.
+
+\paragraph{Chain-of-thought steering (v21, v22).} Rather than regressing track displacement directly
+from an opaque decoder, v21 first predicts the ambient \emph{steering flow itself} as an explicit
+intermediate representation, then derives the track from it --- a chain-of-thought (CoT) decomposition
+that makes the underlying physical mechanism (storms move with the steering flow, plus a learned
+recurvature correction) an explicit step in the computation graph rather than an implicit function of
+a black-box decoder. v22 extends this to a \emph{latent} CoT with two weight-tied feedback rounds that
+iteratively refine the same steering representation before the track head reads it, in the spirit of
+universal-transformer-style recurrence.
+
+\paragraph{Temporal steering stack --- v23, the best model in this line.} v23 adds a short history of
+the CoT steering representation itself --- not just the current instant, but $t{-}24$\,h, $t{-}12$\,h,
+and now --- so recurvature can be conditioned on how the steering flow has been \emph{evolving}, not
+only its instantaneous value. This is the best-performing model across the entire v10--v34 line:
+$434.96$\,km RMS track error (10-seed ensemble) on the WP+EP 2020+ full-horizon test set.
+
+\paragraph{Environmental additions on top of v23 --- v24, v25, v27, v28, v29: null or marginal.} With
+the CoT steering representation already in place, four further attempts to add environmental signal
+all failed to improve on v23: an environmental token (ocean heat content, deep-layer shear, mid-level
+humidity; v25), an ocean-heat CNN patch (GODAS) feeding the intensity head (v27), an $N$-only
+meridional drift adapter (v28, whose matched-retrain control v28abl confirmed the apparent gain was
+ordinary run-to-run noise), and --- most tellingly --- feeding \emph{raw} $0.25^\circ$ ERA5 steering
+wind ($u,v$ at 200/550/850\,hPa) directly on top of v23 (v29): $438.70$\,km, $+3.74$\,km worse, every
+one of five seeds above the v23 bar. Once a CoT representation already extracts the steering signal
+that matters from a given class of field, handing the model the raw field a second time is largely
+redundant: the lesson from Section~4 sharpens from ``data diversity $>$ engineered features'' to
+\emph{the right representation of a signal matters more than an additional raw copy of that signal}.
+
+\paragraph{Land interaction: three from-scratch attempts, then a frozen-backbone isolation
+(v31--v34).} Motivated by real-world reports of typhoons stalling at mountainous coastlines (Typhoon
+Gaemi, 2024, held up roughly a day at Taiwan's Central Mountain Range) and terrain-deflection
+mixture-of-experts literature (AOT-TCNet, arXiv 2603.29200), three architecturally different attempts
+add a small along-track land/terrain correction on top of v23:
+
+\begin{itemize}
+\item \textbf{v31} (uniform training): a \texttt{LandDrag} module --- distance-to-land and
+terrain-height-ahead through a zero-initialized MLP producing an along-track push --- trained
+end-to-end from scratch. Result: $443.07$\,km, $+8.11$\,km worse than v23, every seed above the bar.
+\item \textbf{v32} (window-level oversampled near-land training, larger push cap): backfired badly,
+$460.48$\,km ($+25.52$), worst \emph{exactly} in the mountainous-near-land bucket the fix targeted ---
+consistent with oversampling a small number of storms' repeated windows rather than a general effect.
+\item \textbf{v33} (storm-normalized oversampling, closing v32's pseudo-replication problem): closed
+most of the gap, $442.33$\,km ($+7.37$, the closest of the three from-scratch attempts), and --- on the
+two real out-of-training storms available for a genuinely independent check, Typhoon Tip (1979) and
+Typhoon Noul (2026) --- \emph{beat} v23 on both.
+\item \textbf{v34} (mixture-of-experts gate on a \emph{frozen}, already-trained v23 backbone): every
+prior attempt retrained the whole architecture from scratch each time, confounding any real land
+effect with ordinary retrain-to-retrain noise (quantified just below at
+$\sim$19\,km/seed). v34 instead loads a real, already-trained v23 checkpoint and freezes every
+parameter except a new $\sim$437-parameter \texttt{LandGate}: the same along-track expert as
+\texttt{LandDrag}, plus a learned sigmoid gate deciding how much the expert contributes per sample
+(both zero-initialized, so the model starts as exactly v23). This is a true
+same-backbone-plus-one-addition comparison. Result: $-0.33$\,km against its own frozen v23 backbone
+--- essentially null --- and a bucketed breakdown by terrain height and along/cross-track error
+confirms the null holds even in the mountainous-near-land regime every earlier attempt targeted
+($+1.0$/$-6.2$\,km at 48\,h/120\,h). On the same two real storms: v34 \emph{beats} both v23 and v33
+on Tip 1979 ($795$ vs $939$/$876$\,km) but is worse than both on Noul 2026.
+\end{itemize}
+
+\paragraph{Methodological lessons.}
+\begin{enumerate}
+\item \emph{Seed noise dominates small version deltas.} A single retrained v23 seed scored
+$460.85$\,km on the same test set --- $25.89$\,km worse than the 10-seed ensemble mean, from ordinary
+retrain variance alone, comparable in size to most of the ``effects'' reported above. Any claimed
+improvement under $\sim$20\,km from a from-scratch retrain warrants a matched-seed-count or
+frozen-backbone check before being taken as real.
+\item \emph{Freezing a real backbone isolates causal effects that comparing two from-scratch runs
+cannot.} v34's frozen-backbone design is what let this line of work state a definitive null on the
+land-drag hypothesis after three inconclusive from-scratch attempts; the technique generalizes to any
+small architectural addition under test.
+\item \emph{The in-distribution aggregate test set does not always agree with real-storm validation.}
+v33 and v34 are both null-to-slightly-negative on the large WP+EP aggregate, yet each beats v23 on one
+of the two individually-checked, genuinely out-of-training real storms. Small-$n$ real-storm checks
+cannot replace an aggregate metric, but they surface disagreements the aggregate alone would miss.
+\end{enumerate}
+
 \paragraph{Reproducibility.} Dataset builders, training scripts, checkpoints, and evaluation are at
-\url{https://github.com/yu314-coder/typhoon-predict}. Models are trained on Apple GPU (Metal/MPS).
+\url{https://github.com/yu314-coder/typhoon-predict}. Models are trained on Apple GPU (Metal/MPS);
+the v10--v34 line additionally used Google Colab (T4/A100) for larger training runs.
 
 \end{document}
