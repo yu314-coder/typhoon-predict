@@ -62,7 +62,7 @@ real-storm validation.
 
 These are research checkpoints, not yet converted to this card's release format — see below for
 checkpoints you can load and run today. Full write-up, architecture equations, and every
-intermediate result: `paper/trackformer.pdf`, "Phase II: chain-of-thought steering and
+intermediate result: `paper/trackformer.pdf`, "Chain-of-thought steering and
 land-interaction testing," in the GitHub repo
 (**https://github.com/yu314-coder/typhoon-predict**).
 
@@ -100,7 +100,7 @@ protected dual-stream architecture (separate kinematic/thermodynamic encoders, g
 zero-init gated thermo→track adapter, and a persistence-residual track head), cutting WP-2020+ track
 error to 659 km (−61, storm-bootstrap 95% CI [−103, −16] km, p≈0.995) while keeping the intensity
 gains. Full architecture and derivation (incl. a random-matrix block-covariance uncertainty head) in
-`paper/trackformer.pdf`, Phase I, in the GitHub repo.
+`paper/trackformer.pdf`, Appendix A, in the GitHub repo.
 
 ### Architectures
 

@@ -22,9 +22,9 @@
 \newcommand{\vnineWPtrack}{\textbf{618.4}}\newcommand{\vnineWPvmax}{\textbf{18.55}}\newcommand{\vnineWPpres}{15.76}\newcommand{\vnineWPrmw}{11.52}\newcommand{\vnineWPrad}{\textbf{27.15}}
 \newcommand{\vnineABtrack}{\textbf{543.4}}\newcommand{\vnineABvmax}{\textbf{16.73}}\newcommand{\vnineABpres}{14.29}\newcommand{\vnineABrmw}{14.15}\newcommand{\vnineABrad}{27.80}
 
-\title{\textbf{TrackFormer: Protected Multi-Stream Transformers, Chain-of-Thought Steering, and\\
-Land-Interaction Testing for Tropical-Cyclone Forecasting}\\[2pt]
-\large from a Random-Matrix Uncertainty Head to a Frozen-Backbone Causal Isolation of Land Drag}
+\title{\textbf{Chain-of-Thought Steering and Land-Interaction Testing\\ for Tropical-Cyclone Forecasting}\\[2pt]
+\large TrackFormer v10--v34: from a CNN Steering-Field Encoder to a Frozen-Backbone\\
+Causal Isolation of Land Drag}
 \author{Yu Yao-Hsing \\ \small \texttt{euler.yu@gmail.com} \quad\textbullet\quad \small\url{https://github.com/yu314-coder/typhoon-predict}}
 \date{\today}
 
@@ -34,286 +34,50 @@ Land-Interaction Testing for Tropical-Cyclone Forecasting}\\[2pt]
 \begin{abstract}
 We forecast the full state of a tropical cyclone --- storm motion, maximum wind, central pressure,
 radius of maximum wind, and the twelve 34/50/64-kt wind-radii --- at twenty six-hourly lead times
-(6--120\,h), first from best-track history alone and later with an explicit atmospheric
-steering-flow representation. \textbf{Phase I} documents a concrete instance of \emph{negative
-transfer} in a single-stream multi-task Transformer: adding physically informative motion-dynamics
-features improves intensity and structure yet degrades track, a change a paired storm-level
-bootstrap confirms is gradient conflict over shared capacity, not a loss-weighting problem. We fix
-it with \textbf{TrackFormer}, a protected dual-stream architecture that routes kinematic and
-thermodynamic gradients separately and lets thermodynamics influence track only through a
-zero-initialized gated adapter, plus a block-structured, random-matrix-cleaned uncertainty head.
-\textbf{Phase II} tests this paper's own predicted next step --- an explicit environmental-steering
-branch --- across twenty-five further versions (v10--v34) on a larger WP+EP held-out set. A CNN
-steering-field encoder, a \emph{chain-of-thought} decomposition that predicts the steering flow
-before deriving track from it, and a temporal history of that steering representation combine into
-\textbf{v23}, the best model in either phase (434.96\,km RMS track error, a further
-$\sim$30\% reduction). Four subsequent attempts to add more environmental signal on top of v23 all
-came back null, and three architecturally different attempts at a land/terrain-interaction
-correction converged on an aggregate null once we isolated the correction from ordinary retrain
-noise by freezing v23's own weights and training only a $\sim$437-parameter gated addition on top ---
-though it still splits 1--1 against v23 on the two real out-of-training storms available. We close
-with the methodological lessons this isolation technique makes visible: retrain-to-retrain seed
-noise ($\sim$19\,km/seed) is large enough to manufacture or hide most of the effects reported in
-this line of work, and a large in-distribution test set does not always agree with genuinely
-out-of-training real-storm validation.
+(6--120\,h) using an explicit atmospheric steering-flow representation. Starting from a small CNN
+encoder that reads a deep-layer-mean steering-wind patch around the storm (v10--v20), we introduce a
+\emph{chain-of-thought} (CoT) decomposition that predicts the steering flow itself as an explicit,
+inspectable intermediate representation before deriving track from it (v21, v22), then condition
+that estimate on its own recent history (t-24\,h, t-12\,h, now) to let recurvature respond to how the
+flow is \emph{evolving} rather than only its instantaneous value. This last model, \textbf{v23},
+reaches \textbf{434.96\,km} RMS track error on a WP+EP 2020+ held-out set restricted to full
+20-lead-horizon windows (3{,}763 windows, 72\% land-covered on the WP-only subset) --- the best
+result in this line of twenty-five versions. We then test two further physically-motivated
+hypotheses the same way. Four attempts to add more environmental signal on top of v23 (an
+environmental token, an ocean-heat CNN patch, a drift adapter, and raw ERA5 steering wind fed
+directly) all come back null: once a CoT representation already extracts the steering signal that
+matters, handing the model the raw field again is redundant. Three architecturally different
+attempts at a land/terrain-interaction correction (uniform training, oversampled training,
+storm-normalized oversampling) converge on an aggregate null once we isolate the correction from
+ordinary retrain noise by \emph{freezing} v23's own trained weights and training only a
+$\sim$437-parameter gated addition on top --- though it still splits 1--1 against v23 on the two
+real out-of-training storms available. This frozen-backbone isolation technique is the paper's
+methodological contribution: it makes visible that retrain-to-retrain seed noise ($\sim$19\,km/seed)
+is large enough to manufacture or hide most of the effects reported in this line of work, and that a
+large in-distribution test set does not always agree with genuinely out-of-training real-storm
+validation. An appendix summarizes the earlier, foundational protected dual-stream architecture and
+random-matrix uncertainty head (v1--v9) that this line of work builds on.
 \end{abstract}
 
-\paragraph{Roadmap.} Sections~1--4 are Phase I: the dataset, the negative-transfer diagnosis, the
-protected dual-stream architecture, and the random-matrix uncertainty head, evaluated on an
-all-basin/WP 2020+ split (Table~\ref{tab:results}). Section~\ref{sec:v10v34} is Phase II: a
-separate, later evaluation harness (WP+EP 2020+, full 20-lead windows only) on which twenty-five
-further versions test this paper's own Discussion (Section~5) against reality --- what worked
-(v10--v23), what didn't (v24--v29), and what a causally clean test finally settled after three
-inconclusive attempts (v31--v34).
+\paragraph{Roadmap.} Section~\ref{sec:v10v34} is the paper's primary content: the CNN steering
+encoder, chain-of-thought steering, the temporal steering stack (v23), four null environmental
+additions, and the three-attempt land-interaction test resolved by a frozen-backbone isolation
+(v31--v34), evaluated throughout on the WP+EP 2020+ full-horizon test set. Appendix~\ref{app:phase1}
+summarizes the earlier protected dual-stream Transformer and random-matrix uncertainty head
+(v1--v9) that established the codebase and the all-basin/WP 2020+ dataset this line inherited.
 
-\section{Problem and data}
-Let a storm be a time-ordered sequence of best-track fixes. From each fix $t_0$ we form a
-\emph{window}: a history of $H{=}9$ steps at $6$-h spacing ending at $t_0$, and a target of
-$L{=}20$ future states at leads $\{6,12,\dots,120\}$\,h. Each future state is the $17$-vector
-\begin{equation}
-\bm y_\ell = \big(\underbrace{\Delta e_\ell,\ \Delta n_\ell}_{\text{per-step motion (km)}},\
-v^{\max}_\ell,\ p_\ell,\ r^{\mathrm{mw}}_\ell,\ \underbrace{r^{34}_{\text{ne..nw}},r^{50}_{\cdot},r^{64}_{\cdot}}_{\text{12 wind radii}}\big),
-\qquad \ell = 1,\dots,20 .
-\end{equation}
-Track error is the RMS great-circle-plane distance between the predicted and observed cumulative
-displacement, $\mathrm{cumsum}_\ell(\Delta e,\Delta n)$; the other four groups are reported as masked
-mean-absolute error (labels are frequently missing, especially pre-satellite and for wind radii).
-
-\paragraph{Dataset.} We use IBTrACS v04r01 (all basins, 1980+), yielding $84{,}150$ windows. We split
-by storm to prevent leakage: train ($\le 2015$), validation ($2016$--$2019$), test ($\ge 2020$).
-Inputs are standardized per feature using \emph{training-split statistics only}. Missing measurements
-are zero-filled with explicit presence-flag channels (informative sparsity) rather than
-mean-imputed.
-
-\paragraph{Motion-dynamics features.} Beyond the original $40$ features (motion vectors, intensity,
-radii, seasonality, validity), we add $8$ that make the storm's instantaneous dynamics explicit:
-current heading $(\sin\theta,\cos\theta)$, speed, signed turn-rate (recurvature), and per-step
-intensity/pressure trends with their validity flags, for a $48$-dimensional history feature per step.
-Their training-set means are physically sensible: mean heading points west-northwest (the trade-wind
-easterlies), mean speed $\approx 14$\,km\,h$^{-1}$, and mean intensification $+1.5$\,kt per step.
-
-\section{The negative-transfer diagnosis}
-A single-stream model (linear projection $\to$ 4-layer encoder $\to$ 6-layer lead-query decoder $\to$
-dual state / log-scale heads, diagonal Gaussian NLL + masked Huber) trained on the $40$-feature set
-reaches the ``old'' row of Table~\ref{tab:results}. Adding the $8$ motion-dynamics features (``v2'')
-\emph{improves} vmax, pressure, RMW, and radius substantially (pressure MAE $\oldWPpres\to\vtwoWPpres$
-hPa on WP-2020+) but \emph{raises} track error ($\oldWPtrack\to\vtwoWPtrack$\,km). Up-weighting the
-track loss $\times 3$ made track \emph{worse still} ($806.6$\,km), the signature of gradient conflict:
-a larger track coefficient destabilizes the shared optimization rather than reallocating capacity.
-
-\paragraph{Is the regression even real?} We paired-bootstrap the WP-2020+ per-window track errors by
-resampling \emph{storms} (not overlapping windows), the correct unit of independence.
-\begin{equation}
-\widehat{\Delta}_{\text{track}} = \text{mean}_{\text{storms}}\big(e^{\text{v2}} - e^{\text{old}}\big)
-= +17.7~\text{km},\qquad \text{95\% CI } [-22.2,\ +60.5]~\text{km},\qquad \Pr(\text{v2 worse})=0.79 .
-\end{equation}
-The interval spans zero over the $103$ WP test storms: track is \emph{statistically tied}, while the
-intensity gains are large and consistent. The features are not the problem; the shared representation
-is. This motivates an architecture that protects the kinematic pathway.
-
-\section{TrackFormer: protected dual-stream architecture}
-\begin{figure}[t]
-\centering
-\begin{tikzpicture}[font=\small,>=Latex,node distance=6mm,
-  box/.style={draw,rounded corners,minimum height=8mm,minimum width=26mm,align=center},
-  enc/.style={box,fill=blue!8}, dec/.style={box,fill=orange!10},
-  head/.style={box,fill=green!10}, io/.style={align=center}]
-\node[io] (kin) {Kinematic inputs\\{\scriptsize motion, heading, speed, turn, season}};
-\node[io,below=14mm of kin] (th) {Thermodynamic inputs\\{\scriptsize vmax, pres, RMW, radii, trends, flags}};
-\node[enc,right=10mm of kin] (kenc) {Kinematic\\encoder (4L)};
-\node[enc,right=10mm of th] (tenc) {Thermodynamic\\encoder (3L)};
-\node[dec,right=12mm of kenc] (tdec) {Track\\decoder (4L)};
-\node[dec,right=12mm of tenc] (idec) {Intensity\\decoder (5L)};
-\node[head,right=10mm of tdec] (thead) {Persistence\\+ residual};
-\node[head,right=10mm of idec] (ihead) {Intensity /\\radii head};
-\draw[->] (kin) -- (kenc); \draw[->] (th) -- (tenc);
-\draw[->] (kenc) -- node[above,scale=.8]{track grad} (tdec);
-\draw[->] (tenc) -- node[above,scale=.8]{intensity grad} (idec);
-\draw[->] (tdec) -- (thead); \draw[->] (idec) -- (ihead);
-\draw[->,dashed] (kenc.south) to[out=-90,in=180] node[below,scale=.75,pos=.4]{stop-grad} (idec.west);
-\draw[->,red,thick] (tenc.north) to[out=90,in=180] node[above,scale=.75,pos=.5]{$\alpha_\ell$ gate (zero-init), stop-grad} (tdec.west);
-\end{tikzpicture}
-\caption{TrackFormer. Solid arrows carry task gradients back only into their own encoder. The
-kinematic representation is shielded from intensity gradients (stop-grad into the intensity decoder);
-thermodynamics reaches track \emph{only} through a zero-initialized, per-lead gated adapter on detached
-features, so at initialization the model is exactly a protected track-only predictor.}
-\label{fig:arch}
-\end{figure}
-
-\paragraph{Dual encoders.} The $48$ features are split into a kinematic view
-$\bm x^{\text{kin}}$ (motion, heading, speed, turn, seasonality, lead offset; $11$ dims) and a
-thermodynamic view $\bm x^{\text{th}}$ (vmax, pressure, gust, RMW, $12$ radii, trend features, $16$
-validity flags; $36$ dims). Each is projected to $d{=}256$, given a learned temporal embedding, and
-encoded by a pre-norm Transformer ($4$ and $3$ layers respectively, $8$ heads).
-
-\paragraph{Protected gradient routing.} Let $\bm H^{\text{kin}},\bm H^{\text{th}}\in\mathbb R^{9\times d}$
-be the encoder outputs. The track decoder cross-attends to $\bm H^{\text{kin}}$; the intensity decoder
-cross-attends to $[\,\bm H^{\text{th}};\ \mathrm{sg}(\bm H^{\text{kin}})\,]$ where $\mathrm{sg}(\cdot)$
-is stop-gradient. Thus motion still \emph{informs} intensity, but intensity gradients cannot corrupt
-the kinematic encoder. Symmetrically, thermodynamics reaches the track head only through
-\begin{equation}
-\bm H^{\text{track}}_\ell \;=\; \mathrm{TrackDec}(\bm q_\ell,\bm H^{\text{kin}})
-\;+\; \alpha_\ell\,\mathcal A\!\big(\mathrm{sg}(\bar{\bm H}^{\text{th}})\big),
-\qquad \alpha_\ell \overset{\text{init}}{=} 0,
-\label{eq:gate}
-\end{equation}
-where $\bar{\bm H}^{\text{th}}$ is the mean-pooled thermodynamic context, $\mathcal A$ is a
-bottleneck-$64$ adapter with a zero-initialized output layer, and $\alpha_\ell$ is a per-lead scalar.
-Because $\alpha_\ell$ and $\mathcal A$ start at zero and receive gradient only from the track loss, the
-intensity branch can \emph{help} track (if it lowers track error) but can never harm it: at
-initialization TrackFormer reproduces a protected track-only model exactly.
-
-\paragraph{Persistence-residual track head.} Rather than regress $20$ free displacement vectors, we
-anchor track on a damped constant-velocity baseline and predict only the deviation:
-\begin{equation}
-\widehat{\Delta \bm p}_\ell \;=\; \underbrace{\rho_\ell\,\bm v_0}_{\text{damped persistence}}
-\;+\; \underbrace{\bm r_\ell(\bm H^{\text{track}}_\ell)}_{\text{learned recurvature residual}},
-\qquad \bm v_0=\text{current 6-h motion (km)},
-\end{equation}
-with a learned per-lead damping schedule $\rho_\ell$ (initialized to $1$) and a zero-initialized
-residual head $\bm r_\ell$. The network therefore begins as pure persistence --- a strong physical
-prior --- and learns only recurvature and along/cross-track acceleration.
-
-\paragraph{Losses.} Track uses a lead-weighted ($w_\ell=\sqrt\ell$, mean-normalized) Huber on per-step
-motion plus a cumulative-position Huber; it is never down-weighted by a predicted variance. Intensity
-uses masked Huber $+$ Gaussian NLL with a monotone wind-radii penalty $\mathrm{ReLU}(r^{50}-r^{34})+
-\mathrm{ReLU}(r^{64}-r^{50})$.
-
-\section{Random-matrix block-structured uncertainty head}
-Operational value requires calibrated \emph{joint} uncertainty across the $340$ outputs
-($20$ leads $\times 17$ variables). A full $340\times340$ covariance is both statistically
-ill-posed (few independent storms, overlapping windows, heavy masking) and architecturally harmful:
-it would re-introduce a track$\leftrightarrow$thermodynamics coupling and undo the protection above.
-We therefore impose a \emph{block-diagonal} covariance
-\begin{equation}
-\bm\Sigma \;=\; \mathrm{blkdiag}\big(\bm\Sigma_{\text{track}},\ \bm\Sigma_{\text{int}},\ \bm\Sigma_{\text{rad}}\big),
-\end{equation}
-with a matrix-normal track block $\bm\Sigma_{\text{track}} = \bm K_{\text{lead}}\otimes\bm K_{\text{axis}}
-+ \mathrm{diag}(\bm s^2)$ ($\bm K_{\text{lead}}$ a learned $20\times20$ temporal kernel, $\bm K_{\text{axis}}$
-a $2\times2$ along/cross-track kernel) and low-rank$+$diagonal thermodynamic blocks
-$\bm\Sigma_\bullet=\bm D\bm D^\top+\mathrm{diag}(\bm s^2)$, $\bm D\in\mathbb R^{p\times r}$, $r{=}8$--$16$.
-
-\paragraph{Spectral cleaning.} Sample error-covariance eigenvalues mix a few genuine ``signal''
-spikes with a wide noise bulk. Under the two-point generalized sample-covariance model, the
-companion Stieltjes transform of the limiting spectral law solves a cubic
-\begin{equation}
-a z\,m^3 + \big[a(z-y+1)+z\big]m^2 + \big[a+z-y+1-y\beta(a-1)\big]m + 1 = 0,
-\label{eq:cubic}
-\end{equation}
-where $y=p/n$ is the aspect ratio and $(a,\beta)$ parameterize a two-population noise structure. The
-support edges of the noise bulk are the $z$ at which \eqref{eq:cubic} loses a real root (a conjugate
-pair appears); eigenvalues above the upper edge $\lambda_+$ are retained as signal and the bulk is
-replaced by a positive floor:
-\begin{equation}
-\widehat{\bm\Sigma} = \bm U\,\mathrm{diag}\!\big(\lambda_i\,\mathbb 1[\lambda_i>\lambda_+]
- + \bar\lambda_{\text{bulk}}\,\mathbb 1[\lambda_i\le\lambda_+]\big)\,\bm U^\top .
-\end{equation}
-Setting $a{=}1$ recovers the classical Marchenko--Pastur edge $\lambda_+=(1+\sqrt y)^2$. The estimator
-is fit on \emph{independent storm-block} residuals and validated out-of-sample; it is applied
-\emph{per block} and only after the mean heads have converged, so it sharpens calibration without
-perturbing the point forecast.
-
-\section{Results}
-\begin{table}[t]
-\centering
-\caption{Held-out test performance (lower is better). Track is RMS plane distance over 6--120\,h; the
-rest are masked MAE. All models evaluated on identical target windows. Best per column in \textbf{bold}.}
-\label{tab:results}
-\small
-\begin{tabular}{llccccc}
-\toprule
-split & model & track (km) & vmax (kt) & pres (hPa) & RMW (km) & radius (km)\\
-\midrule
-WP 2020+
- & single-stream, 40-feat      & \oldWPtrack  & \oldWPvmax  & \oldWPpres  & \oldWPrmw  & \oldWPrad\\
- & single-stream, 48-feat (v2) & \vtwoWPtrack & \vtwoWPvmax & \vtwoWPpres & \vtwoWPrmw & \vtwoWPrad\\
- & TrackFormer (v3)            & \vthreeWPtrack & \vthreeWPvmax & \vthreeWPpres & \vthreeWPrmw & \vthreeWPrad\\
- & TrackFormer (v8, +data)     & \veightWPtrack & \veightWPvmax & \veightWPpres & \veightWPrmw & \veightWPrad\\
- & \textbf{TrackFormer (v9, +env)} & \vnineWPtrack & \vnineWPvmax & \vnineWPpres & \vnineWPrmw & \vnineWPrad\\
-\midrule
-all-basin 2020+
- & single-stream, 40-feat      & \oldABtrack  & \oldABvmax  & \oldABpres  & \oldABrmw  & \oldABrad\\
- & single-stream, 48-feat (v2) & \vtwoABtrack & \vtwoABvmax & \vtwoABpres & \vtwoABrmw & \vtwoABrad\\
- & TrackFormer (v3)            & \vthreeABtrack & \vthreeABvmax & \vthreeABpres & \vthreeABrmw & \vthreeABrad\\
- & TrackFormer (v8, +data)     & \veightABtrack & \veightABvmax & \veightABpres & \veightABrmw & \veightABrad\\
- & \textbf{TrackFormer (v9, +env)} & \vnineABtrack & \vnineABvmax & \vnineABpres & \vnineABrmw & \vnineABrad\\
-\bottomrule
-\end{tabular}
-\end{table}
-
-TrackFormer lowers WP-2020+ track error from $\oldWPtrack$ to $659.0$\,km ($-8.5\%$) and all-basin
-from $\oldABtrack$ to $592.1$\,km, while simultaneously \emph{improving} pressure, vmax, and wind-radius
-MAE. The same paired storm-level bootstrap that found the v2 change insignificant now confirms the v3
-gain is real: $\widehat\Delta_{\text{track}}=-59.9$\,km, 95\% CI $[-103.2,\,-16.0]$\,km,
-$\Pr(\text{v3 better})=0.995$. Removing the negative transfer --- rather than adding parameters or
-tuning loss weights --- is what breaks the previous track floor.
-
-\paragraph{Data, not architecture, drove the final gain.} With the architecture fixed, we enlarged
-the training set by keeping \emph{partial-lead} windows --- storm-end and short-storm fixes that lack
-a full 120\,h future are retained with their missing leads masked rather than discarded --- which
-doubled the clean 1980+ training windows ($84$k$\,\to\,153$k). The resulting model (v8) is best on
-\emph{every} metric of Table~\ref{tab:results}: WP-2020+ track $\vthreeWPtrack\,\to\,648.8$\,km and
-simultaneous improvements in wind, pressure, RMW, and radius. (Extending further to pre-1980 storms
-helped track marginally but degraded intensity, because pre-satellite intensity labels are
-unreliable; masking those labels while keeping the older \emph{positions} recovered the intensity but
-not a significant track gain --- confirming track is information-limited, not data-quantity-limited.)
-
-\paragraph{Position-awareness is the largest lever within IBTrACS.} The dual-stream model is
-\emph{translation-invariant} --- it sees only relative motion, never where the storm actually is ---
-so it cannot use latitude, which governs the Coriolis force, the climatological recurvature band, and
-(through the seasonal thermal structure) sea-surface temperature. Adding a third \emph{environmental}
-stream of IBTrACS-derived features (absolute latitude/longitude, distance-to-land, and a latitude$+$month
-climatological SST proxy), routed to the track decoder for steering climatology and to the intensity
-decoder for the SST signal, cut WP-2020+ track from $\veightWPtrack$ to $618.4$\,km and all-basin from
-$\veightABtrack$ to $543.4$\,km, with a $\sim$2-kt wind improvement --- all without any reanalysis
-download, so the model stays deployable from a best-track CSV. On out-of-sample case studies it
-\emph{halved} the error on an erratic recurving storm (Co-may 2025) and improved a well-behaved
-super typhoon (Bavi 2026); only a pathological multi-loop storm (Wayne 1986) regressed, where
-climatology cannot substitute for the real-time steering flow.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\textwidth]{storms_v9.pdf}
-\caption{TrackFormer v9 (triple-stream) on three case studies, each a 120-hour forecast (teal, dashed)
-issued from an early fix (star) against the observed track (orange), with the 50-member RMT ensemble
-(faint). Absolute latitude sharpens the well-behaved \emph{Bavi} (2026) and \emph{halves} the error on
-the erratic \emph{Co-may} (2025), but cannot tame \emph{Wayne}'s (1986) five loops, where climatology
-is no substitute for the real-time steering flow. Bavi and Co-may are out-of-sample ($\ge$2020); Wayne
-(1986) is in the training window and shown as a stress test.}
-\label{fig:storms}
-\end{figure}
-
-\section{Discussion (Phase I)}
-The consistent lesson across experiments is \textbf{data diversity $>$ engineered features $>$
-parameters}: a $17.7$M single-stream model overfit and did worse than a $3.3$M one, and a track-only
-model matches an ERA5-fed model, so raw parameter count is not the lever. Track error is bounded below
-by \emph{information}, not capacity: five-day recurvature is governed by the evolving large-scale
-steering flow, which best-track history cannot fully reveal. We predicted the clearest path past this
-floor was a compact environmental-steering branch fused \emph{strongly to track, weakly to
-intensity} --- the natural next stream in the protected design. Section~\ref{sec:v10v34} reports what
-happened when we actually built it: the prediction was directionally right (a steering-flow branch,
-suitably represented, is the largest lever found in either phase of this work) but the \emph{form}
-of that branch mattered far more than its mere presence, and a second physically-motivated hypothesis
-tested the same way (land/terrain interaction) did not survive a causally clean test. Within
-history-only inputs, TrackFormer's Phase-I contribution remains architectural: it removes the
-negative transfer that a single stream suffers, so intensity and structure gains no longer cost track
-accuracy.
-
-\section{Phase II: chain-of-thought steering and land-interaction testing (v10--v34)}
+\section{Chain-of-thought steering and land-interaction testing (v10--v34)}
 \label{sec:v10v34}
-Section~4's discussion predicted that the next lever past the IBTrACS-only floor would be a compact
-environmental-steering branch fused strongly to track. A later, separate line of twenty-five further
-versions tests that prediction directly, on a larger and more demanding held-out set: WP+EP storms
-from 2020 onward, restricted to windows with the full 20-lead horizon (3{,}763 windows, 72\%
-land-covered on the WP-only subset). These results are \emph{not} directly comparable to
-Table~\ref{tab:results} (different dataset, basin combination, and lead filter) but track the same
-track-RMS metric, and are reported at equal length to Phase I because they are its direct
-continuation and, on this project's own numbers, its largest single improvement.
+This section evaluates twenty-five versions on WP+EP storms from 2020 onward, restricted to
+windows with the full 20-lead horizon (3{,}763 windows, 72\% land-covered on the WP-only subset) ---
+a larger and more demanding held-out set than Appendix~\ref{app:phase1}'s all-basin/WP split
+(Table~\ref{tab:results}), built to test that appendix's own closing prediction: that the next lever
+past a history-only floor would be a compact environmental-steering branch fused strongly to track.
 
 \paragraph{A CNN steering-field encoder (v10--v20).} A small convolutional encoder (conv, GELU,
 strided downsampling) reads a $17\times17$ patch of deep-layer-mean steering wind (a weighted blend of
 850/500/200-hPa $u,v$) centered on the storm --- the same family of field-encoder design as
-StormFusion-MT's ERA5 branch (Section~1), now applied to a physically motivated \emph{derived}
+Appendix~\ref{app:phase1}'s ERA5 branch, now applied to a physically motivated \emph{derived}
 steering field rather than raw multi-level reanalysis. Successive versions repaired data alignment
 bugs, added a four-term track loss, EMA and stronger regularization, and an intensity-persistence
 baseline with rarity/speed reweighting (v13--v19), converging on v20's deep-layer-mean steering patch.
@@ -344,8 +108,8 @@ so recurvature can be conditioned on how the steering flow has been \emph{evolvi
 instantaneous value --- a discrete analogue of estimating the flow's local time-derivative alongside
 its value. This is the best-performing model across the entire v10--v34 line: $434.96$\,km RMS track
 error (10-seed ensemble) on the WP+EP 2020+ full-horizon test set, a further $\sim$30\% reduction
-over the already-improved Phase-I numbers in Table~\ref{tab:results} (on the harder, larger Phase-II
-test set described above).
+over the already-improved Appendix-\ref{app:phase1} numbers in Table~\ref{tab:results} (on this
+section's harder, larger test set).
 
 \paragraph{Environmental additions on top of v23 --- v24, v25, v27, v28, v29: null or marginal.} With
 the CoT steering representation already in place, four further attempts to add environmental signal
@@ -356,8 +120,8 @@ ordinary run-to-run noise), and --- most tellingly --- feeding \emph{raw} $0.25^
 wind ($u,v$ at 200/550/850\,hPa) directly on top of v23 (v29): $438.70$\,km, $+3.74$\,km worse, every
 one of five seeds above the v23 bar. Once a CoT representation already extracts the steering signal
 that matters from a given class of field, handing the model the raw field a second time is largely
-redundant: the lesson from Section~4 sharpens from ``data diversity $>$ engineered features'' to
-\emph{the right representation of a signal matters more than an additional raw copy of that signal}.
+redundant: \emph{the right representation of a signal matters more than an additional raw copy of
+that signal}.
 
 \paragraph{Land interaction: three from-scratch attempts, then a frozen-backbone isolation
 (v31--v34).} Motivated by real-world reports of typhoons stalling at mountainous coastlines (Typhoon
@@ -402,9 +166,9 @@ on Tip 1979 ($795$ vs $939$/$876$\,km) but is worse than both on Noul 2026.
 
 \begin{table}[h]
 \centering
-\caption{Phase-II land-interaction line: aggregate WP+EP 2020+ full-horizon test (3,763 windows)
-and the two independent, genuinely out-of-training real-storm checks. Aggregate deltas are against
-v23 (v31--v33) or against v34's own frozen v23\_seed0 backbone (v34, the causally clean comparison).
+\caption{Land-interaction line: aggregate WP+EP 2020+ full-horizon test (3,763 windows) and the two
+independent, genuinely out-of-training real-storm checks. Aggregate deltas are against v23
+(v31--v33) or against v34's own frozen v23\_seed0 backbone (v34, the causally clean comparison).
 Best per column in \textbf{bold}; real-storm columns show whichever model wins that storm.}
 \label{tab:v10v34land}
 \small
@@ -439,7 +203,142 @@ cannot replace an aggregate metric, but they surface disagreements the aggregate
 \end{enumerate}
 
 \paragraph{Reproducibility.} Dataset builders, training scripts, checkpoints, and evaluation are at
-\url{https://github.com/yu314-coder/typhoon-predict}. Models are trained on Apple GPU (Metal/MPS);
-the v10--v34 line additionally used Google Colab (T4/A100) for larger training runs.
+\url{https://github.com/yu314-coder/typhoon-predict}. This line's models are trained on Google Colab
+(T4/A100); Appendix~\ref{app:phase1}'s earlier models trained on Apple GPU (Metal/MPS).
+
+\appendix
+\section{Foundational architecture: protected dual-stream TrackFormer (v1--v9)}
+\label{app:phase1}
+This appendix summarizes the earlier line of work this paper builds on: the dataset, model, and
+uncertainty head that established the codebase and its all-basin/WP 2020+ evaluation split
+(Table~\ref{tab:results}), before Section~\ref{sec:v10v34}'s steering-flow and land-interaction
+testing became the project's main line of inquiry.
+
+\paragraph{Dataset.} IBTrACS v04r01 (all basins, 1980+), $84{,}150$ windows: a history of $H{=}9$
+steps at 6-h spacing and a target of $L{=}20$ future 17-dimensional states (per-step E/N motion,
+vmax, pressure, RMW, twelve 34/50/64-kt wind radii) at leads $\{6,\dots,120\}$\,h. Split by storm to
+prevent leakage (train $\le 2015$, validation 2016--2019, test $\ge 2020$); inputs standardized on
+training-split statistics only, with explicit presence-flag channels for missing measurements.
+
+\paragraph{Negative transfer.} A single-stream Transformer trained on $40$ base features reaches the
+``old'' row of Table~\ref{tab:results}. Adding $8$ motion-dynamics features (heading, speed,
+turn-rate, intensity trends; ``v2'') improves intensity/pressure/RMW/radius substantially but
+\emph{raises} track error ($\oldWPtrack\to\vtwoWPtrack$\,km), and up-weighting the track loss makes
+it worse still ($806.6$\,km) --- the signature of gradient conflict over shared capacity, not a
+loss-weighting problem. A paired storm-level bootstrap confirms the regression is statistically tied
+($\widehat\Delta_{\text{track}}=+17.7$\,km, 95\% CI $[-22.2,+60.5]$\,km) while the intensity gains are
+large and consistent: the shared representation, not the added features, is the problem.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[font=\small,>=Latex,node distance=6mm,
+  box/.style={draw,rounded corners,minimum height=8mm,minimum width=26mm,align=center},
+  enc/.style={box,fill=blue!8}, dec/.style={box,fill=orange!10},
+  head/.style={box,fill=green!10}, io/.style={align=center}]
+\node[io] (kin) {Kinematic inputs\\{\scriptsize motion, heading, speed, turn, season}};
+\node[io,below=14mm of kin] (th) {Thermodynamic inputs\\{\scriptsize vmax, pres, RMW, radii, trends, flags}};
+\node[enc,right=10mm of kin] (kenc) {Kinematic\\encoder (4L)};
+\node[enc,right=10mm of th] (tenc) {Thermodynamic\\encoder (3L)};
+\node[dec,right=12mm of kenc] (tdec) {Track\\decoder (4L)};
+\node[dec,right=12mm of tenc] (idec) {Intensity\\decoder (5L)};
+\node[head,right=10mm of tdec] (thead) {Persistence\\+ residual};
+\node[head,right=10mm of idec] (ihead) {Intensity /\\radii head};
+\draw[->] (kin) -- (kenc); \draw[->] (th) -- (tenc);
+\draw[->] (kenc) -- node[above,scale=.8]{track grad} (tdec);
+\draw[->] (tenc) -- node[above,scale=.8]{intensity grad} (idec);
+\draw[->] (tdec) -- (thead); \draw[->] (idec) -- (ihead);
+\draw[->,dashed] (kenc.south) to[out=-90,in=180] node[below,scale=.75,pos=.4]{stop-grad} (idec.west);
+\draw[->,red,thick] (tenc.north) to[out=90,in=180] node[above,scale=.75,pos=.5]{$\alpha_\ell$ gate (zero-init), stop-grad} (tdec.west);
+\end{tikzpicture}
+\caption{TrackFormer's protected dual-stream design. Solid arrows carry task gradients back only
+into their own encoder; thermodynamics reaches track \emph{only} through a zero-initialized, per-lead
+gated adapter on detached features, so at initialization the model is exactly a protected
+track-only predictor.}
+\label{fig:arch}
+\end{figure}
+
+\paragraph{Protected dual-stream architecture.} Kinematic and thermodynamic features are encoded
+separately (Figure~\ref{fig:arch}); the track decoder cross-attends only to the kinematic encoding,
+and thermodynamics reaches the track head only through a zero-initialized gated adapter,
+\begin{equation}
+\bm H^{\text{track}}_\ell \;=\; \mathrm{TrackDec}(\bm q_\ell,\bm H^{\text{kin}})
+\;+\; \alpha_\ell\,\mathcal A\!\big(\mathrm{sg}(\bar{\bm H}^{\text{th}})\big),
+\qquad \alpha_\ell \overset{\text{init}}{=} 0,
+\label{eq:gate}
+\end{equation}
+where $\mathrm{sg}(\cdot)$ is stop-gradient. So intensity can help track (if it lowers track error)
+but can never harm it. Track itself is a damped constant-velocity persistence baseline plus a
+zero-initialized learned recurvature residual, so the network begins as pure persistence and learns
+only the deviation from it. Track loss is a lead-weighted Huber on per-step motion plus a cumulative
+Huber, never down-weighted by predicted variance; intensity uses masked Huber $+$ Gaussian NLL with a
+monotone wind-radii penalty.
+
+\paragraph{Random-matrix block-structured uncertainty head.} A full $340\times340$ output covariance
+is statistically ill-posed and would re-couple track to thermodynamics, so we impose a block-diagonal
+$\bm\Sigma=\mathrm{blkdiag}(\bm\Sigma_{\text{track}},\bm\Sigma_{\text{int}},\bm\Sigma_{\text{rad}})$
+with a matrix-normal track block and low-rank+diagonal thermodynamic blocks. Sample eigenvalues are
+cleaned with a two-point generalized sample-covariance model: the companion Stieltjes transform
+solves a cubic
+\begin{equation}
+a z\,m^3 + \big[a(z-y+1)+z\big]m^2 + \big[a+z-y+1-y\beta(a-1)\big]m + 1 = 0,
+\label{eq:cubic}
+\end{equation}
+whose loss of a real root marks the noise bulk's support edge $\lambda_+$; eigenvalues above
+$\lambda_+$ are retained as signal, the rest replaced by a positive floor (setting $a{=}1$ recovers
+the classical Marchenko--Pastur edge $\lambda_+=(1+\sqrt y)^2$). Fit on independent storm-block
+residuals and applied only after the mean heads converge, this sharpens calibration without touching
+the point forecast.
+
+\begin{table}[t]
+\centering
+\caption{Held-out test performance (lower is better). Track is RMS plane distance over 6--120\,h; the
+rest are masked MAE. All models evaluated on identical target windows. Best per column in \textbf{bold}.}
+\label{tab:results}
+\small
+\begin{tabular}{llccccc}
+\toprule
+split & model & track (km) & vmax (kt) & pres (hPa) & RMW (km) & radius (km)\\
+\midrule
+WP 2020+
+ & single-stream, 40-feat      & \oldWPtrack  & \oldWPvmax  & \oldWPpres  & \oldWPrmw  & \oldWPrad\\
+ & single-stream, 48-feat (v2) & \vtwoWPtrack & \vtwoWPvmax & \vtwoWPpres & \vtwoWPrmw & \vtwoWPrad\\
+ & TrackFormer (v3)            & \vthreeWPtrack & \vthreeWPvmax & \vthreeWPpres & \vthreeWPrmw & \vthreeWPrad\\
+ & TrackFormer (v8, +data)     & \veightWPtrack & \veightWPvmax & \veightWPpres & \veightWPrmw & \veightWPrad\\
+ & \textbf{TrackFormer (v9, +env)} & \vnineWPtrack & \vnineWPvmax & \vnineWPpres & \vnineWPrmw & \vnineWPrad\\
+\midrule
+all-basin 2020+
+ & single-stream, 40-feat      & \oldABtrack  & \oldABvmax  & \oldABpres  & \oldABrmw  & \oldABrad\\
+ & single-stream, 48-feat (v2) & \vtwoABtrack & \vtwoABvmax & \vtwoABpres & \vtwoABrmw & \vtwoABrad\\
+ & TrackFormer (v3)            & \vthreeABtrack & \vthreeABvmax & \vthreeABpres & \vthreeABrmw & \vthreeABrad\\
+ & TrackFormer (v8, +data)     & \veightABtrack & \veightABvmax & \veightABpres & \veightABrmw & \veightABrad\\
+ & \textbf{TrackFormer (v9, +env)} & \vnineABtrack & \vnineABvmax & \vnineABpres & \vnineABrmw & \vnineABrad\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Results summary.} The protected architecture (v3) lowers WP-2020+ track from
+$\oldWPtrack$ to $659.0$\,km ($-8.5\%$, storm-bootstrap $\Pr(\text{better})=0.995$) while
+\emph{improving} intensity/pressure/radius. Keeping partial-lead windows (storm-end/short-storm
+fixes, masked rather than discarded) doubled clean training windows and produced v8, best on every
+metric ($648.8$\,km WP). Adding a third \emph{environmental} stream of IBTrACS-derived absolute
+position, distance-to-land, and a climatological SST proxy --- since the dual-stream model is
+translation-invariant and cannot otherwise use latitude (Coriolis, recurvature, SST) --- produced
+v9, the best model in this appendix's line ($618.4$\,km WP, $543.4$\,km all-basin; Figure~\ref{fig:storms}).
+The consistent lesson: \textbf{data diversity $>$ engineered features $>$ parameters} (a 17.7M
+single-stream model overfit and did worse than a 3.3M one; a track-only model matched an ERA5-fed
+one). This is what motivated Section~\ref{sec:v10v34}'s environmental-steering branch, this paper's
+main subject.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{storms_v9.pdf}
+\caption{TrackFormer v9 (triple-stream) on three case studies, each a 120-hour forecast (teal, dashed)
+issued from an early fix (star) against the observed track (orange), with the 50-member RMT ensemble
+(faint). Absolute latitude sharpens the well-behaved \emph{Bavi} (2026) and \emph{halves} the error on
+the erratic \emph{Co-may} (2025), but cannot tame \emph{Wayne}'s (1986) five loops, where climatology
+is no substitute for the real-time steering flow. Bavi and Co-may are out-of-sample ($\ge$2020); Wayne
+(1986) is in the training window and shown as a stress test.}
+\label{fig:storms}
+\end{figure}
 
 \end{document}

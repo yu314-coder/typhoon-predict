@@ -70,7 +70,7 @@ storm-to-storm result, not a reliable effect.
    individually-checked real out-of-training storms.
 
 Full narrative, architecture equations, and every intermediate result: **`paper/trackformer.pdf`**,
-"Phase II: chain-of-thought steering and land-interaction testing." Map of every model tested
+"Chain-of-thought steering and land-interaction testing." Map of every model tested
 against all six storms: [`paper/all_storms_v23_v33_v34_mean_map.html`](../paper/all_storms_v23_v33_v34_mean_map.html).
 Training scripts: `colab_train_v17.ipynb` (base), `colab_v26_train.py` (v21 CoT),
 `colab_v28_train.py` (v23 temporal history), `colab_v36`–`v39_train.py` (v31–v34).
@@ -96,7 +96,7 @@ proxy, all **derived from IBTrACS** (no ERA5, still deployable on a fast CSV). v
 (translation-invariant); giving it absolute latitude — which drives Coriolis, recurvature, and SST —
 cut WP-2020+ track to **618 km (−31 vs v8)** and all-basin to **543 km (−37)**, with markedly better
 wind (vmax −2 kt). It also **halved the error on the erratic Co-may (2025)** case and improved Bavi
-(2026). See `paper/trackformer.pdf`, Phase I, for the architecture and derivation.
+(2026). See `paper/trackformer.pdf`, Appendix A, for the architecture and derivation.
 
 Both checkpoints store weights in fp16 (half the size, identical metrics) and are
 inference-only (optimizer state stripped). The track-only model predicts the **full 17-dim
@@ -135,7 +135,7 @@ but hurts track via **negative transfer**; the fix is architectural — a **prot
 routes kinematic and thermodynamic gradients separately. (3) The largest remaining gains came from
 **data, not architecture**: keeping the partial-lead windows (storm-end / short storms, masked instead
 of discarded) doubled the clean training set and improved *every* metric. Full analysis in
-`paper/trackformer.pdf`, Phase I.
+`paper/trackformer.pdf`, Appendix A.
 
 ### Loading
 
