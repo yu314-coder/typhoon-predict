@@ -63,9 +63,24 @@ def load(ck):
     m = V23().eval(); m.load_state_dict(torch.load(ck, map_location="cpu", weights_only=False)["model"]); return m
 
 
+def build_v10():
+    s = open("train_track_v10.py").read()
+    g = {"torch": torch, "nn": nn, "F": F, "math": math, "np": np, "os": os,
+         "STEER_DROP": 0.0, "STEER_CLIP": 4.0}
+    for pat in [r"KIN_COLS = .*?KIN_DIM, THERMO_DIM, ENV_DIM = len\(KIN_COLS\), len\(THERMO_COLS\), len\(ENV_COLS\)",
+                r"def sinusoidal.*?\n    return e", r"def enc\(.*?depth\)\n", r"def dec\(d.*?depth\)\n",
+                r"class TrackFormerV9.*?torch\.zeros_like\(motion\), ilog\], -1\)"]:
+        exec(re.search(pat, s, re.S).group(0), g)
+    return g["TrackFormerV9"]
+
+
+m10 = build_v10()()
+m10.load_state_dict(torch.load("track_build/track_v10_best.pt", map_location="cpu", weights_only=False)["model"])
+m10.eval()
+
 M23 = [load(f) for f in sorted(glob.glob("downloads/x/v23_seed*.pt"))]
 M35 = [load(f) for f in sorted(glob.glob("downloads/v35ck/v35_seed*.pt"))]
-print(f"v23: {len(M23)} | v35: {len(M35)} seeds")
+print(f"v10: 1 | v23: {len(M23)} | v35: {len(M35)} seeds")
 
 _T = np.load("track_build/terrain_wp.npz")
 T_LAT, T_LON, LSM = _T["lat"], _T["lon"], _T["lsm"]
@@ -158,12 +173,16 @@ def real_hist(base):
 
 
 @torch.no_grad()
-def forecast(ms, base):
+def forecast(tag, ms, base):
     seq_n, vpair, n_padded = build_window(base)
     tr = torch.from_numpy(seq_n[None]); vp = torch.from_numpy(vpair[None])
-    h, hv = real_hist(base)
-    args = [tr, vp, real_slp(base), h, hv]
-    motion = (torch.stack([m(*args)[0] for m in ms]).mean(0)[0] * SC).float().numpy()  # [20,17]
+    if tag == "v10":
+        sv, _ = m10(tr, vp)
+        motion = (sv[0] * SC).float().numpy()
+    else:
+        h, hv = real_hist(base)
+        args = [tr, vp, real_slp(base), h, hv]
+        motion = (torch.stack([m(*args)[0] for m in ms]).mean(0)[0] * SC).float().numpy()  # [20,17]
     la, lo = lat_a[base], lon_a[base]
     lats, lons, vmaxs, press = [], [], [], []
     for L in range(20):
@@ -174,10 +193,10 @@ def forecast(ms, base):
 
 
 out = {}
-for tag, ms in (("v23", M23), ("v35", M35)):
+for tag, ms in (("v10", None), ("v23", M23), ("v35", M35)):
     out[tag] = {"issues": []}
     for base in range(N):
-        lats, lons, vmaxs, press, n_padded = forecast(ms, base)
+        lats, lons, vmaxs, press, n_padded = forecast(tag, ms, base)
         out[tag]["issues"].append({
             "issue_time": DOLPHIN_TIMES[base], "base_lat": float(lat_a[base]), "base_lon": float(lon_a[base]),
             "lats": [round(x, 3) for x in lats], "lons": [round(x, 3) for x in lons],

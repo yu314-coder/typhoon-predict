@@ -11,8 +11,10 @@ import json, os
 import numpy as np
 
 R = 111.2
-COL = {"real": ("#222b33", "#e8eef4"), "v23": ("#2a78d6", "#3987e5"), "v35": ("#8b2fb0", "#c07de0")}
-NOTE = {"v23": "CoT + temporal steering", "v35": "v23 + intensity-reweighted loss"}
+COL = {"real": ("#222b33", "#e8eef4"), "v10": ("#7a8592", "#9fb0bd"),
+       "v23": ("#2a78d6", "#3987e5"), "v35": ("#8b2fb0", "#c07de0"), "jtwc": ("#c2410c", "#f0813f")}
+NOTE = {"v10": "no environment (track-only)", "v23": "CoT + temporal steering",
+        "v35": "v23 + intensity-reweighted loss"}
 
 DOLPHIN_TIMES = ["2026-07-27T00:00", "2026-07-27T06:00", "2026-07-27T12:00", "2026-07-27T18:00",
                  "2026-07-28T00:00", "2026-07-28T06:00", "2026-07-28T12:00", "2026-07-28T18:00",
@@ -37,6 +39,15 @@ def model_series(tag):
     return ts, latest["vmax"], latest["pressure"]
 
 
+# JTWC official forecast (Advisory #3, issued 2026-07-27 12:00 UTC) -- wind only, JTWC does not
+# publish forecast pressure at each TAU (confirmed by checking the advisory text directly; it only
+# gives pressure for the CURRENT position, not future ones).
+JTWC_TAU_H = [0, 12, 24, 48, 72, 96, 120]
+JTWC_ISSUE = np.datetime64("2026-07-27T12:00")
+JTWC_KT = [45, 55, 70, 100, 120, 140, 150]
+JTWC_T = [JTWC_ISSUE + np.timedelta64(int(h), "h") for h in JTWC_TAU_H]
+
+
 T0 = real_t[0]
 
 
@@ -44,11 +55,13 @@ def hours_since(t):
     return float((t - T0) / np.timedelta64(1, "h"))
 
 
-def chart(metric_key, label, unit, real_vals, model_vals, invert=False):
-    """model_vals: {tag: (ts, vals)}"""
+def chart(metric_key, label, unit, real_vals, model_vals, invert=False, raw_series=None):
+    """model_vals: {tag: (ts, vals)} anchored to the real/"now" point.
+    raw_series: {tag: (ts, vals)} drawn independently, own issue time (e.g. JTWC)."""
+    raw_series = raw_series or {}
     W, H, m = 560, 300, 48
-    all_t = real_t + [t for ts, _ in model_vals.values() for t in ts]
-    all_v = real_vals + [v for _, vals in model_vals.values() for v in vals]
+    all_t = real_t + [t for ts, _ in model_vals.values() for t in ts] + [t for ts, _ in raw_series.values() for t in ts]
+    all_v = real_vals + [v for _, vals in model_vals.values() for v in vals] + [v for _, vals in raw_series.values() for v in vals]
     hmin, hmax = 0, hours_since(max(all_t))
     vmin, vmax_ = min(all_v), max(all_v)
     pad = (vmax_ - vmin) * 0.12 + 1e-6
@@ -95,14 +108,22 @@ def chart(metric_key, label, unit, real_vals, model_vals, invert=False):
         o.append(f'<path d="{d}" class="ln {tag}"/>')
         ex, ey = pts[-1]
         o.append(f'<circle cx="{ex:.1f}" cy="{ey:.1f}" r="3" class="dot {tag}"/>')
+    for tag, (ts, vals) in raw_series.items():
+        pts = [(PX(t), PY(v)) for t, v in zip(ts, vals)]
+        d = "M" + " L".join(f"{x:.1f},{y:.1f}" for x, y in pts)
+        o.append(f'<path d="{d}" class="ln {tag}"/>')
+        for x, y in pts:
+            o.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2.8" class="dot {tag}"/>')
     o.append('</svg>')
 
     rows = []
     for tag, (ts, vals) in model_vals.items():
-        rows.append((tag, vals[-1]))
+        rows.append((tag, vals[-1], "@120h forecast"))
+    for tag, (ts, vals) in raw_series.items():
+        rows.append((tag, vals[-1], f"@{JTWC_TAU_H[-1]}h official forecast"))
     num = "".join(
         f'<div class="num {t}"><span class="sw"></span><b>{t}</b><span class="v">{v:.0f}{unit}</span>'
-        f'<span class="v120">@120h forecast</span></div>' for t, v in rows)
+        f'<span class="v120">{lbl}</span></div>' for t, v, lbl in rows)
     num = (f'<div class="num real"><span class="sw"></span><b>real</b>'
            f'<span class="v">{real_vals[-1]:.0f}{unit}</span><span class="v120">latest ob</span></div>') + num
     return (f'<figure class="card"><figcaption><h3>{label}</h3>'
@@ -110,17 +131,22 @@ def chart(metric_key, label, unit, real_vals, model_vals, invert=False):
             f'{"".join(o)}<div class="nums">{num}</div></figure>')
 
 
+v10_t, v10_vmax, v10_pres = model_series("v10")
 v23_t, v23_vmax, v23_pres = model_series("v23")
 v35_t, v35_vmax, v35_pres = model_series("v35")
 
-card_pres = chart("pressure", "Central pressure", "hPa", real_pres,
-                   {"v23": (v23_t, v23_pres), "v35": (v35_t, v35_pres)}, invert=True)
-card_vmax = chart("vmax", "Maximum wind (vmax)", "kt", real_vmax,
-                   {"v23": (v23_t, v23_vmax), "v35": (v35_t, v35_vmax)})
+MVALS = {"v10": (v10_t, v10_vmax), "v23": (v23_t, v23_vmax), "v35": (v35_t, v35_vmax)}
+PVALS = {"v10": (v10_t, v10_pres), "v23": (v23_t, v23_pres), "v35": (v35_t, v35_pres)}
+
+card_pres = chart("pressure", "Central pressure", "hPa", real_pres, PVALS, invert=True)
+card_vmax = chart("vmax", "Maximum wind (vmax)", "kt", real_vmax, MVALS,
+                   raw_series={"jtwc": (JTWC_T, JTWC_KT)})
 
 legend = ('<span class="lg real"><span class="sw"></span><b>real</b> observed, through latest ob</span>'
           + "".join(f'<span class="lg {t}"><span class="sw"></span><b>{t}</b> {NOTE[t]}, forecast from latest ob</span>'
-                    for t in ("v23", "v35")))
+                    for t in ("v10", "v23", "v35"))
+          + '<span class="lg jtwc"><span class="sw"></span><b>JTWC</b> official forecast, wind only '
+            '(no pressure published per-lead), Advisory #3</span>')
 
 palL = "".join(f".{t}.ln{{stroke:{c[0]};}} .{t} .sw,.dot.{t}{{background:{c[0]};fill:{c[0]};}}" for t, c in COL.items())
 palD = "".join(f".{t}.ln{{stroke:{c[1]};}} .{t} .sw,.dot.{t}{{background:{c[1]};fill:{c[1]};}}" for t, c in COL.items())
@@ -170,20 +196,24 @@ footer{{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:v
   <div class="eyebrow">TrackFormer &middot; predicted vs real, Typhoon Dolphin</div>
   <h1>Dolphin: predicted central pressure and vmax vs real</h1>
   <p class="lede">The dotted "now" line marks the latest real observation (2026-07-29 06:00 UTC).
-  Left of it: what actually happened. Right of it: v23's and v35's forecast, run on real fetched GFS
-  steering, issued from that same observation. Pressure is inverted on its axis (lower = stronger)
-  so both panels read "up and to the right = weakening" the same way.</p>
+  Left of it: what actually happened. Right of it: each model's forecast issued from that same
+  observation -- v10 (track-only, no steering) and v23/v35 (real fetched GFS steering) -- plus
+  JTWC's official Advisory #3 forecast (wind only; JTWC does not publish forecast pressure at each
+  lead, only for the current position). Pressure is inverted on its axis (lower = stronger) so both
+  panels read "up and to the right = weakening" the same way.</p>
   <div class="legend">{legend}</div>
  </header>
  <div class="grid">{card_pres}{card_vmax}</div>
  <footer>
-  <p><b>Both models forecast weakening from here.</b> Real pressure bottomed at 937 hPa (Jul 28
-  18:00), already recovering slightly to 941 hPa by the latest observation. v23 and v35 both
-  extrapolate that recovery forward -- pressure continuing to rise (weakening) through the 120h
-  horizon -- which is the same "weakening" call visible in the vmax panel and the earlier overlay
-  map. This is the opposite of JTWC's official forecast, which calls for renewed intensification to
-  150 kt / ~915 hPa. Whether the real storm follows the models' extrapolation-of-recent-trend or
-  JTWC's synoptic reasoning will be visible in the next few days of real observations.</p>
+  <p><b>All three of this project's models forecast weakening from here -- JTWC forecasts the
+  opposite.</b> Real pressure bottomed at 937 hPa (Jul 28 18:00), already recovering slightly to
+  941 hPa by the latest observation. v10, v23, and v35 all extrapolate that recovery forward --
+  pressure rising (weakening) and wind falling through the 120h horizon -- v10 most aggressively
+  (57 kt by 120h) since it has no steering/environmental information to reason from beyond the raw
+  kinematic trend, while v23/v35 (99/98 kt by 120h) are less extreme. JTWC's official forecast
+  points the opposite direction entirely: continued intensification to 150 kt / ~915 hPa. Whether
+  the real storm follows the models' extrapolation-of-recent-trend or JTWC's synoptic reasoning
+  will be visible in the next few days of real observations.</p>
  </footer>
 </div>"""
 
