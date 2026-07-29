@@ -99,6 +99,26 @@ JTWC_RAW = [  # (lat, lon, kt) -- TAU 0/12/24/48/72/96/120h, Advisory #3
 ]
 JTWC_FCST = [(la, lo, float(kt), t) for (la, lo, kt), t in zip(JTWC_RAW, JTWC_TIMES)]
 
+# v23/v35's own forecast on Dolphin, from the LATEST issue (2026-07-29 06:00 UTC), using REAL GFS
+# steering fetched by _fetch_dolphin_steering.py -- see _dolphin_v23_v35.py.
+_dv = json.load(open("track_build/dolphin_v23_v35.json"))
+LEAD_TIMES_H = list(range(6, 121, 6))
+
+
+def _model_fcst(tag):
+    latest = _dv[tag]["issues"][-1]
+    t0 = np.datetime64(latest["issue_time"])
+    pts = []
+    for i, h in enumerate(LEAD_TIMES_H):
+        t = t0 + np.timedelta64(int(h), "h")
+        pts.append((latest["lats"][i], latest["lons"][i], latest["vmax"][i],
+                    str(t).replace("T", " ") + " (+" + str(h) + "h)"))
+    return pts
+
+
+V23_FCST = _model_fcst("v23")
+V35_FCST = _model_fcst("v35")
+
 LAND = json.load(open("track_build/geo/ne/ne_50m_land.geojson"))
 
 
@@ -189,11 +209,15 @@ for nm in STORMS:
     cards.append(f'<figure class="panel"><figcaption><h3>{nm}</h3></figcaption>{panel(nm, series)}</figure>')
 
 dolphin_series = [("real", "Real (observed, partial)", "solid", 4.2, 1.0, DOLPHIN_REAL),
-                   ("jtwc", "JTWC official forecast (Advisory #3)", "dashed", 3.4, 0.9, JTWC_FCST)]
+                   ("jtwc", "JTWC official forecast (Advisory #3)", "dotted", 3.4, 0.9, JTWC_FCST),
+                   ("v23", "v23 forecast (issued 2026-07-29 06:00, real GFS steering)", "dashed", 3.0, 0.9, V23_FCST),
+                   ("v35", "v35 forecast (issued 2026-07-29 06:00, real GFS steering)", "dashdot", 3.0, 0.9, V35_FCST)]
 cards.append(f'<figure class="panel"><figcaption><h3>Dolphin <span class="sub">2026, active</span></h3>'
-             f'<p>No steering-field data yet -- v23/v35 cannot run on it. JMA/NCDR/ECMWF/Google '
-             f'DeepMind forecasts exist in press coverage but no verifiable coordinate table was '
-             f'found, so only JTWC (which publishes one) is shown.</p></figcaption>'
+             f'<p>v23/v35 now run on REAL fetched GFS steering (NOMADS, see '
+             f'_fetch_dolphin_steering.py) -- their latest forecast (issued from the most recent '
+             f'observation) predicts weakening; JTWC\'s official forecast predicts continued '
+             f'intensification. JMA/NCDR/ECMWF/Google DeepMind forecasts exist in press coverage '
+             f'but no verifiable coordinate table was found for them.</p></figcaption>'
              f'{panel("Dolphin", dolphin_series)}</figure>')
 cards = "".join(cards)
 
@@ -205,7 +229,7 @@ legend_model = "".join(
     f'class="ln {tag}" style="{STROKE_STYLE[style]}"/></svg>{label}</span>'
     for tag, label, style, *_ in MODELS)
 legend_model += ('<span class="lg"><svg width="26" height="10" class="lgsvg"><line x1="1" y1="5" x2="25" y2="5" '
-                  f'class="ln jtwc" style="{STROKE_STYLE["dashed"]}"/></svg>JTWC official forecast (Dolphin only)</span>')
+                  f'class="ln jtwc" style="{STROKE_STYLE["dotted"]}"/></svg>JTWC official forecast (Dolphin only)</span>')
 
 _palL = "".join(f".{c}{{fill:{v[0]};}}" for c, v in COL.items())
 _palD = "".join(f".{c}{{fill:{v[1]};}}" for c, v in COL.items())
@@ -268,19 +292,26 @@ footer{{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:v
   <h1>Real track vs v23 / v35 (+ JTWC for Dolphin), colored by intensity category</h1>
   <p class="lede"><b>Hover or click any point</b> to see exactly what it is: model/source, time,
   position, wind speed, and category. One map per storm: real (solid, largest dots) plus each
-  model's mean-by-valid-time forecast (v23 dashed, v35 dash-dot). Dolphin instead overlays its real
-  partial track with JTWC's official forecast (dashed orange) -- v23/v35 can't run on it without a
-  real steering field, which doesn't exist for it yet.</p>
+  model's mean-by-valid-time forecast (v23 dashed, v35 dash-dot). Dolphin now also runs v23/v35 on
+  REAL fetched GFS steering (their forecast issued from the latest observation), alongside JTWC's
+  official forecast (dotted orange) for comparison -- notably, v23/v35 predict Dolphin
+  <b>weakening</b> over the next 5 days while JTWC predicts continued intensification toward
+  Category 5.</p>
   <div class="legend">{legend_cat}</div>
   <div class="legend model">{legend_model}</div>
  </header>
  <div class="grid">{cards}</div>
  <footer>
-  <p>v23/v35 paths are mean-by-valid-time: at each 6h valid time, the mean position and mean vmax
-  across every forecast whose lead lands on that moment (bins under 3 contributing forecasts
-  dropped). JTWC's Dolphin forecast is the official TAU 0/12/24/48/72/96/120h track from Advisory
-  #3 (issued 2026-07-27 12:00 UTC) -- a single forecast, not an ensemble mean, and already several
-  advisory cycles old relative to the latest observation shown.</p>
+  <p>v23/v35 paths for Tip/Bavi/Hinnamnor/Co-may are mean-by-valid-time: at each 6h valid time, the
+  mean position and mean vmax across every forecast whose lead lands on that moment (bins under 3
+  contributing forecasts dropped). For Dolphin, v23/v35 instead show the single forecast issued
+  from the LATEST real observation (2026-07-29 06:00 UTC), run on real GFS deep-layer-mean steering
+  (850/500/200 hPa u/v) fetched from NOAA/NOMADS for each of Dolphin's 10 issue times
+  (<code>_fetch_dolphin_steering.py</code>, <code>_dolphin_v23_v35.py</code>) -- the same real-data
+  discipline used for Noul, not a zero-filled fallback. JTWC's Dolphin forecast is the official TAU
+  0/12/24/48/72/96/120h track from Advisory #3 (issued 2026-07-27 12:00 UTC) -- a single forecast,
+  not an ensemble mean, and already several advisory cycles old relative to the latest observation
+  shown.</p>
   <p><b>On JMA/NCDR/ECMWF/Google DeepMind for Dolphin.</b> Public reporting describes these
   qualitatively (DeepMind and half of ECMWF's ensemble trending northwest, GFS/HWRF/HAFS-A trending
   west-northwest) but no numeric coordinate table for any of them was found accessible without
