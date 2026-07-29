@@ -165,23 +165,24 @@ def forecast(ms, base):
     args = [tr, vp, real_slp(base), h, hv]
     motion = (torch.stack([m(*args)[0] for m in ms]).mean(0)[0] * SC).float().numpy()  # [20,17]
     la, lo = lat_a[base], lon_a[base]
-    lats, lons, vmaxs = [], [], []
+    lats, lons, vmaxs, press = [], [], [], []
     for L in range(20):
         e, n = motion[L, 0], motion[L, 1]
         la = la + n / R; lo = lo + e / (R * math.cos(math.radians(la))); lats.append(la); lons.append(lo)
-        vmaxs.append(float(motion[L, 2]))
-    return lats, lons, vmaxs, n_padded
+        vmaxs.append(float(motion[L, 2])); press.append(float(motion[L, 3]))
+    return lats, lons, vmaxs, press, n_padded
 
 
 out = {}
 for tag, ms in (("v23", M23), ("v35", M35)):
     out[tag] = {"issues": []}
     for base in range(N):
-        lats, lons, vmaxs, n_padded = forecast(ms, base)
+        lats, lons, vmaxs, press, n_padded = forecast(ms, base)
         out[tag]["issues"].append({
             "issue_time": DOLPHIN_TIMES[base], "base_lat": float(lat_a[base]), "base_lon": float(lon_a[base]),
             "lats": [round(x, 3) for x in lats], "lons": [round(x, 3) for x in lons],
-            "vmax": [round(x, 1) for x in vmaxs], "n_padded": n_padded,
+            "vmax": [round(x, 1) for x in vmaxs], "pressure": [round(x, 1) for x in press],
+            "n_padded": n_padded,
         })
     latest = out[tag]["issues"][-1]
     print(f"{tag} latest forecast (issued {latest['issue_time']}): "
