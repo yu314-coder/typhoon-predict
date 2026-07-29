@@ -1,11 +1,15 @@
-"""v23 and v35 forecasts on Typhoon Dolphin (2026), using REAL GFS deep-layer-mean steering
-(track_build/dolphin_dlm4_real.npz, from _fetch_dolphin_steering.py) -- the same real-data
-discipline used for Noul (_noul_v33.py): unavailable fields (RMW, gust, wind radii, pre-genesis
-history) are zero-filled with an explicit availability flag, never fabricated.
+"""v10/v23/v35 forecasts on Typhoon Dolphin (2026). v23/v35 run twice: once on REAL GFS
+deep-layer-mean steering (track_build/dolphin_dlm4_real.npz, from _fetch_dolphin_steering.py --
+the same real-data discipline used for Noul/_noul_v33.py), and once as an IBTrACS-only ablation
+("v23_ibt"/"v35_ibt") with the steering field and history-availability flag zero-filled -- i.e.
+track/intensity history alone, the same information v10 has, showing what the steering field
+actually buys these models on this storm. Unavailable fields (RMW, gust, wind radii, pre-genesis
+history) are always zero-filled with an explicit availability flag, never fabricated.
 
-Writes track_build/dolphin_v23_v35.json: for each model, the LATEST issue's (2026-07-29 06:00
-UTC) full 20-lead forecast track + vmax -- i.e. "what does the model predict right now" -- plus
-each earlier issue's forecast for context (all issues, not just the latest).
+Writes track_build/dolphin_v23_v35.json: for each of v10/v23/v35/v23_ibt/v35_ibt, the LATEST
+issue's (2026-07-29 06:00 UTC) full 20-lead forecast track + vmax -- i.e. "what does the model
+predict right now" -- plus each earlier issue's forecast for context (all issues, not just the
+latest).
 """
 import json, re, math, os, glob, numpy as np, torch, torch.nn as nn, torch.nn.functional as F
 
@@ -172,16 +176,33 @@ def real_hist(base):
     return torch.from_numpy(hist), torch.from_numpy(have)
 
 
+# IBTrACS-only ablation: zero-filled steering field + zero-filled history-availability flag, the
+# same "unavailable == exact zeros, not fabricated" convention this project uses whenever a field
+# genuinely isn't there -- shows what v23/v35 predict from track/intensity history alone (own past
+# positions + wind + pressure, no synoptic steering), the same information v10 has.
+def zero_slp():
+    return torch.zeros((1, 4, 17, 17), dtype=torch.float32)
+
+
+def zero_hist():
+    return torch.zeros((1, 8, 17, 17), dtype=torch.float32), torch.zeros((1, 2), dtype=torch.float32)
+
+
 @torch.no_grad()
-def forecast(tag, ms, base):
+def forecast(tag, ms, base, steering="real"):
     seq_n, vpair, n_padded = build_window(base)
     tr = torch.from_numpy(seq_n[None]); vp = torch.from_numpy(vpair[None])
     if tag == "v10":
         sv, _ = m10(tr, vp)
         motion = (sv[0] * SC).float().numpy()
     else:
-        h, hv = real_hist(base)
-        args = [tr, vp, real_slp(base), h, hv]
+        if steering == "real":
+            h, hv = real_hist(base)
+            slp = real_slp(base)
+        else:
+            h, hv = zero_hist()
+            slp = zero_slp()
+        args = [tr, vp, slp, h, hv]
         motion = (torch.stack([m(*args)[0] for m in ms]).mean(0)[0] * SC).float().numpy()  # [20,17]
     la, lo = lat_a[base], lon_a[base]
     lats, lons, vmaxs, press = [], [], [], []
@@ -193,10 +214,11 @@ def forecast(tag, ms, base):
 
 
 out = {}
-for tag, ms in (("v10", None), ("v23", M23), ("v35", M35)):
+for tag, ms, steering in (("v10", None, None), ("v23", M23, "real"), ("v35", M35, "real"),
+                           ("v23_ibt", M23, "zero"), ("v35_ibt", M35, "zero")):
     out[tag] = {"issues": []}
     for base in range(N):
-        lats, lons, vmaxs, press, n_padded = forecast(tag, ms, base)
+        lats, lons, vmaxs, press, n_padded = forecast(tag, ms, base, steering or "real")
         out[tag]["issues"].append({
             "issue_time": DOLPHIN_TIMES[base], "base_lat": float(lat_a[base]), "base_lon": float(lon_a[base]),
             "lats": [round(x, 3) for x in lats], "lons": [round(x, 3) for x in lons],
