@@ -1,0 +1,66 @@
+<meta charset="utf-8">
+<title>v10 vs v23 vs v34 -- mean forecast vs real, Typhoon Tip (1979)</title>
+<style>
+:root{color-scheme:light;--bg:#f2f4f6;--surface:#fcfcfb;--ink:#111820;--body:#2c3a47;--muted:#5d6c7a;
+ --line:#d5dce3;--grid:#c3ccd5;--obs:#11181f;--sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+ --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;.v10.ln{stroke:#eda100;} .v10 .sw,.dot.v10{background:#eda100;fill:#eda100;}.v23.ln{stroke:#eb6834;} .v23 .sw,.dot.v23{background:#eb6834;fill:#eb6834;}.v34.ln{stroke:#8b2fb0;} .v34 .sw,.dot.v34{background:#8b2fb0;fill:#8b2fb0;}}
+@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){color-scheme:dark;
+ --bg:#0c1117;--surface:#141c25;--ink:#e8eef4;--body:#c2cdd8;--muted:#8697a5;--line:#26313d;--grid:#2b3745;--obs:#f0f5fa;.v10.ln{stroke:#c98500;} .v10 .sw,.dot.v10{background:#c98500;fill:#c98500;}.v23.ln{stroke:#d95926;} .v23 .sw,.dot.v23{background:#d95926;fill:#d95926;}.v34.ln{stroke:#c07de0;} .v34 .sw,.dot.v34{background:#c07de0;fill:#c07de0;}}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0c1117;--surface:#141c25;--ink:#e8eef4;--body:#c2cdd8;
+ --muted:#8697a5;--line:#26313d;--grid:#2b3745;--obs:#f0f5fa;.v10.ln{stroke:#c98500;} .v10 .sw,.dot.v10{background:#c98500;fill:#c98500;}.v23.ln{stroke:#d95926;} .v23 .sw,.dot.v23{background:#d95926;fill:#d95926;}.v34.ln{stroke:#c07de0;} .v34 .sw,.dot.v34{background:#c07de0;fill:#c07de0;}}
+body{background:var(--bg);color:var(--body);font-family:var(--sans);font-size:16px;line-height:1.6;}
+.wrap{max-width:1120px;margin:0 auto;padding:clamp(24px,5vw,52px) clamp(16px,4vw,32px) 80px;
+ display:flex;flex-direction:column;gap:26px;}
+h1{color:var(--ink);font-size:clamp(24px,3.6vw,36px);line-height:1.14;letter-spacing:-.02em;margin:0;font-weight:660;}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);}
+.lede{max-width:80ch;font-size:14.5px;margin:0;}
+header{display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(--line);padding-bottom:22px;}
+.legend{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:13px;}
+.lg,.num{display:flex;align-items:center;gap:7px;}
+.sw{width:15px;height:4px;border-radius:2px;display:inline-block;}
+.sw.obs{background:repeating-linear-gradient(90deg,var(--obs) 0 3px,transparent 3px 6px);}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:16px;}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 14px 10px;margin:0;
+ display:flex;flex-direction:column;gap:6px;}
+figcaption h3{color:var(--ink);font-size:14px;font-weight:640;margin:0;}
+.unit{font-size:11.5px;color:var(--muted);margin:0;}
+.chart{width:100%;height:auto;display:block;}
+.gl{stroke:var(--grid);stroke-width:.6;opacity:.5;}
+.ax{font-family:var(--mono);font-size:8px;fill:var(--muted);}
+.axl{font-family:var(--mono);font-size:8.5px;fill:var(--muted);}
+.ln{fill:none;stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round;}
+.obs{fill:none;stroke:var(--obs);stroke-width:2.2;stroke-dasharray:1.4 3;stroke-linecap:round;}
+.nums{display:flex;flex-wrap:wrap;gap:6px 14px;border-top:1px solid var(--line);padding-top:8px;font-size:12px;}
+.num b{color:var(--ink);font-family:var(--mono);font-size:11px;}
+.num .v{font-family:var(--mono);color:var(--ink);font-weight:600;}
+.num .v120{font-family:var(--mono);color:var(--muted);font-size:10.5px;}
+footer{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:var(--muted);max-width:80ch;
+ display:flex;flex-direction:column;gap:8px;}
+</style>
+<div class="wrap">
+ <header>
+  <div class="eyebrow">TrackFormer &middot; mean forecast vs reality</div>
+  <h1>v10 vs v23 vs v34 &mdash; Typhoon Tip (1979)</h1>
+  <p class="lede">Tip is the most intense tropical cyclone ever recorded (870&nbsp;hPa central
+  pressure). The dotted black line is what actually happened; each colored line is that model's
+  ensemble-mean forecast at each lead. All three models increasingly underestimate Tip's real
+  intensity as lead time grows &mdash; none of them ever forecasts the storm reaching what it
+  actually reached by 120&nbsp;h.</p>
+  <div class="legend"><span class="lg v10"><span class="sw"></span><b>v10</b> no environment</span><span class="lg v23"><span class="sw"></span><b>v23</b> chain-of-thought + temporal steering</span><span class="lg v34"><span class="sw"></span><b>v34</b> LandGate, frozen v23 backbone</span><span class="lg"><span class="sw obs"></span><b>observed</b> real IBTrACS best track</span></div>
+ </header>
+ <div class="grid"><figure class="card"><figcaption><h3>Maximum wind (vmax)</h3><p class="unit">mean forecast (ensemble-averaged) vs. observed &middot; kt</p></figcaption><svg viewBox="0 0 520 300" class="chart" role="img" aria-label="Maximum wind (vmax) on Typhoon Tip"><line class="gl" x1="46" x2="506" y1="266.0" y2="266.0"/><text class="ax" x="39.0" y="269.0" text-anchor="end">76</text><line class="gl" x1="46" x2="506" y1="203.5" y2="203.5"/><text class="ax" x="39.0" y="206.5" text-anchor="end">85</text><line class="gl" x1="46" x2="506" y1="141.0" y2="141.0"/><text class="ax" x="39.0" y="144.0" text-anchor="end">94</text><line class="gl" x1="46" x2="506" y1="78.5" y2="78.5"/><text class="ax" x="39.0" y="81.5" text-anchor="end">104</text><line class="gl" x1="46" x2="506" y1="16.0" y2="16.0"/><text class="ax" x="39.0" y="19.0" text-anchor="end">113</text><line class="gl" x1="118.6" x2="118.6" y1="16" y2="266"/><text class="ax" x="118.6" y="281.0" text-anchor="middle">24</text><line class="gl" x1="215.5" x2="215.5" y1="16" y2="266"/><text class="ax" x="215.5" y="281.0" text-anchor="middle">48</text><line class="gl" x1="312.3" x2="312.3" y1="16" y2="266"/><text class="ax" x="312.3" y="281.0" text-anchor="middle">72</text><line class="gl" x1="409.2" x2="409.2" y1="16" y2="266"/><text class="ax" x="409.2" y="281.0" text-anchor="middle">96</text><line class="gl" x1="506.0" x2="506.0" y1="16" y2="266"/><text class="ax" x="506.0" y="281.0" text-anchor="middle">120</text><text class="axl" x="276.0" y="296.0" text-anchor="middle">forecast hour</text><text class="axl" transform="translate(12,141.0) rotate(-90)" text-anchor="middle">kt</text><path d="M46.0,176.5 L70.2,167.9 L94.4,159.4 L118.6,151.4 L142.8,144.8 L167.1,139.0 L191.3,133.8 L215.5,130.2 L239.7,128.0 L263.9,126.2 L288.1,118.7 L312.3,110.9 L336.5,102.8 L360.7,94.4 L384.9,85.6 L409.2,76.4 L433.4,67.1 L457.6,58.1 L481.8,49.2 L506.0,40.2" class="obs"/><path d="M46.0,155.6 L70.2,154.9 L94.4,154.4 L118.6,157.2 L142.8,157.1 L167.1,159.5 L191.3,160.2 L215.5,161.2 L239.7,161.7 L263.9,166.6 L288.1,172.7 L312.3,182.1 L336.5,187.1 L360.7,187.0 L384.9,184.4 L409.2,187.2 L433.4,189.9 L457.6,196.1 L481.8,195.2 L506.0,191.8" class="ln v10"/><circle cx="506.0" cy="191.8" r="2.8" class="dot v10"/><path d="M46.0,192.8 L70.2,189.5 L94.4,183.4 L118.6,176.0 L142.8,169.2 L167.1,165.4 L191.3,163.8 L215.5,165.4 L239.7,169.4 L263.9,174.8 L288.1,179.6 L312.3,184.9 L336.5,190.2 L360.7,196.0 L384.9,202.4 L409.2,208.7 L433.4,216.3 L457.6,223.8 L481.8,229.3 L506.0,233.1" class="ln v23"/><circle cx="506.0" cy="233.1" r="2.8" class="dot v23"/><path d="M46.0,186.7 L70.2,183.4 L94.4,175.9 L118.6,167.5 L142.8,160.9 L167.1,157.9 L191.3,157.0 L215.5,161.8 L239.7,166.7 L263.9,173.5 L288.1,177.9 L312.3,181.7 L336.5,187.2 L360.7,191.6 L384.9,198.1 L409.2,204.6 L433.4,213.6 L457.6,224.7 L481.8,233.9 L506.0,241.8" class="ln v34"/><circle cx="506.0" cy="241.8" r="2.8" class="dot v34"/></svg><div class="nums"><div class="num v10"><span class="sw"></span><b>v10</b><span class="v">87.0</span><span class="v120">real 109.2 @120h</span></div><div class="num v23"><span class="sw"></span><b>v23</b><span class="v">80.9</span><span class="v120">real 109.2 @120h</span></div><div class="num v34"><span class="sw"></span><b>v34</b><span class="v">79.6</span><span class="v120">real 109.2 @120h</span></div></div></figure></div>
+ <footer>
+  <p><b>How to read it.</b> The panel averages over Tip's 105 full-horizon forecasts (real value
+  and each model's mean forecast, at each lead, masked to windows with a valid vmax target --
+  Tip's central-pressure record has no valid target at any lead, a pre-satellite data gap, not
+  shown here). The gap between the dotted observed line and a colored forecast line at a given lead is
+  that model's mean bias at that lead &mdash; not an error bar, a systematic pull toward weaker
+  predictions the further out the forecast reaches.</p>
+  <p><b>None of the architecture changes tested in this project fix this.</b> v23's steering-flow
+  representation and v34's land-interaction gate both target track, not intensity, and neither
+  narrows the gap on Tip specifically &mdash; if anything v23/v34 are slightly more conservative
+  than the plain track-only v10 baseline at 96&ndash;120&nbsp;h. Extreme-intensity forecasting needs
+  information (ocean heat content, wind shear, eyewall structure) that none of v10/v23/v34's inputs
+  carry.</p>
+ </footer>
+</div>
