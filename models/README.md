@@ -8,9 +8,9 @@ operational warning system.
 A separate, later line of experiments (`colab_train_v17.ipynb` onward, `colab_v2*`–`colab_v39_train.py`)
 iterates a WP-focused TrackFormer on a fuller test set (WP+EP, 2020+, full 20-lead windows,
 3,763 windows) than the released-checkpoint table below. **v23 is the current best model in the
-whole project.** These checkpoints are research artifacts, not yet converted/released to this
-directory as a packaged inference format — see "Released checkpoints" below for what you can
-actually load and run today.
+whole project**, and its 10-seed ensemble is released in this directory
+(`v23_seed0.pt`–`v23_seed9.pt`, 52.6 MB each, fp32) with a standalone architecture module and
+CLI — see "Usage — v23" below.
 
 ### Architecture progression
 
@@ -74,6 +74,47 @@ Full narrative, architecture equations, and every intermediate result: **`paper/
 against all six storms: [`paper/all_storms_v23_v33_v34_mean_map.html`](../paper/all_storms_v23_v33_v34_mean_map.html).
 Training scripts: `colab_train_v17.ipynb` (base), `colab_v26_train.py` (v21 CoT),
 `colab_v28_train.py` (v23 temporal history), `colab_v36`–`v39_train.py` (v31–v34).
+
+### Usage — v23 (this directory)
+
+Files: `v23_seed0.pt`–`v23_seed9.pt` (checkpoints, average their output for the ensemble),
+`trackformer_v23.py` (the architecture — copied verbatim from the training scripts, no
+notebook/exec tricks), `v23_norm_stats.npz` + `v23_terrain_wp.npz` (small companion data, a few
+hundred KB total), `run_v23.py` (CLI).
+
+v23 runs in two modes, controlled by whether you pass `--steering`:
+
+**IBTrACS-only** (default) — give it nothing but the storm's own recent track: position, max wind,
+central pressure. This is what any best-track record (IBTrACS itself, or any agency's advisory)
+gives you for a storm, nothing more. The steering field and its 12h/24h history are zero-filled
+with an explicit availability flag — the same "unavailable == exact zeros, not fabricated"
+convention used throughout this project, not a degraded/broken input.
+
+```bash
+python run_v23.py --track my_storm.json --out forecast.json
+```
+
+**Full data** — additionally give it a real deep-layer-mean steering-wind patch (850/500/200 hPa
+u/v, 2.5° resolution, ±20° box centered on the storm) for the current fix and, ideally, the two
+fixes 12h/24h before it. This is what the project's headline **434.96 km** result requires.
+
+```bash
+python run_v23.py --track my_storm.json --steering my_steering.npz --out forecast.json
+```
+
+`my_storm.json` is a list of fixes, oldest→newest, spaced 6h apart, ending at the fix to forecast
+from — see `run_v23.py`'s module docstring for the exact schema and an example. `my_steering.npz`
+is keyed by the same ISO timestamps; `_fetch_dolphin_steering.py` (repo root) is a complete, working
+example of building one from NOAA/NOMADS GFS analysis fields for a live storm (ERA5 works the same
+way for a past one).
+
+**How much does the steering field actually matter?** Tested directly on Typhoon Dolphin (2026,
+active as of this writing): with real fetched GFS steering, v23's 120h forecast was 14.7°N,150.7°E /
+99 kt / 951 hPa; with the steering field zeroed out (IBTrACS-only) it was 17.5°N,156.3°E / 90 kt /
+957 hPa — the track moved by several hundred km while the intensity forecast only softened modestly.
+So the steering field mainly earns its keep on **track**, not intensity, at least on this storm —
+see `paper/dolphin_pressure_vmax_chart.html` and `paper/overlay_real_vs_models.html` for the full
+comparison (both also show v10, JTWC, and JMA for context).
 
 ## Released checkpoints: StormFusion-MT and TrackFormer v1–v9
 
@@ -169,5 +210,6 @@ window npz; TrackFormer: `track_mean`/`track_std` in the checkpoint). Multiply p
 - The real ceiling is storm **diversity** (~13k storms exist); bigger models overfit.
 - Sparse/missing wind-radius labels; no calibration or comparison to official agencies, in either line.
 - Pre-satellite (older) track/intensity labels are lower quality.
-- The v10–v34 line's checkpoints are research artifacts only — no packaged local-inference format
-  exists for them yet (unlike the released checkpoints table above).
+- v24–v34 (the further additions and land-interaction line built on top of v23) remain research
+  artifacts only, no packaged local-inference format — only v23 itself is released, see "Usage —
+  v23" above.

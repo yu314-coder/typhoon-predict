@@ -60,11 +60,44 @@ only a small addition isolates a causal effect that comparing two from-scratch r
 large in-distribution aggregate test set does not always agree with genuinely out-of-training
 real-storm validation.
 
-These are research checkpoints, not yet converted to this card's release format — see below for
-checkpoints you can load and run today. Full write-up, architecture equations, and every
-intermediate result: `paper/trackformer.pdf`, "Chain-of-thought steering and
-land-interaction testing," in the GitHub repo
+v23's 10-seed ensemble is released in this repo (`v23_seed0.pt`–`v23_seed9.pt`, fp32, 52.6 MB
+each) with a standalone architecture module and CLI — see "Usage — v23" below. Full write-up,
+architecture equations, and every intermediate result: `paper/trackformer.pdf`, "Chain-of-thought
+steering and land-interaction testing," in the GitHub repo
 (**https://github.com/yu314-coder/typhoon-predict**).
+
+## Usage — v23
+
+Two modes, controlled by whether you pass `--steering`:
+
+**IBTrACS-only** (default) — give it nothing but the storm's own recent track (position, max wind,
+central pressure). This is what any best-track record gives you for a storm, nothing more. The
+steering field and its 12h/24h history are zero-filled with an explicit availability flag — the
+same "unavailable == exact zeros, not fabricated" convention used throughout this project.
+
+```bash
+python run_v23.py --track my_storm.json --out forecast.json
+```
+
+**Full data** — additionally supply a real deep-layer-mean steering-wind patch (850/500/200 hPa
+u/v, 2.5° resolution, ±20° box centered on the storm) for the current fix and, ideally, the two
+fixes 12h/24h before it. This is what the headline **434.96 km** result requires.
+
+```bash
+python run_v23.py --track my_storm.json --steering my_steering.npz --out forecast.json
+```
+
+`my_storm.json`: a list of fixes, oldest→newest, spaced 6h apart, ending at the fix to forecast
+from — see `run_v23.py`'s docstring for the exact schema. `my_steering.npz`: keyed by the same ISO
+timestamps; the GitHub repo's `_fetch_dolphin_steering.py` is a complete working example of
+building one from NOAA/NOMADS GFS analysis fields for a live storm (ERA5 works the same way for a
+past one).
+
+**How much does the steering field matter?** Tested on Typhoon Dolphin (2026, active as of this
+writing): with real fetched GFS steering, v23's 120h forecast was 14.7°N,150.7°E / 99 kt / 951 hPa;
+with the steering field zeroed out (IBTrACS-only) it was 17.5°N,156.3°E / 90 kt / 957 hPa — the
+track moved by several hundred km while intensity only softened modestly. So on this storm the
+steering field mainly earns its keep on **track**, not intensity.
 
 ## Released checkpoints: StormFusion-MT & TrackFormer v1–v9
 
@@ -127,7 +160,8 @@ data under its own access and licensing terms.
 - Research models throughout — not operational quality in either line. TrackFormer v23 (434.96 km
   RMS track error, 6–120 h) and the released StormFusion-MT/TrackFormer v1–v9 checkpoints
   (~618–730 km, different test split) are both far from operational.
-- The v10–v34 line's checkpoints are not yet packaged for this card's load/run format.
+- v24–v34 (the further additions and land-interaction line built on top of v23) remain research
+  artifacts, not packaged for this card's load/run format — only v23 itself is released.
 - The real ceiling is storm **diversity** (~13k storms have ever existed); larger models overfit.
 - Wind-radius labels are sparse; no calibration or comparison against official agency forecasts.
 - Pre-satellite track/intensity labels are lower quality.
