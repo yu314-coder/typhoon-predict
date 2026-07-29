@@ -1,9 +1,8 @@
 """Real track overlaid with v23/v35 mean forecasts (v10 dropped), colored by intensity category,
 with interactive hover/click tooltips on every point. Tip, Bavi, Hinnamnor, Co-may use the model
-overlay; Dolphin (no real steering-field data, so v23/v35 can't run on it) instead overlays its
-real partial track with JTWC's official forecast track (the only one of JMA/NCDR/ECMWF/DeepMind
-with a publicly extractable numeric coordinate table -- see module docstring in
-_overlay_predictions.py's sibling research for what was and wasn't verifiable).
+overlay; Dolphin (now with real fetched GFS steering, see _fetch_dolphin_steering.py) overlays its
+real partial track with v23/v35's own forecast plus JTWC's and JMA/RSMC Tokyo's official forecast
+tracks (NCDR/Google DeepMind still lack a publicly extractable numeric coordinate table).
 """
 import json, os
 import numpy as np
@@ -18,9 +17,10 @@ MODELS = [("real", "Real (observed)", "solid", 4.2, 1.0),
           ("v23", "v23 (CoT + temporal steering)", "dashed", 2.8, 0.9),
           ("v35", "v35 (v23 + intensity-reweighted loss)", "dashdot", 2.8, 0.9)]
 STROKE_STYLE = {"solid": "", "dotted": "stroke-dasharray:1.4 3.2;",
-                "dashed": "stroke-dasharray:6 3;", "dashdot": "stroke-dasharray:6 2 1.4 2;"}
-LCOL = {"real": "#222b33", "v23": "#2a78d6", "v35": "#8b2fb0", "jtwc": "#c2410c"}
-LCOLD = {"real": "#e8eef4", "v23": "#3987e5", "v35": "#c07de0", "jtwc": "#f0813f"}
+                "dashed": "stroke-dasharray:6 3;", "dashdot": "stroke-dasharray:6 2 1.4 2;",
+                "loosedash": "stroke-dasharray:9 4;"}
+LCOL = {"real": "#222b33", "v23": "#2a78d6", "v35": "#8b2fb0", "jtwc": "#c2410c", "jma": "#0f9b6c"}
+LCOLD = {"real": "#e8eef4", "v23": "#3987e5", "v35": "#c07de0", "jtwc": "#f0813f", "jma": "#3ecf96"}
 
 
 def cat_of(v):
@@ -98,6 +98,16 @@ JTWC_RAW = [  # (lat, lon, kt) -- TAU 0/12/24/48/72/96/120h, Advisory #3
     (17.0, 164.3, 120), (18.9, 161.0, 140), (21.0, 157.5, 150),
 ]
 JTWC_FCST = [(la, lo, float(kt), t) for (la, lo, kt), t in zip(JTWC_RAW, JTWC_TIMES)]
+
+# JMA (RSMC Tokyo) official forecast, from their CAP atom feed (data.jma.go.jp/cap-rsmctk/atom.xml),
+# analysis sent 2026-07-29 12:40 UTC. NOTE: JMA's wind is 10-MINUTE sustained, a different (lower)
+# convention from the 1-minute sustained wind used for every other line/point on this map -- so this
+# series' category coloring is on JMA's own scale, not directly comparable to the others (flagged in
+# the tooltip label and footer rather than converted, to avoid asserting an unverified factor).
+JMA_TIMES = ["2026-07-29 12:00 (analysis)", "2026-07-30 12:00 (+24h)",
+             "2026-07-31 12:00 (+48h)", "2026-08-01 12:00 (+72h)"]
+JMA_RAW = [(15.2, 167.7, 85), (17.4, 163.8, 100), (19.2, 160.1, 110), (21.8, 156.1, 105)]
+JMA_FCST = [(la, lo, float(kt), t) for (la, lo, kt), t in zip(JMA_RAW, JMA_TIMES)]
 
 # v23/v35's own forecast on Dolphin, from the LATEST issue (2026-07-29 06:00 UTC), using REAL GFS
 # steering fetched by _fetch_dolphin_steering.py -- see _dolphin_v23_v35.py.
@@ -210,13 +220,14 @@ for nm in STORMS:
 
 dolphin_series = [("real", "Real (observed, partial)", "solid", 4.2, 1.0, DOLPHIN_REAL),
                    ("jtwc", "JTWC official forecast (Advisory #3)", "dotted", 3.4, 0.9, JTWC_FCST),
+                   ("jma", "JMA/RSMC Tokyo official forecast (10-min wind convention)", "loosedash", 3.4, 0.9, JMA_FCST),
                    ("v23", "v23 forecast (issued 2026-07-29 06:00, real GFS steering)", "dashed", 3.0, 0.9, V23_FCST),
                    ("v35", "v35 forecast (issued 2026-07-29 06:00, real GFS steering)", "dashdot", 3.0, 0.9, V35_FCST)]
 cards.append(f'<figure class="panel"><figcaption><h3>Dolphin <span class="sub">2026, active</span></h3>'
              f'<p>v23/v35 now run on REAL fetched GFS steering (NOMADS, see '
              f'_fetch_dolphin_steering.py) -- their latest forecast (issued from the most recent '
-             f'observation) predicts weakening; JTWC\'s official forecast predicts continued '
-             f'intensification. JMA/NCDR/ECMWF/Google DeepMind forecasts exist in press coverage '
+             f'observation) predicts weakening; JTWC and JMA\'s official forecasts both predict '
+             f'continued intensification. NCDR/Google DeepMind forecasts exist in press coverage '
              f'but no verifiable coordinate table was found for them.</p></figcaption>'
              f'{panel("Dolphin", dolphin_series)}</figure>')
 cards = "".join(cards)
@@ -229,7 +240,9 @@ legend_model = "".join(
     f'class="ln {tag}" style="{STROKE_STYLE[style]}"/></svg>{label}</span>'
     for tag, label, style, *_ in MODELS)
 legend_model += ('<span class="lg"><svg width="26" height="10" class="lgsvg"><line x1="1" y1="5" x2="25" y2="5" '
-                  f'class="ln jtwc" style="{STROKE_STYLE["dotted"]}"/></svg>JTWC official forecast (Dolphin only)</span>')
+                  f'class="ln jtwc" style="{STROKE_STYLE["dotted"]}"/></svg>JTWC official forecast (Dolphin only)</span>'
+                  '<span class="lg"><svg width="26" height="10" class="lgsvg"><line x1="1" y1="5" x2="25" y2="5" '
+                  f'class="ln jma" style="{STROKE_STYLE["loosedash"]}"/></svg>JMA official forecast, 10-min wind (Dolphin only)</span>')
 
 _palL = "".join(f".{c}{{fill:{v[0]};}}" for c, v in COL.items())
 _palD = "".join(f".{c}{{fill:{v[1]};}}" for c, v in COL.items())
@@ -294,9 +307,11 @@ footer{{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:v
   position, wind speed, and category. One map per storm: real (solid, largest dots) plus each
   model's mean-by-valid-time forecast (v23 dashed, v35 dash-dot). Dolphin now also runs v23/v35 on
   REAL fetched GFS steering (their forecast issued from the latest observation), alongside JTWC's
-  official forecast (dotted orange) for comparison -- notably, v23/v35 predict Dolphin
-  <b>weakening</b> over the next 5 days while JTWC predicts continued intensification toward
-  Category 5.</p>
+  (dotted orange) and JMA/RSMC Tokyo's (loose-dashed green) official forecasts for comparison --
+  notably, v23/v35 predict Dolphin <b>weakening</b> over the next several days while both agencies
+  predict continued intensification. JMA reports 10-minute sustained wind, a different (lower)
+  convention from the 1-minute convention used everywhere else on this page, so its point colors
+  are on its own scale -- not directly comparable category-for-category to the other lines.</p>
   <div class="legend">{legend_cat}</div>
   <div class="legend model">{legend_model}</div>
  </header>
@@ -311,13 +326,16 @@ footer{{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:v
   discipline used for Noul, not a zero-filled fallback. JTWC's Dolphin forecast is the official TAU
   0/12/24/48/72/96/120h track from Advisory #3 (issued 2026-07-27 12:00 UTC) -- a single forecast,
   not an ensemble mean, and already several advisory cycles old relative to the latest observation
-  shown.</p>
-  <p><b>On JMA/NCDR/ECMWF/Google DeepMind for Dolphin.</b> Public reporting describes these
-  qualitatively (DeepMind and half of ECMWF's ensemble trending northwest, GFS/HWRF/HAFS-A trending
-  west-northwest) but no numeric coordinate table for any of them was found accessible without
-  institutional/paid access -- NCDR itself aggregates JMA/CWA/JTWC rather than issuing an
-  independent forecast. Rather than approximate their tracks from a qualitative description, they
-  are left out entirely.</p>
+  shown. JMA's forecast is from RSMC Tokyo's official CAP atom feed
+  (<code>data.jma.go.jp/cap-rsmctk/atom.xml</code>), analysis sent 2026-07-29 12:40 UTC, forecast to
+  +72h only (the feed does not carry a 96h/120h lead) -- the most recent official analysis/forecast
+  of the four sources on this map, but on JMA's own 10-minute-sustained-wind convention rather than
+  the 1-minute convention used for real/JTWC/v23/v35.</p>
+  <p><b>On NCDR/Google DeepMind for Dolphin.</b> Public reporting describes DeepMind's WeatherLab
+  output qualitatively (trending northwest) but its live interactive tool has no fetchable
+  coordinate table, and NCDR itself aggregates JMA/CWA/JTWC rather than issuing an independent
+  forecast. Rather than approximate their tracks from a qualitative description, they are left out
+  entirely.</p>
  </footer>
 </div>
 <div id="tt"></div>

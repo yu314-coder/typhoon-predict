@@ -12,7 +12,8 @@ import numpy as np
 
 R = 111.2
 COL = {"real": ("#222b33", "#e8eef4"), "v10": ("#7a8592", "#9fb0bd"),
-       "v23": ("#2a78d6", "#3987e5"), "v35": ("#8b2fb0", "#c07de0"), "jtwc": ("#c2410c", "#f0813f")}
+       "v23": ("#2a78d6", "#3987e5"), "v35": ("#8b2fb0", "#c07de0"), "jtwc": ("#c2410c", "#f0813f"),
+       "jma": ("#0f9b6c", "#3ecf96")}
 NOTE = {"v10": "no environment (track-only)", "v23": "CoT + temporal steering",
         "v35": "v23 + intensity-reweighted loss"}
 
@@ -46,6 +47,18 @@ JTWC_TAU_H = [0, 12, 24, 48, 72, 96, 120]
 JTWC_ISSUE = np.datetime64("2026-07-27T12:00")
 JTWC_KT = [45, 55, 70, 100, 120, 140, 150]
 JTWC_T = [JTWC_ISSUE + np.timedelta64(int(h), "h") for h in JTWC_TAU_H]
+
+# JMA (RSMC Tokyo) official forecast, from their CAP atom feed (data.jma.go.jp/cap-rsmctk/atom.xml),
+# analysis sent 2026-07-29 12:40 UTC -- the only source found so far that publishes forecast
+# PRESSURE at every lead (JTWC only gives current-position pressure). Feed only goes to 72h.
+# JMA's "max winds" are 10-MINUTE sustained -- NOT directly comparable to the 1-minute convention
+# used everywhere else in this project (JTWC/Wunderground-derived real track) -- shown on the vmax
+# panel for reference but flagged, not treated as equivalent.
+JMA_TAU_H = [0, 24, 48, 72]
+JMA_ISSUE = np.datetime64("2026-07-29T12:00")
+JMA_HPA = [955, 935, 910, 920]
+JMA_KT_10MIN = [85, 100, 110, 105]
+JMA_T = [JMA_ISSUE + np.timedelta64(int(h), "h") for h in JMA_TAU_H]
 
 
 T0 = real_t[0]
@@ -120,7 +133,8 @@ def chart(metric_key, label, unit, real_vals, model_vals, invert=False, raw_seri
     for tag, (ts, vals) in model_vals.items():
         rows.append((tag, vals[-1], "@120h forecast"))
     for tag, (ts, vals) in raw_series.items():
-        rows.append((tag, vals[-1], f"@{JTWC_TAU_H[-1]}h official forecast"))
+        last_h = round(hours_since(ts[-1]) - hours_since(ts[0]))
+        rows.append((tag, vals[-1], f"@{last_h}h official forecast"))
     num = "".join(
         f'<div class="num {t}"><span class="sw"></span><b>{t}</b><span class="v">{v:.0f}{unit}</span>'
         f'<span class="v120">{lbl}</span></div>' for t, v, lbl in rows)
@@ -138,15 +152,18 @@ v35_t, v35_vmax, v35_pres = model_series("v35")
 MVALS = {"v10": (v10_t, v10_vmax), "v23": (v23_t, v23_vmax), "v35": (v35_t, v35_vmax)}
 PVALS = {"v10": (v10_t, v10_pres), "v23": (v23_t, v23_pres), "v35": (v35_t, v35_pres)}
 
-card_pres = chart("pressure", "Central pressure", "hPa", real_pres, PVALS, invert=True)
+card_pres = chart("pressure", "Central pressure", "hPa", real_pres, PVALS, invert=True,
+                   raw_series={"jma": (JMA_T, JMA_HPA)})
 card_vmax = chart("vmax", "Maximum wind (vmax)", "kt", real_vmax, MVALS,
-                   raw_series={"jtwc": (JTWC_T, JTWC_KT)})
+                   raw_series={"jtwc": (JTWC_T, JTWC_KT), "jma": (JMA_T, JMA_KT_10MIN)})
 
 legend = ('<span class="lg real"><span class="sw"></span><b>real</b> observed, through latest ob</span>'
           + "".join(f'<span class="lg {t}"><span class="sw"></span><b>{t}</b> {NOTE[t]}, forecast from latest ob</span>'
                     for t in ("v10", "v23", "v35"))
           + '<span class="lg jtwc"><span class="sw"></span><b>JTWC</b> official forecast, wind only '
-            '(no pressure published per-lead), Advisory #3</span>')
+            '(no pressure published per-lead), Advisory #3</span>'
+          + '<span class="lg jma"><span class="sw"></span><b>JMA</b> (RSMC Tokyo) official forecast, '
+            'pressure + wind (10-min sustained), to 72h</span>')
 
 palL = "".join(f".{t}.ln{{stroke:{c[0]};}} .{t} .sw,.dot.{t}{{background:{c[0]};fill:{c[0]};}}" for t, c in COL.items())
 palD = "".join(f".{t}.ln{{stroke:{c[1]};}} .{t} .sw,.dot.{t}{{background:{c[1]};fill:{c[1]};}}" for t, c in COL.items())
@@ -197,23 +214,31 @@ footer{{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:v
   <h1>Dolphin: predicted central pressure and vmax vs real</h1>
   <p class="lede">The dotted "now" line marks the latest real observation (2026-07-29 06:00 UTC).
   Left of it: what actually happened. Right of it: each model's forecast issued from that same
-  observation -- v10 (track-only, no steering) and v23/v35 (real fetched GFS steering) -- plus
-  JTWC's official Advisory #3 forecast (wind only; JTWC does not publish forecast pressure at each
-  lead, only for the current position). Pressure is inverted on its axis (lower = stronger) so both
-  panels read "up and to the right = weakening" the same way.</p>
+  observation -- v10 (track-only, no steering) and v23/v35 (real fetched GFS steering) -- plus two
+  official agency forecasts, plotted on their own issue times rather than anchored to "now": JTWC's
+  Advisory #3 (wind only; JTWC does not publish forecast pressure at each lead, only for the current
+  position) and JMA/RSMC Tokyo's latest advisory (analysis sent 2026-07-29 12:40 UTC), which is the
+  only source here with forecast pressure at every lead. JMA's wind is 10-minute sustained -- a
+  different convention from the 1-minute sustained wind used everywhere else on this page -- so it's
+  shown for reference on the vmax panel but should not be read as directly comparable to the other
+  lines. Pressure is inverted on its axis (lower = stronger) so both panels read "up and to the
+  right = weakening" the same way.</p>
   <div class="legend">{legend}</div>
  </header>
  <div class="grid">{card_pres}{card_vmax}</div>
  <footer>
-  <p><b>All three of this project's models forecast weakening from here -- JTWC forecasts the
-  opposite.</b> Real pressure bottomed at 937 hPa (Jul 28 18:00), already recovering slightly to
+  <p><b>All three of this project's models forecast weakening from here -- both agencies forecast
+  the opposite.</b> Real pressure bottomed at 937 hPa (Jul 28 18:00), already recovering slightly to
   941 hPa by the latest observation. v10, v23, and v35 all extrapolate that recovery forward --
   pressure rising (weakening) and wind falling through the 120h horizon -- v10 most aggressively
   (57 kt by 120h) since it has no steering/environmental information to reason from beyond the raw
   kinematic trend, while v23/v35 (99/98 kt by 120h) are less extreme. JTWC's official forecast
-  points the opposite direction entirely: continued intensification to 150 kt / ~915 hPa. Whether
-  the real storm follows the models' extrapolation-of-recent-trend or JTWC's synoptic reasoning
-  will be visible in the next few days of real observations.</p>
+  points the opposite direction entirely: continued intensification to 150 kt / ~915 hPa. JMA's
+  latest advisory (issued six hours after the last real observation used here) agrees with that
+  direction on pressure -- 955 hPa at analysis time deepening to 910 hPa by 48h, before a slight
+  recovery to 920 hPa by 72h -- i.e. re-intensification, not the flattening/weakening this project's
+  models predict. Whether the real storm follows the models' extrapolation-of-recent-trend or the
+  agencies' synoptic reasoning will be visible in the next few days of real observations.</p>
  </footer>
 </div>"""
 
