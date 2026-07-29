@@ -112,7 +112,7 @@ def mean_by_valid_time(A, base_ns_arr, base_lat_arr, base_lon_arr, min_members=3
     for vt in sorted(acc):
         la, lo, vm, n = acc[vt]
         if n >= min_members:
-            out.append([la / n, lo / n, vm / n])
+            out.append([la / n, lo / n, vm / n, int(vt)])
     return out
 
 

@@ -1,11 +1,9 @@
-"""Real track overlaid with v10/v23/v35 mean-forecast tracks, all on the SAME map per storm, all
-dots colored by intensity category (TD/TS/C1-C5) -- the real line and each model's line use
-different strokes (solid vs. dotted/dashed/dash-dot) so they're visually distinct even where paths
-cross. Tip, Bavi, Co-may, Hinnamnor only: Dolphin has no real steering-field data yet, so v23/v35
-cannot run on it (see _overlay_predictions.py docstring).
-
-Reads track_build/overlay_predictions.json (model paths) and rebuilds each storm's real track the
-same way make_category_map.py does.
+"""Real track overlaid with v23/v35 mean forecasts (v10 dropped), colored by intensity category,
+with interactive hover/click tooltips on every point. Tip, Bavi, Hinnamnor, Co-may use the model
+overlay; Dolphin (no real steering-field data, so v23/v35 can't run on it) instead overlays its
+real partial track with JTWC's official forecast track (the only one of JMA/NCDR/ECMWF/DeepMind
+with a publicly extractable numeric coordinate table -- see module docstring in
+_overlay_predictions.py's sibling research for what was and wasn't verifiable).
 """
 import json, os
 import numpy as np
@@ -17,9 +15,12 @@ COL = {"TD": ("#8a94a6", "#9fb0bd"), "TS": ("#2a78d6", "#3987e5"), "C1": ("#e0b4
        "C2": ("#e08a1e", "#f2994a"), "C3": ("#d94f3d", "#eb5757"), "C4": ("#b8291f", "#e15347"),
        "C5": ("#8b2fb0", "#c07de0")}
 MODELS = [("real", "Real (observed)", "solid", 4.2, 1.0),
-          ("v10", "v10 (no environment)", "dotted", 2.6, 0.85),
-          ("v23", "v23 (CoT + temporal steering)", "dashed", 2.6, 0.85),
-          ("v35", "v35 (v23 + intensity-reweighted loss)", "dashdot", 2.6, 0.85)]
+          ("v23", "v23 (CoT + temporal steering)", "dashed", 2.8, 0.9),
+          ("v35", "v35 (v23 + intensity-reweighted loss)", "dashdot", 2.8, 0.9)]
+STROKE_STYLE = {"solid": "", "dotted": "stroke-dasharray:1.4 3.2;",
+                "dashed": "stroke-dasharray:6 3;", "dashdot": "stroke-dasharray:6 2 1.4 2;"}
+LCOL = {"real": "#222b33", "v23": "#2a78d6", "v35": "#8b2fb0", "jtwc": "#c2410c"}
+LCOLD = {"real": "#e8eef4", "v23": "#3987e5", "v35": "#c07de0", "jtwc": "#f0813f"}
 
 
 def cat_of(v):
@@ -27,6 +28,18 @@ def cat_of(v):
         if lo <= v < hi:
             return name
     return "C5"
+
+
+NS_PER_H = 3600 * int(1e9)
+
+
+def fmt_ns(vt_ns):
+    days = vt_ns // (86400 * int(1e9))
+    rem = vt_ns - days * 86400 * int(1e9)
+    h = rem // NS_PER_H
+    # anchor: ns timestamps in this dataset are since epoch (int64 ns, numpy datetime64 convention)
+    dt = np.datetime64(int(vt_ns), "ns")
+    return str(dt)[:16].replace("T", " ") + "Z"
 
 
 nb = json.load(open("colab_train_v17.ipynb"))
@@ -47,7 +60,8 @@ REAL = {}
 for s, nm in [("2025203N20124", "Co-may"), ("2022239N22150", "Hinnamnor"), ("2026182N09163", "Bavi")]:
     k = np.where(sid == s)[0]; k = k[np.argsort(bt[k])]
     vmax = track[k, -1, 4] * tstd[4] + tmean[4]
-    REAL[nm] = [(bla[k[i]], blo[k[i]], float(vmax[i])) for i in range(len(k)) if vmax[i] > 0]
+    REAL[nm] = [(bla[k[i]], blo[k[i]], float(vmax[i]), int(bt[k[i]]))
+                for i in range(len(k)) if vmax[i] > 0]
 
 tz = np.load("track_build/tip_fixed.npz", allow_pickle=True)
 ttr = tz["track"].astype("float32"); tbt = tz["base_time"].astype("int64")
@@ -56,10 +70,34 @@ o13 = np.load("track_build/track_windows_v13.npz", allow_pickle=True)
 otm, ots = o13["track_mean"].astype("float32"), o13["track_std"].astype("float32")
 order = np.argsort(tbt)
 tvmax = ttr[order, -1, 4] * ots[4] + otm[4]
-REAL["Tip"] = [(tbla[order[i]], tblo[order[i]], float(tvmax[i])) for i in range(len(order)) if tvmax[i] > 0]
+REAL["Tip"] = [(tbla[order[i]], tblo[order[i]], float(tvmax[i]), int(tbt[order[i]]))
+               for i in range(len(order)) if tvmax[i] > 0]
 
 PRED = json.load(open("track_build/overlay_predictions.json"))
 STORMS = ["Tip", "Bavi", "Hinnamnor", "Co-may"]
+
+# ---- Dolphin: real partial track (Wunderground position/wind + Zoom Earth pressure, cross-
+# checked -- see make_category_map5.py) + JTWC's official forecast track (Advisory #3, issued
+# 2026-07-27 12:00 UTC -- the only one of JMA/NCDR/ECMWF/Google DeepMind with a publicly
+# extractable numeric forecast table; the others were only described directionally in press
+# coverage with no verifiable coordinates, so they are NOT plotted rather than guessed at). ----
+KT_PER_MPH = 0.868976
+DOLPHIN_TIMES = ["2026-07-27 00:00", "2026-07-27 06:00", "2026-07-27 12:00", "2026-07-27 18:00",
+                 "2026-07-28 00:00", "2026-07-28 06:00", "2026-07-28 12:00", "2026-07-28 18:00",
+                 "2026-07-29 00:00", "2026-07-29 06:00"]
+DOLPHIN_RAW = [
+    (12.8, 178.3, 35), (13.4, 176.7, 40), (13.6, 175.2, 50), (13.2, 173.7, 50),
+    (13.0, 172.8, 70), (13.3, 171.7, 85), (13.4, 170.7, 115), (13.7, 169.9, 145),
+    (14.1, 169.1, 140), (14.5, 168.4, 140),
+]
+DOLPHIN_REAL = [(la, lo, w * KT_PER_MPH, t) for (la, lo, w), t in zip(DOLPHIN_RAW, DOLPHIN_TIMES)]
+JTWC_TIMES = ["2026-07-27 12:00 (issued)", "2026-07-28 00:00", "2026-07-28 12:00",
+              "2026-07-29 12:00", "2026-07-30 12:00", "2026-07-31 12:00", "2026-08-01 12:00"]
+JTWC_RAW = [  # (lat, lon, kt) -- TAU 0/12/24/48/72/96/120h, Advisory #3
+    (13.7, 175.3, 45), (13.5, 172.9, 55), (13.7, 170.5, 70), (15.2, 167.3, 100),
+    (17.0, 164.3, 120), (18.9, 161.0, 140), (21.0, 157.5, 150),
+]
+JTWC_FCST = [(la, lo, float(kt), t) for (la, lo, kt), t in zip(JTWC_RAW, JTWC_TIMES)]
 
 LAND = json.load(open("track_build/geo/ne/ne_50m_land.geojson"))
 
@@ -84,15 +122,13 @@ def rings_in(lo0, lo1, la0, la1):
     return out
 
 
-STROKE_STYLE = {"solid": "", "dotted": "stroke-dasharray:1.4 3.2;",
-                "dashed": "stroke-dasharray:6 3;", "dashdot": "stroke-dasharray:6 2 1.4 2;"}
-LCOL = {"real": "#222b33", "v10": "#7a8592", "v23": "#2a78d6", "v35": "#8b2fb0"}
-LCOLD = {"real": "#e8eef4", "v10": "#9fb0bd", "v23": "#3987e5", "v35": "#c07de0"}
+_UID = [0]
 
 
-def panel(nm, W=520, H=420):
+def panel(nm, series, W=520, H=420):
+    """series: list of (tag, label, style, dotr, opacity, pts) -- pts is [(lat,lon,vmax,time_label_or_ns), ...]"""
     m = 36
-    all_pts = REAL[nm] + [tuple(p) for tag, _, *_ in MODELS if tag != "real" for p in PRED[nm][tag]]
+    all_pts = [p for _, _, _, _, _, pts in series for p in pts]
     lons = [p[1] % 360 for p in all_pts]; lats = [p[0] for p in all_pts]
     lo0, lo1, la0, la1 = min(lons), max(lons), min(lats), max(lats)
     px, py = (lo1 - lo0) * .07 + 1.0, (la1 - la0) * .07 + 1.0
@@ -105,7 +141,7 @@ def panel(nm, W=520, H=420):
     def PX(lo): return ox + ((lo % 360) - lo0) * kx * sc
     def PY(la): return H - oy - (la - la0) * sc
 
-    o = [f'<svg viewBox="0 0 {W} {H}" class="map" role="img" aria-label="{nm} real vs v10/v23/v35">',
+    o = [f'<svg viewBox="0 0 {W} {H}" class="map" role="img" aria-label="{nm}">',
          f'<rect x="0" y="0" width="{W}" height="{H}" class="sea"/>']
     for r in rings_in(lo0, lo1, la0, la1):
         d = "M" + " L".join(f"{PX(p[0]):.1f},{PY(p[1]):.1f}" for p in r) + " Z"
@@ -124,25 +160,42 @@ def panel(nm, W=520, H=420):
         o.append(f'<text class="tk" x="{x+3:.1f}" y="{H-5}">{((g+180)%360)-180:.0f}&deg;E</text>')
         g += step
 
-    for tag, label, style, dotr, op in MODELS:
-        pts = REAL[nm] if tag == "real" else [tuple(p) for p in PRED[nm][tag]]
+    for tag, label, style, dotr, op, pts in series:
         d = "M" + " L".join(f"{PX(p[1]):.1f},{PY(p[0]):.1f}" for p in pts)
         o.append(f'<path d="{d}" class="ln {tag}" style="{STROKE_STYLE[style]}"/>')
-        for la, lo, v in pts:
+        for p in pts:
+            la, lo, v = p[0], p[1], p[2]
+            when = p[3]
+            when_s = fmt_ns(when) if isinstance(when, int) else when
             c = cat_of(v)
-            o.append(f'<circle cx="{PX(lo):.1f}" cy="{PY(la):.1f}" r="{dotr}" class="fx {c}" opacity="{op}"/>')
-
-    rla, rlo, rv0 = REAL[nm][0]
-    o.append(f'<circle cx="{PX(rlo):.1f}" cy="{PY(rla):.1f}" r="6.5" class="genesis"/>')
-    peak = max(REAL[nm], key=lambda p: p[2])
+            _UID[0] += 1
+            o.append(f'<circle cx="{PX(lo):.1f}" cy="{PY(la):.1f}" r="{dotr}" class="fx {c} pt" '
+                      f'opacity="{op}" data-model="{label}" data-time="{when_s}" '
+                      f'data-lat="{la:.2f}" data-lon="{lo:.2f}" data-vmax="{v:.0f}" data-cat="{c}" '
+                      f'tabindex="0"/>')
+    d0 = series[0][5][0]
+    o.append(f'<circle cx="{PX(d0[1]):.1f}" cy="{PY(d0[0]):.1f}" r="6.5" class="genesis"/>')
+    peak = max(series[0][5], key=lambda p: p[2])
     o.append(f'<text class="peakl" x="{PX(peak[1])+9:.1f}" y="{PY(peak[0])-6:.1f}">real peak {peak[2]:.0f} kt ({cat_of(peak[2])})</text>')
     o.append('</svg>')
     return "\n".join(o)
 
 
-cards = "".join(
-    f'<figure class="panel"><figcaption><h3>{nm}</h3></figcaption>{panel(nm)}</figure>'
-    for nm in STORMS)
+cards = []
+for nm in STORMS:
+    series = [(tag, label, style, dotr, op,
+               REAL[nm] if tag == "real" else [tuple(p) for p in PRED[nm][tag]])
+              for tag, label, style, dotr, op in MODELS]
+    cards.append(f'<figure class="panel"><figcaption><h3>{nm}</h3></figcaption>{panel(nm, series)}</figure>')
+
+dolphin_series = [("real", "Real (observed, partial)", "solid", 4.2, 1.0, DOLPHIN_REAL),
+                   ("jtwc", "JTWC official forecast (Advisory #3)", "dashed", 3.4, 0.9, JTWC_FCST)]
+cards.append(f'<figure class="panel"><figcaption><h3>Dolphin <span class="sub">2026, active</span></h3>'
+             f'<p>No steering-field data yet -- v23/v35 cannot run on it. JMA/NCDR/ECMWF/Google '
+             f'DeepMind forecasts exist in press coverage but no verifiable coordinate table was '
+             f'found, so only JTWC (which publishes one) is shown.</p></figcaption>'
+             f'{panel("Dolphin", dolphin_series)}</figure>')
+cards = "".join(cards)
 
 legend_cat = "".join(
     f'<span class="lg"><span class="sw {c}"></span>{c} <span class="rng">{lo}{"+" if hi>900 else f"-{hi-1}"}kt</span></span>'
@@ -151,6 +204,8 @@ legend_model = "".join(
     f'<span class="lg"><svg width="26" height="10" class="lgsvg"><line x1="1" y1="5" x2="25" y2="5" '
     f'class="ln {tag}" style="{STROKE_STYLE[style]}"/></svg>{label}</span>'
     for tag, label, style, *_ in MODELS)
+legend_model += ('<span class="lg"><svg width="26" height="10" class="lgsvg"><line x1="1" y1="5" x2="25" y2="5" '
+                  f'class="ln jtwc" style="{STROKE_STYLE["dashed"]}"/></svg>JTWC official forecast (Dolphin only)</span>')
 
 _palL = "".join(f".{c}{{fill:{v[0]};}}" for c, v in COL.items())
 _palD = "".join(f".{c}{{fill:{v[1]};}}" for c, v in COL.items())
@@ -158,7 +213,7 @@ _lcL = "".join(f".ln.{t}{{stroke:{c};}}" for t, c in LCOL.items())
 _lcD = "".join(f".ln.{t}{{stroke:{c};}}" for t, c in LCOLD.items())
 
 HTML = f"""<meta charset="utf-8">
-<title>Real vs v10/v23/v35, overlaid, colored by intensity category</title>
+<title>Real vs v23/v35 (+ JTWC for Dolphin), interactive, colored by intensity category</title>
 <style>
 :root{{color-scheme:light;--bg:#f2f4f6;--surface:#fcfcfb;--ink:#111820;--body:#2c3a47;--muted:#5d6c7a;
  --line:#d5dce3;--sea:#eaf1f5;--land:#dfe3e0;--coast:#a8b3ba;
@@ -185,41 +240,87 @@ header{{display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(
 .grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(440px,1fr));gap:16px;}}
 .panel{{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 14px 10px;
  margin:0;display:flex;flex-direction:column;gap:7px;}}
-figcaption h3{{color:var(--ink);font-size:14.5px;font-weight:660;margin:0;}}
+figcaption h3{{color:var(--ink);font-size:14.5px;font-weight:660;margin:0;display:flex;gap:8px;align-items:baseline;}}
+figcaption .sub{{font-size:11px;color:var(--muted);font-weight:400;}}
+figcaption p{{font-size:11.5px;color:var(--muted);margin:0;}}
 .map{{width:100%;height:auto;display:block;border-radius:4px;overflow:hidden;}}
 .sea{{fill:var(--sea);}} .land{{fill:var(--land);stroke:var(--coast);stroke-width:.7;}}
 .gl{{stroke:var(--coast);stroke-width:.5;opacity:.4;}}
 .tk{{font-family:var(--mono);font-size:8px;fill:var(--muted);}}
 .ln{{fill:none;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round;opacity:.85;}}
 .ln.real{{stroke-width:2.2;opacity:1;}}
-.fx{{stroke:var(--surface);stroke-width:.7;}}
+.fx{{stroke:var(--surface);stroke-width:.7;cursor:pointer;}}
+.fx.pt:hover,.fx.pt:focus{{stroke:var(--ink);stroke-width:1.8;outline:none;}}
 .genesis{{fill:none;stroke:var(--ink);stroke-width:2;}}
 .peakl{{font-family:var(--mono);font-size:9px;fill:var(--ink);font-weight:600;
  paint-order:stroke;stroke:var(--sea);stroke-width:2.4px;}}
-footer{{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:var(--muted);max-width:80ch;}}
+footer{{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:var(--muted);max-width:80ch;
+ display:flex;flex-direction:column;gap:8px;}}
+#tt{{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);font-family:var(--mono);
+ font-size:12px;padding:8px 10px;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.25);
+ display:none;z-index:50;line-height:1.5;white-space:nowrap;}}
+#tt b{{font-size:12.5px;}}
+#tt .hint{{color:var(--muted);font-size:10px;margin-top:2px;}}
 </style>
 <div class="wrap">
  <header>
-  <div class="eyebrow">TrackFormer &middot; real, overlaid with model mean forecasts</div>
-  <h1>Real track vs v10 / v23 / v35, overlaid, colored by intensity category</h1>
-  <p class="lede">One map per storm: the real track (solid line, largest dots) and each model's
-  mean-by-valid-time forecast (v10 dotted, v23 dashed, v35 dash-dot, smaller dots) drawn together.
-  Every dot -- real or predicted -- is colored by ITS OWN intensity category, so a model drifting
-  into the wrong color band is a wrong category call, independent of position error. Dolphin isn't
-  shown here: no real steering-field data exists for it yet, so v23/v35 can't run on it (unlike
-  Tip, which has a dedicated real record).</p>
+  <div class="eyebrow">TrackFormer &middot; real, overlaid with model/agency forecasts &middot; interactive</div>
+  <h1>Real track vs v23 / v35 (+ JTWC for Dolphin), colored by intensity category</h1>
+  <p class="lede"><b>Hover or click any point</b> to see exactly what it is: model/source, time,
+  position, wind speed, and category. One map per storm: real (solid, largest dots) plus each
+  model's mean-by-valid-time forecast (v23 dashed, v35 dash-dot). Dolphin instead overlays its real
+  partial track with JTWC's official forecast (dashed orange) -- v23/v35 can't run on it without a
+  real steering field, which doesn't exist for it yet.</p>
   <div class="legend">{legend_cat}</div>
   <div class="legend model">{legend_model}</div>
  </header>
  <div class="grid">{cards}</div>
  <footer>
-  <p>Model paths are mean-by-valid-time: at each 6h valid time, the mean position and mean vmax
-  across every forecast (v10/v23/v35, 1/10/5-seed ensembles respectively) whose lead lands on that
-  moment, dropping bins with fewer than 3 contributing forecasts. Bavi, Co-may, and Hinnamnor use
-  the in-dataset forward pass (real steering fields from the training data); Tip uses its dedicated
-  real 3-hourly steering record. v10 has no steering input at all (track history only).</p>
+  <p>v23/v35 paths are mean-by-valid-time: at each 6h valid time, the mean position and mean vmax
+  across every forecast whose lead lands on that moment (bins under 3 contributing forecasts
+  dropped). JTWC's Dolphin forecast is the official TAU 0/12/24/48/72/96/120h track from Advisory
+  #3 (issued 2026-07-27 12:00 UTC) -- a single forecast, not an ensemble mean, and already several
+  advisory cycles old relative to the latest observation shown.</p>
+  <p><b>On JMA/NCDR/ECMWF/Google DeepMind for Dolphin.</b> Public reporting describes these
+  qualitatively (DeepMind and half of ECMWF's ensemble trending northwest, GFS/HWRF/HAFS-A trending
+  west-northwest) but no numeric coordinate table for any of them was found accessible without
+  institutional/paid access -- NCDR itself aggregates JMA/CWA/JTWC rather than issuing an
+  independent forecast. Rather than approximate their tracks from a qualitative description, they
+  are left out entirely.</p>
  </footer>
-</div>"""
+</div>
+<div id="tt"></div>
+<script>
+(function(){{
+  var tt = document.getElementById('tt');
+  var pinned = null;
+  function render(el){{
+    var m = el.dataset.model, t = el.dataset.time, la = el.dataset.lat, lo = el.dataset.lon,
+        v = el.dataset.vmax, c = el.dataset.cat;
+    tt.innerHTML = '<b>' + m + '</b><br>' + t + '<br>' + la + '&deg;, ' + lo + '&deg;E<br>' +
+                   v + ' kt &mdash; <b>' + c + '</b><div class="hint">click to pin / unpin</div>';
+  }}
+  function place(evt){{
+    var x = evt.clientX + 14, y = evt.clientY + 14;
+    var vw = window.innerWidth, vh = window.innerHeight;
+    tt.style.left = Math.min(x, vw - 200) + 'px';
+    tt.style.top = Math.min(y, vh - 90) + 'px';
+  }}
+  document.querySelectorAll('.pt').forEach(function(el){{
+    el.addEventListener('mouseenter', function(e){{ if(!pinned){{ render(el); tt.style.display='block'; place(e); }} }});
+    el.addEventListener('mousemove', function(e){{ if(!pinned) place(e); }});
+    el.addEventListener('mouseleave', function(){{ if(!pinned) tt.style.display='none'; }});
+    el.addEventListener('click', function(e){{
+      e.stopPropagation();
+      if(pinned === el){{ pinned = null; tt.style.display='none'; return; }}
+      pinned = el; render(el); tt.style.display='block'; place(e);
+    }});
+    el.addEventListener('focus', function(e){{ render(el); tt.style.display='block';
+      var r = el.getBoundingClientRect(); place({{clientX:r.left, clientY:r.top}}); }});
+  }});
+  document.addEventListener('click', function(){{ pinned = null; tt.style.display='none'; }});
+}})();
+</script>"""
 
 os.makedirs("paper", exist_ok=True)
 open("paper/overlay_real_vs_models.html", "w").write(HTML)
