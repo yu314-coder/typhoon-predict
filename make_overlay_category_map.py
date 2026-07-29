@@ -18,9 +18,11 @@ MODELS = [("real", "Real (observed)", "solid", 4.2, 1.0),
           ("v35", "v35 (v23 + intensity-reweighted loss)", "dashdot", 2.8, 0.9)]
 STROKE_STYLE = {"solid": "", "dotted": "stroke-dasharray:1.4 3.2;",
                 "dashed": "stroke-dasharray:6 3;", "dashdot": "stroke-dasharray:6 2 1.4 2;",
-                "loosedash": "stroke-dasharray:9 4;"}
-LCOL = {"real": "#222b33", "v23": "#2a78d6", "v35": "#8b2fb0", "jtwc": "#c2410c", "jma": "#0f9b6c"}
-LCOLD = {"real": "#e8eef4", "v23": "#3987e5", "v35": "#c07de0", "jtwc": "#f0813f", "jma": "#3ecf96"}
+                "loosedash": "stroke-dasharray:9 4;", "shortdash": "stroke-dasharray:3 2;"}
+LCOL = {"real": "#222b33", "v10": "#7a8592", "v23": "#2a78d6", "v35": "#8b2fb0",
+        "jtwc": "#c2410c", "jma": "#0f9b6c"}
+LCOLD = {"real": "#e8eef4", "v10": "#9fb0bd", "v23": "#3987e5", "v35": "#c07de0",
+         "jtwc": "#f0813f", "jma": "#3ecf96"}
 
 
 def cat_of(v):
@@ -126,6 +128,7 @@ def _model_fcst(tag):
     return pts
 
 
+V10_FCST = _model_fcst("v10")
 V23_FCST = _model_fcst("v23")
 V35_FCST = _model_fcst("v35")
 
@@ -221,15 +224,16 @@ for nm in STORMS:
 dolphin_series = [("real", "Real (observed, partial)", "solid", 4.2, 1.0, DOLPHIN_REAL),
                    ("jtwc", "JTWC official forecast (Advisory #3)", "dotted", 3.4, 0.9, JTWC_FCST),
                    ("jma", "JMA/RSMC Tokyo official forecast (10-min wind convention)", "loosedash", 3.4, 0.9, JMA_FCST),
+                   ("v10", "v10 forecast (track-only, no steering -- own history only)", "shortdash", 2.6, 0.85, V10_FCST),
                    ("v23", "v23 forecast (issued 2026-07-29 06:00, real GFS steering)", "dashed", 3.0, 0.9, V23_FCST),
                    ("v35", "v35 forecast (issued 2026-07-29 06:00, real GFS steering)", "dashdot", 3.0, 0.9, V35_FCST)]
 cards.append(f'<figure class="panel"><figcaption><h3>Dolphin <span class="sub">2026, active</span></h3>'
-             f'<p>v23/v35 now run on REAL fetched GFS steering (NOMADS, see '
-             f'_fetch_dolphin_steering.py) -- their latest forecast (issued from the most recent '
-             f'observation) predicts weakening; JTWC and JMA\'s official forecasts both predict '
-             f'continued intensification. NCDR/Google DeepMind forecasts exist in press coverage '
-             f'but no verifiable coordinate table was found for them.</p></figcaption>'
-             f'{panel("Dolphin", dolphin_series)}</figure>')
+             f'<p>v10 (track-only, no external data beyond its own recent positions) vs. v23/v35 '
+             f'(run on REAL fetched GFS steering, NOMADS, see _fetch_dolphin_steering.py) -- all '
+             f'three of this project\'s models forecast weakening; JTWC and JMA\'s official '
+             f'forecasts both predict continued intensification. NCDR/Google DeepMind forecasts '
+             f'exist in press coverage but no verifiable coordinate table was found for '
+             f'them.</p></figcaption>{panel("Dolphin", dolphin_series)}</figure>')
 cards = "".join(cards)
 
 legend_cat = "".join(
@@ -242,7 +246,9 @@ legend_model = "".join(
 legend_model += ('<span class="lg"><svg width="26" height="10" class="lgsvg"><line x1="1" y1="5" x2="25" y2="5" '
                   f'class="ln jtwc" style="{STROKE_STYLE["dotted"]}"/></svg>JTWC official forecast (Dolphin only)</span>'
                   '<span class="lg"><svg width="26" height="10" class="lgsvg"><line x1="1" y1="5" x2="25" y2="5" '
-                  f'class="ln jma" style="{STROKE_STYLE["loosedash"]}"/></svg>JMA official forecast, 10-min wind (Dolphin only)</span>')
+                  f'class="ln jma" style="{STROKE_STYLE["loosedash"]}"/></svg>JMA official forecast, 10-min wind (Dolphin only)</span>'
+                  '<span class="lg"><svg width="26" height="10" class="lgsvg"><line x1="1" y1="5" x2="25" y2="5" '
+                  f'class="ln v10" style="{STROKE_STYLE["shortdash"]}"/></svg>v10, track-only (Dolphin only)</span>')
 
 _palL = "".join(f".{c}{{fill:{v[0]};}}" for c, v in COL.items())
 _palD = "".join(f".{c}{{fill:{v[1]};}}" for c, v in COL.items())
@@ -305,13 +311,16 @@ footer{{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:v
   <h1>Real track vs v23 / v35 (+ JTWC for Dolphin), colored by intensity category</h1>
   <p class="lede"><b>Hover or click any point</b> to see exactly what it is: model/source, time,
   position, wind speed, and category. One map per storm: real (solid, largest dots) plus each
-  model's mean-by-valid-time forecast (v23 dashed, v35 dash-dot). Dolphin now also runs v23/v35 on
-  REAL fetched GFS steering (their forecast issued from the latest observation), alongside JTWC's
-  (dotted orange) and JMA/RSMC Tokyo's (loose-dashed green) official forecasts for comparison --
-  notably, v23/v35 predict Dolphin <b>weakening</b> over the next several days while both agencies
-  predict continued intensification. JMA reports 10-minute sustained wind, a different (lower)
-  convention from the 1-minute convention used everywhere else on this page, so its point colors
-  are on its own scale -- not directly comparable category-for-category to the other lines.</p>
+  model's mean-by-valid-time forecast (v23 dashed, v35 dash-dot). Dolphin's panel additionally
+  shows v10 (short-dashed gray) -- track-only, no external data beyond the storm's own recent
+  positions, i.e. the same IBTrACS-style history alone that all four models start from -- next to
+  v23/v35 which instead run on REAL fetched GFS steering (NOMADS, current as of this run), plus
+  JTWC's (dotted orange) and JMA/RSMC Tokyo's (loose-dashed green) official forecasts for
+  comparison. Notably, all three of this project's models predict Dolphin <b>weakening</b> over the
+  next several days while both agencies predict continued intensification. JMA reports 10-minute
+  sustained wind, a different (lower) convention from the 1-minute convention used everywhere else
+  on this page, so its point colors are on its own scale -- not directly comparable
+  category-for-category to the other lines.</p>
   <div class="legend">{legend_cat}</div>
   <div class="legend model">{legend_model}</div>
  </header>
@@ -319,9 +328,11 @@ footer{{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:v
  <footer>
   <p>v23/v35 paths for Tip/Bavi/Hinnamnor/Co-may are mean-by-valid-time: at each 6h valid time, the
   mean position and mean vmax across every forecast whose lead lands on that moment (bins under 3
-  contributing forecasts dropped). For Dolphin, v23/v35 instead show the single forecast issued
-  from the LATEST real observation (2026-07-29 06:00 UTC), run on real GFS deep-layer-mean steering
-  (850/500/200 hPa u/v) fetched from NOAA/NOMADS for each of Dolphin's 10 issue times
+  contributing forecasts dropped). For Dolphin, v10/v23/v35 instead each show the single forecast
+  issued from the LATEST real observation (2026-07-29 06:00 UTC). v10 uses only that observed track
+  history -- no steering field at all, the IBTrACS-style "own data only" baseline -- while v23/v35
+  run on real GFS deep-layer-mean steering (850/500/200 hPa u/v) fetched from NOAA/NOMADS for each
+  of Dolphin's 10 issue times
   (<code>_fetch_dolphin_steering.py</code>, <code>_dolphin_v23_v35.py</code>) -- the same real-data
   discipline used for Noul, not a zero-filled fallback. JTWC's Dolphin forecast is the official TAU
   0/12/24/48/72/96/120h track from Advisory #3 (issued 2026-07-27 12:00 UTC) -- a single forecast,
