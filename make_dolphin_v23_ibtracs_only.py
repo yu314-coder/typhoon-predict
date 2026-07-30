@@ -20,9 +20,9 @@ CATS = [("TD", 0, 34), ("TS", 34, 64), ("C1", 64, 83), ("C2", 83, 96),
 COL = {"TD": ("#8a94a6", "#9fb0bd"), "TS": ("#2a78d6", "#3987e5"), "C1": ("#e0b400", "#f2c744"),
        "C2": ("#e08a1e", "#f2994a"), "C3": ("#d94f3d", "#eb5757"), "C4": ("#b8291f", "#e15347"),
        "C5": ("#8b2fb0", "#c07de0")}
-LCOL = {"real": "#222b33", "v23_ibt": "#2a78d6"}
-LCOLD = {"real": "#e8eef4", "v23_ibt": "#3987e5"}
-STROKE_STYLE = {"solid": "", "dashed": "stroke-dasharray:6 3;"}
+LCOL = {"real": "#222b33", "v23_ibt": "#2a78d6", "jtwc": "#c2410c"}
+LCOLD = {"real": "#e8eef4", "v23_ibt": "#3987e5", "jtwc": "#f0813f"}
+STROKE_STYLE = {"solid": "", "dashed": "stroke-dasharray:6 3;", "dotted": "stroke-dasharray:1.4 3.2;"}
 
 
 def cat_of(v):
@@ -51,6 +51,14 @@ V23_IBT = [(FCST["lats"][i], FCST["lons"][i], FCST["vmax_kt"][i],
             str(np.datetime64(FCST["issue_time"]) + np.timedelta64(int(h), "h")).replace("T", " ") +
             f" (+{h}h)")
            for i, h in enumerate(FCST["lead_hours"])]
+
+# ---- JTWC official forecast (Advisory #3, issued 2026-07-27 12:00 UTC) -- TAU 0/12/24/48/72/96/120h ----
+JTWC_TIMES = ["2026-07-27 12:00 (issued)", "2026-07-28 00:00", "2026-07-28 12:00",
+              "2026-07-29 12:00", "2026-07-30 12:00", "2026-07-31 12:00", "2026-08-01 12:00"]
+JTWC_TAU_H = [0, 12, 24, 48, 72, 96, 120]
+JTWC_RAW = [(13.7, 175.3, 45), (13.5, 172.9, 55), (13.7, 170.5, 70), (15.2, 167.3, 100),
+            (17.0, 164.3, 120), (18.9, 161.0, 140), (21.0, 157.5, 150)]
+JTWC_FCST = [(la, lo, float(kt), t) for (la, lo, kt), t in zip(JTWC_RAW, JTWC_TIMES)]
 
 LAND = json.load(open("track_build/geo/ne/ne_50m_land.geojson"))
 
@@ -129,7 +137,8 @@ def panel(series, W=760, H=520):
 
 
 series = [("real", "Real (observed)", "solid", 5.0, 1.0, REAL),
-          ("v23_ibt", "v23, IBTrACS-only (steering zeroed)", "dashed", 3.6, 0.9, V23_IBT)]
+          ("v23_ibt", "v23, IBTrACS-only (steering zeroed)", "dashed", 3.6, 0.9, V23_IBT),
+          ("jtwc", "JTWC official forecast (Advisory #3)", "dotted", 4.0, 0.9, JTWC_FCST)]
 map_svg = panel(series)
 
 rows = "".join(
@@ -138,6 +147,11 @@ rows = "".join(
     f'<td>{FCST["vmax_kt"][i]:.0f} kt</td><td class="cat{cat_of(FCST["vmax_kt"][i])}">{cat_of(FCST["vmax_kt"][i])}</td>'
     f'<td>{FCST["pres_hpa"][i]:.0f} hPa</td></tr>'
     for i, h in enumerate(FCST["lead_hours"]))
+
+jtwc_rows = "".join(
+    f'<tr><td>TAU {h}h</td><td>{t}</td><td>{la:.2f}&deg;N</td><td>{lo:.2f}&deg;E</td>'
+    f'<td>{kt:.0f} kt</td><td class="cat{cat_of(kt)}">{cat_of(kt)}</td><td>&mdash;</td></tr>'
+    for h, t, (la, lo, kt, _) in zip(JTWC_TAU_H, JTWC_TIMES, JTWC_FCST))
 
 _palL = "".join(f".{c}{{fill:{v[0]};}} .cat{c}{{color:{v[0]};}}" for c, v in COL.items())
 _palD = "".join(f".{c}{{fill:{v[1]};}} .cat{c}{{color:{v[1]};}}" for c, v in COL.items())
@@ -219,16 +233,19 @@ footer{{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:v
 </style>
 <div class="wrap">
  <header>
-  <div class="eyebrow">TrackFormer v23 &middot; IBTrACS-only ablation &middot; Typhoon Dolphin, 2026</div>
-  <h1>v23's forecast for Dolphin using ONLY its own track history</h1>
+  <div class="eyebrow">TrackFormer v23 &middot; IBTrACS-only ablation vs. JTWC &middot; Typhoon Dolphin, 2026</div>
+  <h1>v23's forecast for Dolphin using ONLY its own track history, vs. JTWC</h1>
   <p class="lede">No steering field, no environmental data of any kind -- just Dolphin's own
   observed position, wind, and pressure history (the same information IBTrACS or any best-track
   record gives you for a past storm), fed through v23's 10-seed ensemble via the actual released
-  package (<code>models/run_v23.py</code>, no <code>--steering</code> flag). Issued from the latest
-  real observation, 2026-07-29 06:00 UTC.</p>
+  package (<code>models/run_v23.py</code>, no <code>--steering</code> flag), issued from the latest
+  real observation (2026-07-29 06:00 UTC) -- layered against JTWC's official Advisory #3 forecast
+  (issued 2026-07-27 12:00 UTC) for comparison. v23 forecasts weakening; JTWC forecasts continued
+  intensification toward Category 5.</p>
   <div class="legend">
    <span class="lg"><svg width="26" height="10" class="lgsvg"><line x1="1" y1="5" x2="25" y2="5" class="ln real"/></svg>Real (observed)</span>
    <span class="lg"><svg width="26" height="10" class="lgsvg"><line x1="1" y1="5" x2="25" y2="5" class="ln v23_ibt" style="{STROKE_STYLE['dashed']}"/></svg>v23, IBTrACS-only forecast</span>
+   <span class="lg"><svg width="26" height="10" class="lgsvg"><line x1="1" y1="5" x2="25" y2="5" class="ln jtwc" style="{STROKE_STYLE['dotted']}"/></svg>JTWC official forecast (Advisory #3)</span>
   </div>
  </header>
 
@@ -238,11 +255,21 @@ footer{{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:v
  </section>
 
  <section>
-  <h2>Forecast table</h2>
+  <h2>v23 forecast table (IBTrACS-only)</h2>
   <div class="panel tablewrap">
    <table>
     <thead><tr><th>Lead</th><th>Valid time (UTC)</th><th>Lat</th><th>Lon</th><th>vmax</th><th>Cat</th><th>Pressure</th></tr></thead>
     <tbody>{rows}</tbody>
+   </table>
+  </div>
+ </section>
+
+ <section>
+  <h2>JTWC official forecast table (Advisory #3, wind only -- no per-lead pressure published)</h2>
+  <div class="panel tablewrap">
+   <table>
+    <thead><tr><th>Lead</th><th>Valid time (UTC)</th><th>Lat</th><th>Lon</th><th>vmax</th><th>Cat</th><th>Pressure</th></tr></thead>
+    <tbody>{jtwc_rows}</tbody>
    </table>
   </div>
  </section>
