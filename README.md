@@ -8,6 +8,41 @@ This repo is a minimal release: trained weights, the scripts that trained them, 
 Everything else (research/analysis tooling, exploratory scripts, intermediate versions) lives in
 project history and isn't part of this release.
 
+## v37G local forecast candidate
+
+The current v37G candidate is a local research forecast path built from the current observed
+storm history, current JMA analysis positions, and cached public NOAA GFS/GEFS forecast fields.
+The route is an adaptive multi-level vortex-track ensemble; the structure branch predicts wind,
+central pressure, RMW, and R34/R50/R64 quadrant radii from storm-centered fields. Its pressure
+maps are diagnostic reconstructions, not learned global pressure-grid forecasts.
+
+**Source boundary:** JMA and JTWC official *forecast positions* are never passed to the v37 route,
+structure model, gate, or training targets. JMA analysis positions may initialize the current
+history. Official JMA/JTWC products are loaded only after inference for a clearly labeled visual
+comparison and valid-time error table. The included Dolphin page is one verification case, not a
+general skill claim.
+
+Run locally after supplying the public caches and v37G checkpoints:
+
+```bash
+V37_MODEL_VERSION=v37G \
+V37_ROUTE_POLICY=gfs_gefs_adaptive \
+.venv/bin/python v37_protected_forecast.py
+.venv/bin/python scripts/check_v37_source_policy.py
+```
+
+The rendered current-case map is [`paper/dolphin_v37_current_ibtracs_jma_official_world_map.html`](paper/dolphin_v37_current_ibtracs_jma_official_world_map.html).
+It draws the v37 output in red and labels JMA/JTWC lines as comparison-only. Raw GRIB caches and
+large intermediate datasets are intentionally excluded from GitHub.
+
+### v37G minimum local requirements
+
+- Python 3.10 or newer, PyTorch, NumPy, Matplotlib, and the packages in `requirements.txt`.
+- A CPU or Apple Silicon Mac is supported; CUDA is optional. Expect roughly 8 GB RAM for the
+  included inference path and additional disk space for downloaded GFS/GEFS caches.
+- The included v37G spatial checkpoints are inference weights. Re-training needs substantially
+  more RAM/VRAM and the prepared training windows described in `v37/V37G_DESIGN.md`.
+
 ## Contents
 
 - **`models/v10/`** — the track-only baseline. `trackformer_v10_17M_fp16.pt` (17M params, fp16,
