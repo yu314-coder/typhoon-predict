@@ -27,6 +27,7 @@ from v61_big_system_route import (
 
 
 VERSION = "v62-causal-western-pacific-state-route"
+CAUSAL_ONLY = True
 PACIFIC_LON_RANGE = (100.0, 190.0)
 PACIFIC_LAT_RANGE = (0.0, 60.0)
 LEAD_HOURS = tuple(range(0, 121, 6))
@@ -122,6 +123,7 @@ def forecast_pacific_state(
         state_pressure.append(pressure[0] + scale * progress * pressure_tendency)
     return np.stack(state_fields).astype("float32"), np.stack(state_pressure).astype("float32"), {
         "version": VERSION,
+        "causal_only": CAUSAL_ONLY,
         "lead_hours": [int(value) for value in lead_hours],
         "analysis_tendency_scale": scale,
         "tendency_method": "0.6 * (current - t-12) + 0.4 * (t-12 - t-24), clipped per channel at the 98th percentile",
@@ -196,6 +198,7 @@ def detect_pressure_systems(
 
 __all__ = [
     "VERSION",
+    "CAUSAL_ONLY",
     "PACIFIC_LON_RANGE",
     "PACIFIC_LAT_RANGE",
     "LEAD_HOURS",

@@ -45357,6 +45357,7 @@
     },
     "pressure_state": {
       "version": "v62-causal-western-pacific-state-route",
+      "causal_only": true,
       "lead_hours": [
         0,
         6,
@@ -46681,7 +46682,43 @@
       "v37/current_gfs_structure/gfs_20260731_12_full.grib2",
       "v37/current_gfs_structure/gfs_20260730_12_full.grib2",
       "v37/current_gfs_structure/gfs_20260729_12_full.grib2"
-    ]
+    ],
+    "causal_input_guard": {
+      "enabled": true,
+      "policy": "analysis/reanalysis only; every weather valid_time <= issue_time and every GRIB step = 0",
+      "issue_time_utc": "2026-07-31T15:00:00Z",
+      "weather_files": [
+        {
+          "path": "v37/current_gfs_structure/gfs_20260731_12_full.grib2",
+          "valid_time_utc": "2026-07-31T12:00:00Z",
+          "step_hours": 0,
+          "accepted_as": "analysis_or_reanalysis"
+        },
+        {
+          "path": "v37/current_gfs_structure/gfs_20260730_12_full.grib2",
+          "valid_time_utc": "2026-07-30T12:00:00Z",
+          "step_hours": 0,
+          "accepted_as": "analysis_or_reanalysis"
+        },
+        {
+          "path": "v37/current_gfs_structure/gfs_20260729_12_full.grib2",
+          "valid_time_utc": "2026-07-29T12:00:00Z",
+          "step_hours": 0,
+          "accepted_as": "analysis_or_reanalysis"
+        }
+      ],
+      "histories": [
+        {
+          "label": "Dolphin current_track_history",
+          "time_key": "time",
+          "row_count": 9,
+          "max_time_utc": "2026-07-31T15:00:00Z"
+        }
+      ],
+      "positive_lead_weather_rejected": true,
+      "future_history_rows_rejected": true,
+      "official_forecasts_used_for_inference": false
+    }
   },
   "intensity_model": {
     "model": "frozen v37G spatial structure ensemble used as the v62 intensity head",
@@ -47278,7 +47315,43 @@
       "positive_lead_weather_product_used": false
     }
   },
-  "input_policy": "Only GFS analysis files at or before the 2026-07-31 15Z issue were opened. The whole 100-190E, 0-60N state is extrapolated from current/t-12/t-24 analysis tendency. Intensity starts from the current/past observed track window and current four-channel analysis patch, then uses only the causal forecast pressure-map minimum, annulus deficit, and anomaly radii for future changes; official JMA/JTWC tracks are overlays only.",
+  "input_policy": "Strict causal-only mode: the runner rejects any GRIB forecast step or weather valid_time after the issue. Only current/past GFS analysis files and the observed track history are used; the whole 100-190E, 0-60N state is extrapolated from current/t-12/t-24 analysis tendency. Official JMA/JTWC tracks are overlays only.",
+  "causal_input_guard": {
+    "enabled": true,
+    "policy": "analysis/reanalysis only; every weather valid_time <= issue_time and every GRIB step = 0",
+    "issue_time_utc": "2026-07-31T15:00:00Z",
+    "weather_files": [
+      {
+        "path": "v37/current_gfs_structure/gfs_20260731_12_full.grib2",
+        "valid_time_utc": "2026-07-31T12:00:00Z",
+        "step_hours": 0,
+        "accepted_as": "analysis_or_reanalysis"
+      },
+      {
+        "path": "v37/current_gfs_structure/gfs_20260730_12_full.grib2",
+        "valid_time_utc": "2026-07-30T12:00:00Z",
+        "step_hours": 0,
+        "accepted_as": "analysis_or_reanalysis"
+      },
+      {
+        "path": "v37/current_gfs_structure/gfs_20260729_12_full.grib2",
+        "valid_time_utc": "2026-07-29T12:00:00Z",
+        "step_hours": 0,
+        "accepted_as": "analysis_or_reanalysis"
+      }
+    ],
+    "histories": [
+      {
+        "label": "Dolphin current_track_history",
+        "time_key": "time",
+        "row_count": 9,
+        "max_time_utc": "2026-07-31T15:00:00Z"
+      }
+    ],
+    "positive_lead_weather_rejected": true,
+    "future_history_rows_rejected": true,
+    "official_forecasts_used_for_inference": false
+  },
   "future_rows_used_for_inference": 0,
   "official_forecasts_used_for_inference": false,
   "forecast_products_used": [],

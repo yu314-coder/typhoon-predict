@@ -16,6 +16,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import numpy as np
+import xarray as xr
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -40,6 +41,7 @@ from v62_intensity_structure import (  # noqa: E402
     couple_forecast_to_pressure_map,
 )
 from v62_pacific_domain_route import (  # noqa: E402
+    CAUSAL_ONLY,
     LEAD_HOURS,
     PACIFIC_LAT_RANGE,
     PACIFIC_LON_RANGE,
@@ -69,6 +71,114 @@ INTENSITY_CALIBRATION_PATH = ROOT / "v37" / "structure_spatial" / "v37g_intensit
 TIP_INTENSITY_SOURCE = ROOT / "track_build" / "tip_v37_cfsr_causal_19791012.json"
 
 _INTENSITY_MODEL: V62IntensityEnsemble | None = None
+
+
+def _as_utc(value: object) -> dt.datetime:
+    """Normalize an ISO or NumPy timestamp for the causal input guard."""
+
+    if isinstance(value, dt.datetime):
+        result = value
+    elif isinstance(value, np.datetime64):
+        if np.isnat(value):
+            raise ValueError("analysis file contains NaT")
+        seconds = value.astype("datetime64[s]").astype(np.int64)
+        result = dt.datetime.fromtimestamp(int(seconds), tz=dt.timezone.utc)
+    else:
+        result = dt.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    if result.tzinfo is None:
+        result = result.replace(tzinfo=dt.timezone.utc)
+    return result.astimezone(dt.timezone.utc)
+
+
+def _single_coordinate(dataset: xr.Dataset, name: str) -> object:
+    if name not in dataset.coords:
+        raise RuntimeError(f"causal input guard: GRIB dataset has no {name} coordinate")
+    values = np.asarray(dataset[name].values).reshape(-1)
+    if len(values) != 1:
+        raise RuntimeError(f"causal input guard: GRIB dataset has multiple {name} values")
+    return values[0]
+
+
+def _validate_analysis_file(path: Path, issue_time: dt.datetime) -> dict:
+    """Reject forecast-step or post-issue weather files before decoding them."""
+
+    valid_times = []
+    for level_type in ("meanSea", "isobaricInhPa"):
+        dataset = xr.open_dataset(
+            path,
+            engine="cfgrib",
+            backend_kwargs={
+                "filter_by_keys": {"typeOfLevel": level_type},
+                "indexpath": "",
+            },
+        )
+        try:
+            valid_time = _as_utc(_single_coordinate(dataset, "valid_time"))
+            if "step" in dataset.coords:
+                step = np.asarray(dataset["step"].values).reshape(-1).astype("timedelta64[ns]")
+                if np.any(step != np.timedelta64(0, "ns")):
+                    raise RuntimeError(
+                        f"causal input guard rejected forecast step in {path}: {step.tolist()}"
+                    )
+            if valid_time > issue_time:
+                raise RuntimeError(
+                    f"causal input guard rejected future weather file {path}: "
+                    f"valid_time={valid_time.isoformat()} > issue={issue_time.isoformat()}"
+                )
+            valid_times.append(valid_time)
+        finally:
+            dataset.close()
+    if len(set(valid_times)) != 1:
+        raise RuntimeError(f"causal input guard found inconsistent valid times in {path}: {valid_times}")
+    return {
+        "path": str(path.relative_to(ROOT)),
+        "valid_time_utc": valid_times[0].strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "step_hours": 0,
+        "accepted_as": "analysis_or_reanalysis",
+    }
+
+
+def _validate_history(rows: list[dict], time_key: str, issue_time: dt.datetime, label: str) -> dict:
+    times = []
+    for index, row in enumerate(rows):
+        if time_key not in row:
+            raise RuntimeError(f"causal input guard: {label}[{index}] has no {time_key}")
+        value = _as_utc(row[time_key])
+        if value > issue_time:
+            raise RuntimeError(
+                f"causal input guard rejected future {label}[{index}]: "
+                f"time={value.isoformat()} > issue={issue_time.isoformat()}"
+            )
+        times.append(value)
+    if not times:
+        raise RuntimeError(f"causal input guard: {label} is empty")
+    return {
+        "label": label,
+        "time_key": time_key,
+        "row_count": len(times),
+        "max_time_utc": max(times).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+
+
+def _causal_input_guard(
+    issue_time: dt.datetime,
+    weather_files: tuple[Path, ...],
+    histories: list[tuple[str, list[dict], str]],
+) -> dict:
+    if not CAUSAL_ONLY:
+        raise RuntimeError("v62 causal-only configuration was disabled")
+    weather = [_validate_analysis_file(path, issue_time) for path in weather_files]
+    history = [_validate_history(rows, time_key, issue_time, label) for label, rows, time_key in histories]
+    return {
+        "enabled": True,
+        "policy": "analysis/reanalysis only; every weather valid_time <= issue_time and every GRIB step = 0",
+        "issue_time_utc": issue_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "weather_files": weather,
+        "histories": history,
+        "positive_lead_weather_rejected": True,
+        "future_history_rows_rejected": True,
+        "official_forecasts_used_for_inference": False,
+    }
 
 
 def _intensity_model() -> V62IntensityEnsemble:
@@ -430,6 +540,11 @@ def _dolphin() -> dict:
     source = json.loads(DOLPHIN_SOURCE.read_text(encoding="utf-8"))
     records = source["current_track_history"]
     issue = dt.datetime.fromisoformat(source["issue_time_utc"].replace("Z", "+00:00"))
+    causal_guard = _causal_input_guard(
+        issue,
+        DOLPHIN_FILES,
+        [("Dolphin current_track_history", records, "time")],
+    )
     fields, pressure, latitude, longitude = _decode_analysis(DOLPHIN_FILES)
     levels = np.load(DOLPHIN_LEVELS, allow_pickle=True)
     base_latitude, base_longitude = float(records[-1]["lat"]), float(records[-1]["lon"])
@@ -465,9 +580,10 @@ def _dolphin() -> dict:
         "forecast": forecast,
         "ensemble_forecasts": _member_points(ensemble, base_latitude, base_longitude, issue),
         "official": {"jtwc": [base_maps.point(row) for row in source["jtwc_official"]], "jma": [base_maps.point(row) for row in source["jma_official"]]},
-        "route_diagnostics": {"pacific_weight": PACIFIC_WEIGHT, "local_weight": LOCAL_WEIGHT, "pacific": diagnostics, "local": local_diagnostics, "pressure_state": state_diagnostics, "pressure_systems": systems, "analysis_files": [str(path.relative_to(ROOT)) for path in DOLPHIN_FILES]},
+        "route_diagnostics": {"pacific_weight": PACIFIC_WEIGHT, "local_weight": LOCAL_WEIGHT, "pacific": diagnostics, "local": local_diagnostics, "pressure_state": state_diagnostics, "pressure_systems": systems, "analysis_files": [str(path.relative_to(ROOT)) for path in DOLPHIN_FILES], "causal_input_guard": causal_guard},
         "intensity_model": intensity_metadata,
-        "input_policy": "Only GFS analysis files at or before the 2026-07-31 15Z issue were opened. The whole 100-190E, 0-60N state is extrapolated from current/t-12/t-24 analysis tendency. Intensity starts from the current/past observed track window and current four-channel analysis patch, then uses only the causal forecast pressure-map minimum, annulus deficit, and anomaly radii for future changes; official JMA/JTWC tracks are overlays only.",
+        "input_policy": "Strict causal-only mode: the runner rejects any GRIB forecast step or weather valid_time after the issue. Only current/past GFS analysis files and the observed track history are used; the whole 100-190E, 0-60N state is extrapolated from current/t-12/t-24 analysis tendency. Official JMA/JTWC tracks are overlays only.",
+        "causal_input_guard": causal_guard,
         "future_rows_used_for_inference": 0,
         "official_forecasts_used_for_inference": False,
         "forecast_products_used": [],
@@ -491,6 +607,14 @@ def _tip() -> dict:
     intensity_source = json.loads(TIP_INTENSITY_SOURCE.read_text(encoding="utf-8"))
     intensity_rows = intensity_source["input_history"]
     issue = dt.datetime.fromisoformat(case["issue_time_utc"].replace("Z", "+00:00"))
+    causal_guard = _causal_input_guard(
+        issue,
+        TIP_FILES,
+        [
+            ("Tip observed_before_issue", case["observed_before_issue"], "time_utc"),
+            ("Tip intensity input_history", intensity_rows, "time_utc"),
+        ],
+    )
     fields, pressure, latitude, longitude = _decode_analysis(TIP_FILES)
     levels = np.load(TIP_LEVELS, allow_pickle=True)
     issue_row = case["observed_before_issue"][-1]
@@ -502,7 +626,6 @@ def _tip() -> dict:
     ensemble = LOCAL_WEIGHT * local_route[None, :, :] + PACIFIC_WEIGHT * members
     intensity_field = _tip_intensity_field(np.load(ROOT / "v37_cfsr" / "tip_1979_causal" / "cfsr_tip_19791012.npz", allow_pickle=True))
     observed = [{"time": row["time_utc"], "lat": float(row["lat"]), "lon": float(row["lon"])} for row in case["observed_before_issue"]]
-    truth = [{"time_utc": row["time_utc"], "lat": float(row["lat"]), "lon": float(row["lon"])} for row in case["truth_after_issue"]]
     state_fields, state_pressure, state_diagnostics = forecast_pacific_state(fields, pressure)
     base_forecast = _route_points(route, base_latitude, base_longitude, issue)
     intensity, intensity_metadata = _predict_intensity(intensity_rows, "time_utc", intensity_field)
@@ -521,8 +644,10 @@ def _tip() -> dict:
     intensity_metadata["pressure_map_coupling"] = map_metadata
     forecast = _route_points(route, base_latitude, base_longitude, issue, intensity=intensity)
     systems = _system_series(state_pressure, latitude, longitude, forecast, base_latitude, base_longitude)
-    tip_case = {"issue_time_utc": case["issue_time_utc"], "observed_before_issue": observed, "forecast": forecast, "ensemble_forecasts": _member_points(ensemble, base_latitude, base_longitude, issue), "truth_after_issue": [{"time": row["time_utc"], "lat": row["lat"], "lon": row["lon"]} for row in truth], "score": _score(forecast, truth, issue_row), "persistence_score": case["persistence_score"], "intensity_model": intensity_metadata, "route_diagnostics": {"pacific_weight": PACIFIC_WEIGHT, "local_weight": LOCAL_WEIGHT, "pacific": diagnostics, "local": local_diagnostics, "pressure_state": state_diagnostics, "pressure_systems": systems, "analysis_files": [str(path.relative_to(ROOT)) for path in TIP_FILES]}}
-    payload = {"storm": "Tip", "model": "v62 whole western-Pacific causal state route + intensity/structure head (25% Pacific domain + 75% local)", "cases": [tip_case], "intensity_model": intensity_metadata, "input_policy": "Only CFSR analysis/reanalysis files at or before the 1979-10-12 00Z issue were opened. The whole 100-190E, 0-60N state is extrapolated from current/t-12/t-24 analysis tendency. Intensity starts from the nine-row causal current/past track history and current four-channel analysis patch, then uses only the causal forecast pressure-map minimum, annulus deficit, and anomaly radii for future changes. Later IBTrACS rows are verification truth only.", "future_rows_used_for_inference": 0, "official_jma_jtwc_forecasts_used": False, "forecast_products_used": [], "forecast_intensity_source": "v62_intensity_structure.py using the frozen v37G spatial structure ensemble, coupled to the causal v62 pressure-map state; current/past analysis only", "other_typhoon_input": "No storm-center forecast or official typhoon track was used. Nearby lows/vortex candidates come from the causal SLP field.", "tip_used_for_training_or_calibration": False}
+    # Read verification truth only after all inference has completed.
+    truth = [{"time_utc": row["time_utc"], "lat": float(row["lat"]), "lon": float(row["lon"])} for row in case["truth_after_issue"]]
+    tip_case = {"issue_time_utc": case["issue_time_utc"], "observed_before_issue": observed, "forecast": forecast, "ensemble_forecasts": _member_points(ensemble, base_latitude, base_longitude, issue), "truth_after_issue": [{"time": row["time_utc"], "lat": row["lat"], "lon": row["lon"]} for row in truth], "score": _score(forecast, truth, issue_row), "persistence_score": case["persistence_score"], "intensity_model": intensity_metadata, "route_diagnostics": {"pacific_weight": PACIFIC_WEIGHT, "local_weight": LOCAL_WEIGHT, "pacific": diagnostics, "local": local_diagnostics, "pressure_state": state_diagnostics, "pressure_systems": systems, "analysis_files": [str(path.relative_to(ROOT)) for path in TIP_FILES], "causal_input_guard": causal_guard}}
+    payload = {"storm": "Tip", "model": "v62 whole western-Pacific causal state route + intensity/structure head (25% Pacific domain + 75% local)", "cases": [tip_case], "intensity_model": intensity_metadata, "input_policy": "Strict causal-only mode: the runner rejects any GRIB forecast step or weather valid_time after the issue. Only current/past CFSR analysis/reanalysis files and pre-issue track history are used; the whole 100-190E, 0-60N state is extrapolated from current/t-12/t-24 analysis tendency. Later IBTrACS rows are read only after inference for verification.", "causal_input_guard": causal_guard, "future_rows_used_for_inference": 0, "official_jma_jtwc_forecasts_used": False, "forecast_products_used": [], "forecast_intensity_source": "v62_intensity_structure.py using the frozen v37G spatial structure ensemble, coupled to the causal v62 pressure-map state; current/past analysis only", "other_typhoon_input": "No storm-center forecast or official typhoon track was used. Nearby lows/vortex candidates come from the causal SLP field.", "tip_used_for_training_or_calibration": False}
     _draw_pressure_forecast(TIP_PRESSURE_PNG, state_fields, state_pressure, latitude, longitude, observed, forecast, systems, "Typhoon Tip v62 whole western-Pacific causal pressure state")
     _draw_intensity_chart(TIP_INTENSITY_PNG, forecast, "Typhoon Tip v62 causal intensity and wind structure")
     base_maps.TIP_JSON, base_maps.TIP_HTML, base_maps.TIP_PNG = TIP_JSON, TIP_HTML, TIP_PNG

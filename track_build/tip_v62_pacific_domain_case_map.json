@@ -46260,6 +46260,7 @@
         },
         "pressure_state": {
           "version": "v62-causal-western-pacific-state-route",
+          "causal_only": true,
           "lead_hours": [
             0,
             6,
@@ -47584,7 +47585,49 @@
           "v37_cfsr/tip_1979_causal/raw/pgbhnl.gdas.1979101200.grb2",
           "v37_cfsr/tip_1979_causal/raw/pgbhnl.gdas.1979101100.grb2",
           "v37_cfsr/tip_1979_causal/raw/pgbhnl.gdas.1979101000.grb2"
-        ]
+        ],
+        "causal_input_guard": {
+          "enabled": true,
+          "policy": "analysis/reanalysis only; every weather valid_time <= issue_time and every GRIB step = 0",
+          "issue_time_utc": "1979-10-12T00:00:00Z",
+          "weather_files": [
+            {
+              "path": "v37_cfsr/tip_1979_causal/raw/pgbhnl.gdas.1979101200.grb2",
+              "valid_time_utc": "1979-10-12T00:00:00Z",
+              "step_hours": 0,
+              "accepted_as": "analysis_or_reanalysis"
+            },
+            {
+              "path": "v37_cfsr/tip_1979_causal/raw/pgbhnl.gdas.1979101100.grb2",
+              "valid_time_utc": "1979-10-11T00:00:00Z",
+              "step_hours": 0,
+              "accepted_as": "analysis_or_reanalysis"
+            },
+            {
+              "path": "v37_cfsr/tip_1979_causal/raw/pgbhnl.gdas.1979101000.grb2",
+              "valid_time_utc": "1979-10-10T00:00:00Z",
+              "step_hours": 0,
+              "accepted_as": "analysis_or_reanalysis"
+            }
+          ],
+          "histories": [
+            {
+              "label": "Tip observed_before_issue",
+              "time_key": "time_utc",
+              "row_count": 9,
+              "max_time_utc": "1979-10-12T00:00:00Z"
+            },
+            {
+              "label": "Tip intensity input_history",
+              "time_key": "time_utc",
+              "row_count": 9,
+              "max_time_utc": "1979-10-12T00:00:00Z"
+            }
+          ],
+          "positive_lead_weather_rejected": true,
+          "future_history_rows_rejected": true,
+          "official_forecasts_used_for_inference": false
+        }
       }
     }
   ],
@@ -48183,7 +48226,49 @@
       "positive_lead_weather_product_used": false
     }
   },
-  "input_policy": "Only CFSR analysis/reanalysis files at or before the 1979-10-12 00Z issue were opened. The whole 100-190E, 0-60N state is extrapolated from current/t-12/t-24 analysis tendency. Intensity starts from the nine-row causal current/past track history and current four-channel analysis patch, then uses only the causal forecast pressure-map minimum, annulus deficit, and anomaly radii for future changes. Later IBTrACS rows are verification truth only.",
+  "input_policy": "Strict causal-only mode: the runner rejects any GRIB forecast step or weather valid_time after the issue. Only current/past CFSR analysis/reanalysis files and pre-issue track history are used; the whole 100-190E, 0-60N state is extrapolated from current/t-12/t-24 analysis tendency. Later IBTrACS rows are read only after inference for verification.",
+  "causal_input_guard": {
+    "enabled": true,
+    "policy": "analysis/reanalysis only; every weather valid_time <= issue_time and every GRIB step = 0",
+    "issue_time_utc": "1979-10-12T00:00:00Z",
+    "weather_files": [
+      {
+        "path": "v37_cfsr/tip_1979_causal/raw/pgbhnl.gdas.1979101200.grb2",
+        "valid_time_utc": "1979-10-12T00:00:00Z",
+        "step_hours": 0,
+        "accepted_as": "analysis_or_reanalysis"
+      },
+      {
+        "path": "v37_cfsr/tip_1979_causal/raw/pgbhnl.gdas.1979101100.grb2",
+        "valid_time_utc": "1979-10-11T00:00:00Z",
+        "step_hours": 0,
+        "accepted_as": "analysis_or_reanalysis"
+      },
+      {
+        "path": "v37_cfsr/tip_1979_causal/raw/pgbhnl.gdas.1979101000.grb2",
+        "valid_time_utc": "1979-10-10T00:00:00Z",
+        "step_hours": 0,
+        "accepted_as": "analysis_or_reanalysis"
+      }
+    ],
+    "histories": [
+      {
+        "label": "Tip observed_before_issue",
+        "time_key": "time_utc",
+        "row_count": 9,
+        "max_time_utc": "1979-10-12T00:00:00Z"
+      },
+      {
+        "label": "Tip intensity input_history",
+        "time_key": "time_utc",
+        "row_count": 9,
+        "max_time_utc": "1979-10-12T00:00:00Z"
+      }
+    ],
+    "positive_lead_weather_rejected": true,
+    "future_history_rows_rejected": true,
+    "official_forecasts_used_for_inference": false
+  },
   "future_rows_used_for_inference": 0,
   "official_jma_jtwc_forecasts_used": false,
   "forecast_products_used": [],

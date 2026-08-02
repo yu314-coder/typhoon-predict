@@ -30,6 +30,12 @@ tendency. It is deliberately **not** an imported numerical-weather-model forecas
 lead weather field, official forecast track, or post-issue observation is passed to inference.
 Official JMA/JTWC tracks, where displayed on older comparison pages, are overlays only.
 
+The v62 runner has a hard causal-input guard. Every GRIB file must have `step=0` and a
+`valid_time` at or before the issue time; any forecast-step or post-issue weather file raises
+an error before decoding. Track histories receive the same time cutoff. Official forecasts and
+post-issue IBTrACS rows are never inference inputs; they may appear only as comparison overlays
+or later verification truth.
+
 ### GitHub Pages and Actions data boundary
 
 GitHub Pages is a static host. It can serve the generated HTML, JSON, PNG, and compact data files,
