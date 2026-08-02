@@ -149,7 +149,10 @@ def _route_points(route: np.ndarray, base_latitude: float, base_longitude: float
             "lon": round(longitude % 360.0, 4),
         }
         if intensity and index < len(intensity):
-            for key in ("vmax_kt", "central_pressure_hpa", "rmw_km", "wind_radii_km"):
+            for key in (
+                "vmax_kt", "vmax_spread_kt", "central_pressure_hpa", "pressure_spread_hpa",
+                "pressure_hpa", "rmw_km", "rmw_spread_km", "wind_radii_km", "wind_radii_spread_km",
+            ):
                 if key in intensity[index]:
                     point[key] = intensity[index][key]
         points.append(point)

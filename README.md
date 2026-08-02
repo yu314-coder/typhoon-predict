@@ -14,6 +14,13 @@ channels are MSLP plus 500 hPa height and 850/500/200 hPa wind. The pressure pan
 2 hPa MSLP contours, 500 hPa height contours and wind barbs, 850 hPa wind-speed structure, and
 200 hPa jet-speed contours.
 
+The v62 case runner also emits a causal intensity/structure forecast. A frozen three-member
+v37G spatial ensemble predicts maximum wind, central pressure, radius of maximum wind (RMW),
+and four-quadrant R34/R50/R64 wind radii at every six-hour lead. It receives the nine-step
+observed track window and the current four-channel analysis patch; it does not receive a
+positive-lead weather field. Reported spread is the standard deviation across the three experts.
+This remains a research output, not an operational intensity warning.
+
 The state forecast is a bounded extrapolation of the current, t-12 h, and t-24 h analysis
 tendency. It is deliberately **not** an imported numerical-weather-model forecast: no positive-
 lead weather field, official forecast track, or post-issue observation is passed to inference.
@@ -70,8 +77,10 @@ Open the generated artifacts:
 
 - [Dolphin v23/v62 interactive map](paper/dolphin_v62_v23_public_data_world_map.html)
 - [Dolphin causal pressure map](paper/dolphin_v62_v23_public_data_pressure_map.png)
+- [Dolphin v62 intensity and wind-structure chart](paper/dolphin_v62_intensity_structure.png)
 - [Tip v23/v62 interactive map](paper/tip_v62_v23_public_data_world_map.html)
 - [Tip causal pressure map](paper/tip_v62_v23_public_data_pressure_map.png)
+- [Tip v62 intensity and wind-structure chart](paper/tip_v62_intensity_structure.png)
 - [Dolphin comparison manifest](track_build/dolphin_v62_v23_public_data.json)
 - [Tip comparison manifest](track_build/tip_v62_v23_public_data.json)
 
@@ -89,13 +98,18 @@ and the v23/v62 comparison in
 ### v62 minimum requirements
 
 - Python 3.10+, PyTorch, NumPy, Matplotlib, xarray, `cfgrib`, and ecCodes for GRIB decoding.
+- The v62 structure head requires the three bundled v37G checkpoint files (about 26 MB total) and
+  `v37/structure_spatial/v37g_intensity_calibration.json`; the route-only path can run without the
+  structure head if those files are intentionally omitted.
 - CPU inference is supported; no GPU is required for the case renderer. A current Mac with 8 GB
   RAM is the practical minimum, while 16 GB RAM and 10 GB free disk make GRIB decoding safer.
 - GitHub Actions needs a Linux runner with Python and enough temporary disk for the raw analysis
   files. Pages viewers only need a modern browser; the PNG pressure maps remain viewable without
   JavaScript map tiles.
 - Training the v23 checkpoint ensemble is a separate, much larger GPU workload. The v62 case
-  runner is inference/evaluation code and does not retrain the model.
+  runner is inference/evaluation code and does not retrain the model; it loads the frozen v37G
+  structure head for the additional intensity outputs and uses no Tip rows or official forecast
+  products as training or inference inputs.
 
 This repo is a minimal release: trained weights, the scripts that trained them, the v62 causal
 case renderer, and the paper.

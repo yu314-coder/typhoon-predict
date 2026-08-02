@@ -34,6 +34,8 @@ from scripts.run_v61_big_system_cases import (  # noqa: E402
     _route_points,
     _score,
 )
+from scripts.predict_ibtracs_jma_only import build_track_window, load_land_points  # noqa: E402
+from v62_intensity_structure import V62IntensityEnsemble  # noqa: E402
 from v62_pacific_domain_route import (  # noqa: E402
     LEAD_HOURS,
     PACIFIC_LAT_RANGE,
@@ -55,6 +57,136 @@ DOLPHIN_PNG = ROOT / "paper" / "dolphin_v62_pacific_domain_world_map.png"
 TIP_PNG = ROOT / "paper" / "tip_v62_pacific_domain_world_map.png"
 DOLPHIN_PRESSURE_PNG = ROOT / "paper" / "dolphin_v62_pacific_pressure_forecast.png"
 TIP_PRESSURE_PNG = ROOT / "paper" / "tip_v62_pacific_pressure_forecast.png"
+DOLPHIN_INTENSITY_PNG = ROOT / "paper" / "dolphin_v62_intensity_structure.png"
+TIP_INTENSITY_PNG = ROOT / "paper" / "tip_v62_intensity_structure.png"
+V23_STATS_PATH = ROOT / "v37" / "v23_norm_stats.npz"
+FIELD_SCALE_PATH = ROOT / "track_build" / "dlm4_int8.npz"
+INTENSITY_CHECKPOINT_ROOT = ROOT / "v37" / "structure_spatial" / "checkpoints"
+INTENSITY_CALIBRATION_PATH = ROOT / "v37" / "structure_spatial" / "v37g_intensity_calibration.json"
+
+_INTENSITY_MODEL: V62IntensityEnsemble | None = None
+
+
+def _intensity_model() -> V62IntensityEnsemble:
+    global _INTENSITY_MODEL
+    if _INTENSITY_MODEL is None:
+        _INTENSITY_MODEL = V62IntensityEnsemble(INTENSITY_CHECKPOINT_ROOT, INTENSITY_CALIBRATION_PATH)
+    return _INTENSITY_MODEL
+
+
+def _intensity_record(row: dict, time_key: str) -> dict:
+    """Make the v37G track schema explicit without inventing missing labels."""
+
+    result = dict(row)
+    result["time_utc"] = str(row.get("time_utc", row.get(time_key, "")))
+    for key in (
+        "vmax_kt", "pressure_hpa", "rmw_nm", "roci_nm", "dist2land_km",
+        "r34_ne_nm", "r34_se_nm", "r34_sw_nm", "r34_nw_nm",
+        "r50_ne_nm", "r50_se_nm", "r50_sw_nm", "r50_nw_nm",
+        "r64_ne_nm", "r64_se_nm", "r64_sw_nm", "r64_nw_nm",
+    ):
+        result.setdefault(key, float("nan"))
+    return result
+
+
+def _intensity_track(rows: list[dict], time_key: str) -> tuple[np.ndarray, list[dict]]:
+    if not V23_STATS_PATH.exists():
+        raise FileNotFoundError(V23_STATS_PATH)
+    stats = np.load(V23_STATS_PATH)
+    records = [_intensity_record(row, time_key) for row in rows]
+    normalized, _, _ = build_track_window(
+        records,
+        stats["tmean"].astype("float32"),
+        stats["tstd"].astype("float32"),
+        *load_land_points(),
+    )
+    return normalized, records
+
+
+def _predict_intensity(rows: list[dict], time_key: str, field: np.ndarray) -> tuple[list[dict], dict]:
+    track, records = _intensity_track(rows, time_key)
+    current = records[-1]
+    previous = records[-2] if len(records) > 1 else current
+    forecast, metadata = _intensity_model().predict(
+        track,
+        field,
+        float(current["vmax_kt"]),
+        float(current["pressure_hpa"]),
+        float(previous["vmax_kt"]),
+        float(previous["pressure_hpa"]),
+    )
+    metadata["calibration"] = str(INTENSITY_CALIBRATION_PATH.relative_to(ROOT))
+    return forecast, metadata
+
+
+def _tip_intensity_field(archive: np.lib.npyio.NpzFile) -> np.ndarray:
+    """Rebuild the v23 4-channel field using only Tip data through the issue."""
+
+    slp = np.asarray(archive["slp_hpa"], dtype="float32")
+    u = np.asarray(archive["u_dlm"], dtype="float32")
+    v = np.asarray(archive["v_dlm"], dtype="float32")
+    scale = np.asarray(np.load(FIELD_SCALE_PATH)["scale"], dtype="float32")
+    if len(slp) < 9:
+        raise ValueError("Tip causal archive must contain the nine issue-history frames")
+
+    def frame(index: int) -> np.ndarray:
+        tendency_index = max(0, index - 4)
+        raw = np.stack([
+            slp[index] - float(np.nanmean(slp[index])),
+            slp[index] - slp[tendency_index],
+            u[index],
+            v[index],
+        ]).astype("float32")
+        return np.clip(raw / scale[:, None, None], -4.0, 4.0)
+
+    return frame(8)
+
+
+def _draw_intensity_chart(path: Path, forecast: list[dict], title: str) -> None:
+    leads = np.asarray([row["lead_hours"] for row in forecast], dtype="float32")
+    wind = np.asarray([row["vmax_kt"] for row in forecast], dtype="float32")
+    wind_spread = np.asarray([row.get("vmax_spread_kt", 0.0) for row in forecast], dtype="float32")
+    pressure = np.asarray([row["central_pressure_hpa"] for row in forecast], dtype="float32")
+    pressure_spread = np.asarray([row.get("pressure_spread_hpa", 0.0) for row in forecast], dtype="float32")
+    rmw = np.asarray([row["rmw_km"] for row in forecast], dtype="float32")
+    rmw_spread = np.asarray([row.get("rmw_spread_km", 0.0) for row in forecast], dtype="float32")
+    radii = np.asarray([row["wind_radii_km"] for row in forecast], dtype="float32")
+    fig, axes = plt.subplots(3, 1, figsize=(13, 10), sharex=True, constrained_layout=True)
+    axes[0].plot(leads, wind, color="#b91c1c", linewidth=2.4, label="vmax")
+    axes[0].fill_between(leads, wind - wind_spread, wind + wind_spread, color="#b91c1c", alpha=0.15, label="ensemble spread")
+    axes[0].set_ylabel("Maximum wind (kt)")
+    axes[0].set_ylim(bottom=0)
+    axes[0].grid(alpha=0.35)
+    axes[0].legend(loc="best")
+    axes[1].plot(leads, pressure, color="#1d4ed8", linewidth=2.4, label="central pressure")
+    axes[1].fill_between(leads, pressure - pressure_spread, pressure + pressure_spread, color="#1d4ed8", alpha=0.15, label="ensemble spread")
+    axes[1].set_ylabel("Central pressure (hPa)")
+    axes[1].invert_yaxis()
+    axes[1].grid(alpha=0.35)
+    axes[1].legend(loc="best")
+    labels = ((0, "R34 mean", "#be185d"), (4, "R50 mean", "#7c3aed"), (8, "R64 mean", "#0e7490"))
+    for offset, label, color in labels:
+        values = radii[:, offset:offset + 4].mean(axis=1)
+        axes[2].plot(leads, values, color=color, linewidth=2.0, label=label)
+    axes[2].plot(leads, rmw, color="#111827", linewidth=1.8, linestyle="--", label="RMW")
+    axes[2].fill_between(leads, rmw - rmw_spread, rmw + rmw_spread, color="#111827", alpha=0.10)
+    axes[2].set_xlabel("Forecast lead (hours)")
+    axes[2].set_ylabel("Radius (km)")
+    axes[2].set_ylim(bottom=0)
+    axes[2].grid(alpha=0.35)
+    axes[2].legend(loc="best", ncol=2)
+    fig.suptitle(title, fontsize=15, fontweight="bold")
+    fig.savefig(path, dpi=180, facecolor="white")
+    plt.close(fig)
+
+
+def _append_intensity_section(page: str, image_name: str, metadata: dict) -> str:
+    policy = html.escape(
+        "The v62 intensity head predicts maximum wind, central pressure, RMW, and directional R34/R50/R64 radii from the current/past track window and current analysis patch only. "
+        f"{metadata['checkpoint_count']} frozen v37G spatial experts provide the mean and spread."
+    )
+    section = f'<section><h2>Predicted intensity and wind structure</h2><p>{policy}</p><img src="{html.escape(image_name)}" alt="Causal v62 intensity and wind-structure forecast"></section>'
+    return page.replace("</main>", section + "</main>")
 
 
 def _member_points(members: np.ndarray, base_latitude: float, base_longitude: float, issue: dt.datetime) -> list[list[dict]]:
@@ -302,32 +434,36 @@ def _dolphin() -> dict:
     local_route, _, local_diagnostics = _local_route(levels, base_latitude, base_longitude)
     route = LOCAL_WEIGHT * local_route + PACIFIC_WEIGHT * pacific_route
     ensemble = LOCAL_WEIGHT * local_route[None, :, :] + PACIFIC_WEIGHT * members
-    forecast = _route_points(route, base_latitude, base_longitude, issue)
+    intensity, intensity_metadata = _predict_intensity(records, "time", np.asarray(levels["current"], dtype="float32"))
+    forecast = _route_points(route, base_latitude, base_longitude, issue, intensity=intensity)
     observed = [{"time": row["time"], "lat": float(row["lat"]), "lon": float(row["lon"])} for row in records]
     state_fields, state_pressure, state_diagnostics = forecast_pacific_state(fields, pressure)
     systems = _system_series(state_pressure, latitude, longitude, forecast, base_latitude, base_longitude)
     payload = {
         "storm": "Dolphin",
         "issue_time_utc": source["issue_time_utc"],
-        "model": "v62 whole western-Pacific causal state route (25% Pacific domain + 75% local)",
+        "model": "v62 whole western-Pacific causal state route + intensity/structure head (25% Pacific domain + 75% local)",
         "observed": observed,
         "forecast": forecast,
         "ensemble_forecasts": _member_points(ensemble, base_latitude, base_longitude, issue),
         "official": {"jtwc": [base_maps.point(row) for row in source["jtwc_official"]], "jma": [base_maps.point(row) for row in source["jma_official"]]},
         "route_diagnostics": {"pacific_weight": PACIFIC_WEIGHT, "local_weight": LOCAL_WEIGHT, "pacific": diagnostics, "local": local_diagnostics, "pressure_state": state_diagnostics, "pressure_systems": systems, "analysis_files": [str(path.relative_to(ROOT)) for path in DOLPHIN_FILES]},
-        "input_policy": "Only GFS f000 analysis files at or before the 2026-07-31 15Z issue were opened. The whole 100-190E, 0-60N state is extrapolated from current/t-12/t-24 analysis tendency; official JMA/JTWC tracks are overlays only.",
+        "intensity_model": intensity_metadata,
+        "input_policy": "Only GFS analysis files at or before the 2026-07-31 15Z issue were opened. The whole 100-190E, 0-60N state is extrapolated from current/t-12/t-24 analysis tendency. Intensity uses only the current/past observed track window plus the current four-channel analysis patch; official JMA/JTWC tracks are overlays only.",
         "future_rows_used_for_inference": 0,
         "official_forecasts_used_for_inference": False,
         "forecast_products_used": [],
-        "forecast_intensity_source": None,
+        "forecast_intensity_source": "v62_intensity_structure.py using the frozen v37G spatial structure ensemble; current/past analysis only",
         "other_typhoon_input": "No storm-center forecast or official typhoon track was used. Nearby lows/vortex candidates come from the causal SLP field.",
     }
     _draw_pressure_forecast(DOLPHIN_PRESSURE_PNG, state_fields, state_pressure, latitude, longitude, observed, forecast, systems, "Dolphin v62 whole western-Pacific causal pressure state")
+    _draw_intensity_chart(DOLPHIN_INTENSITY_PNG, forecast, "Dolphin v62 causal intensity and wind structure")
     base_maps.DOLPHIN_JSON, base_maps.DOLPHIN_HTML, base_maps.DOLPHIN_PNG = DOLPHIN_JSON, DOLPHIN_HTML, DOLPHIN_PNG
     base_maps.draw_dolphin_png(payload, base_maps.load_coastlines())
     DOLPHIN_JSON.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     page = base_maps.html_shell("Dolphin v62 whole western-Pacific world map", "dolphin-map", payload, "The red route is v62 output. The Pacific pressure map is a causal analysis-tendency extrapolation, not an imported forecast product.", "<p><b>Input:</b> Current and past GFS analysis only. Broad rings cover the western Pacific from China/Japan through Taiwan, the Philippines, and the open Pacific.</p>", DOLPHIN_PNG, "dolphin")
-    DOLPHIN_HTML.write_text(_append_pressure_section(page, DOLPHIN_PRESSURE_PNG.name, payload["input_policy"]), encoding="utf-8")
+    page = _append_pressure_section(page, DOLPHIN_PRESSURE_PNG.name, payload["input_policy"])
+    DOLPHIN_HTML.write_text(_append_intensity_section(page, DOLPHIN_INTENSITY_PNG.name, intensity_metadata), encoding="utf-8")
     return payload
 
 
@@ -344,26 +480,30 @@ def _tip() -> dict:
     local_route, _, local_diagnostics = _local_route(levels, base_latitude, base_longitude)
     route = LOCAL_WEIGHT * local_route + PACIFIC_WEIGHT * pacific_route
     ensemble = LOCAL_WEIGHT * local_route[None, :, :] + PACIFIC_WEIGHT * members
-    forecast = _route_points(route, base_latitude, base_longitude, issue)
+    intensity_field = _tip_intensity_field(np.load(ROOT / "v37_cfsr" / "tip_1979_causal" / "cfsr_tip_19791012.npz", allow_pickle=True))
+    intensity, intensity_metadata = _predict_intensity(case["observed_before_issue"], "time_utc", intensity_field)
+    forecast = _route_points(route, base_latitude, base_longitude, issue, intensity=intensity)
     observed = [{"time": row["time_utc"], "lat": float(row["lat"]), "lon": float(row["lon"])} for row in case["observed_before_issue"]]
     truth = [{"time_utc": row["time_utc"], "lat": float(row["lat"]), "lon": float(row["lon"])} for row in case["truth_after_issue"]]
     state_fields, state_pressure, state_diagnostics = forecast_pacific_state(fields, pressure)
     systems = _system_series(state_pressure, latitude, longitude, forecast, base_latitude, base_longitude)
-    tip_case = {"issue_time_utc": case["issue_time_utc"], "observed_before_issue": observed, "forecast": forecast, "ensemble_forecasts": _member_points(ensemble, base_latitude, base_longitude, issue), "truth_after_issue": [{"time": row["time_utc"], "lat": row["lat"], "lon": row["lon"]} for row in truth], "score": _score(forecast, truth, issue_row), "persistence_score": case["persistence_score"], "route_diagnostics": {"pacific_weight": PACIFIC_WEIGHT, "local_weight": LOCAL_WEIGHT, "pacific": diagnostics, "local": local_diagnostics, "pressure_state": state_diagnostics, "pressure_systems": systems, "analysis_files": [str(path.relative_to(ROOT)) for path in TIP_FILES]}}
-    payload = {"storm": "Tip", "model": "v62 whole western-Pacific causal state route (25% Pacific domain + 75% local)", "cases": [tip_case], "input_policy": "Only CFSR analysis/reanalysis files at or before the 1979-10-12 00Z issue were opened. The whole 100-190E, 0-60N state is extrapolated from current/t-12/t-24 analysis tendency; later IBTrACS rows are verification truth only.", "future_rows_used_for_inference": 0, "official_jma_jtwc_forecasts_used": False, "forecast_products_used": [], "forecast_intensity_source": None, "other_typhoon_input": "No storm-center forecast or official typhoon track was used. Nearby lows/vortex candidates come from the causal SLP field.", "tip_used_for_training_or_calibration": False}
+    tip_case = {"issue_time_utc": case["issue_time_utc"], "observed_before_issue": observed, "forecast": forecast, "ensemble_forecasts": _member_points(ensemble, base_latitude, base_longitude, issue), "truth_after_issue": [{"time": row["time_utc"], "lat": row["lat"], "lon": row["lon"]} for row in truth], "score": _score(forecast, truth, issue_row), "persistence_score": case["persistence_score"], "intensity_model": intensity_metadata, "route_diagnostics": {"pacific_weight": PACIFIC_WEIGHT, "local_weight": LOCAL_WEIGHT, "pacific": diagnostics, "local": local_diagnostics, "pressure_state": state_diagnostics, "pressure_systems": systems, "analysis_files": [str(path.relative_to(ROOT)) for path in TIP_FILES]}}
+    payload = {"storm": "Tip", "model": "v62 whole western-Pacific causal state route + intensity/structure head (25% Pacific domain + 75% local)", "cases": [tip_case], "intensity_model": intensity_metadata, "input_policy": "Only CFSR analysis/reanalysis files at or before the 1979-10-12 00Z issue were opened. The whole 100-190E, 0-60N state is extrapolated from current/t-12/t-24 analysis tendency; intensity uses only the current/past observed track window and the current four-channel analysis patch. Later IBTrACS rows are verification truth only.", "future_rows_used_for_inference": 0, "official_jma_jtwc_forecasts_used": False, "forecast_products_used": [], "forecast_intensity_source": "v62_intensity_structure.py using the frozen v37G spatial structure ensemble; current/past analysis only", "other_typhoon_input": "No storm-center forecast or official typhoon track was used. Nearby lows/vortex candidates come from the causal SLP field.", "tip_used_for_training_or_calibration": False}
     _draw_pressure_forecast(TIP_PRESSURE_PNG, state_fields, state_pressure, latitude, longitude, observed, forecast, systems, "Typhoon Tip v62 whole western-Pacific causal pressure state")
+    _draw_intensity_chart(TIP_INTENSITY_PNG, forecast, "Typhoon Tip v62 causal intensity and wind structure")
     base_maps.TIP_JSON, base_maps.TIP_HTML, base_maps.TIP_PNG = TIP_JSON, TIP_HTML, TIP_PNG
     base_maps.draw_tip_png(payload, base_maps.load_coastlines())
     TIP_JSON.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     page = base_maps.html_shell("Typhoon Tip v62 whole western-Pacific world map", "tip-map", payload, "The red route is v62 output. Later IBTrACS rows are verification truth only; no future weather or official forecast was passed to the route.", "<p><b>Input:</b> Current and past CFSR analysis only. The route uses a Pacific-wide pressure/flow state covering China, Japan, Taiwan, the Philippines, and the western Pacific.</p>", TIP_PNG, "tip")
-    TIP_HTML.write_text(_append_pressure_section(page, TIP_PRESSURE_PNG.name, payload["input_policy"]), encoding="utf-8")
+    page = _append_pressure_section(page, TIP_PRESSURE_PNG.name, payload["input_policy"])
+    TIP_HTML.write_text(_append_intensity_section(page, TIP_INTENSITY_PNG.name, intensity_metadata), encoding="utf-8")
     return payload
 
 
 def main() -> None:
     dolphin = _dolphin()
     tip = _tip()
-    print(json.dumps({"dolphin": {"html": str(DOLPHIN_HTML), "pressure_map": str(DOLPHIN_PRESSURE_PNG), "final": dolphin["forecast"][-1]}, "tip": {"html": str(TIP_HTML), "pressure_map": str(TIP_PRESSURE_PNG), "score": tip["cases"][0]["score"]}}, indent=2), flush=True)
+    print(json.dumps({"dolphin": {"html": str(DOLPHIN_HTML), "pressure_map": str(DOLPHIN_PRESSURE_PNG), "intensity_chart": str(DOLPHIN_INTENSITY_PNG), "final": dolphin["forecast"][-1]}, "tip": {"html": str(TIP_HTML), "pressure_map": str(TIP_PRESSURE_PNG), "intensity_chart": str(TIP_INTENSITY_PNG), "score": tip["cases"][0]["score"], "final": tip["cases"][0]["forecast"][-1]}}, indent=2), flush=True)
 
 
 if __name__ == "__main__":
