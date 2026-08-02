@@ -152,6 +152,7 @@ def _route_points(route: np.ndarray, base_latitude: float, base_longitude: float
             for key in (
                 "vmax_kt", "vmax_spread_kt", "central_pressure_hpa", "pressure_spread_hpa",
                 "pressure_hpa", "rmw_km", "rmw_spread_km", "wind_radii_km", "wind_radii_spread_km",
+                "pressure_map_features",
             ):
                 if key in intensity[index]:
                     point[key] = intensity[index][key]

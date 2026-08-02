@@ -35,7 +35,10 @@ from scripts.run_v61_big_system_cases import (  # noqa: E402
     _score,
 )
 from scripts.predict_ibtracs_jma_only import build_track_window, load_land_points  # noqa: E402
-from v62_intensity_structure import V62IntensityEnsemble  # noqa: E402
+from v62_intensity_structure import (  # noqa: E402
+    V62IntensityEnsemble,
+    couple_forecast_to_pressure_map,
+)
 from v62_pacific_domain_route import (  # noqa: E402
     LEAD_HOURS,
     PACIFIC_LAT_RANGE,
@@ -63,6 +66,7 @@ V23_STATS_PATH = ROOT / "v37" / "v23_norm_stats.npz"
 FIELD_SCALE_PATH = ROOT / "track_build" / "dlm4_int8.npz"
 INTENSITY_CHECKPOINT_ROOT = ROOT / "v37" / "structure_spatial" / "checkpoints"
 INTENSITY_CALIBRATION_PATH = ROOT / "v37" / "structure_spatial" / "v37g_intensity_calibration.json"
+TIP_INTENSITY_SOURCE = ROOT / "track_build" / "tip_v37_cfsr_causal_19791012.json"
 
 _INTENSITY_MODEL: V62IntensityEnsemble | None = None
 
@@ -434,10 +438,24 @@ def _dolphin() -> dict:
     local_route, _, local_diagnostics = _local_route(levels, base_latitude, base_longitude)
     route = LOCAL_WEIGHT * local_route + PACIFIC_WEIGHT * pacific_route
     ensemble = LOCAL_WEIGHT * local_route[None, :, :] + PACIFIC_WEIGHT * members
-    intensity, intensity_metadata = _predict_intensity(records, "time", np.asarray(levels["current"], dtype="float32"))
-    forecast = _route_points(route, base_latitude, base_longitude, issue, intensity=intensity)
     observed = [{"time": row["time"], "lat": float(row["lat"]), "lon": float(row["lon"])} for row in records]
     state_fields, state_pressure, state_diagnostics = forecast_pacific_state(fields, pressure)
+    base_forecast = _route_points(route, base_latitude, base_longitude, issue)
+    intensity, intensity_metadata = _predict_intensity(records, "time", np.asarray(levels["current"], dtype="float32"))
+    intensity, map_metadata = couple_forecast_to_pressure_map(
+        intensity,
+        state_pressure,
+        state_fields,
+        latitude,
+        longitude,
+        base_latitude,
+        base_longitude,
+        base_forecast,
+        float(records[-1]["vmax_kt"]),
+        float(records[-1]["pressure_hpa"]),
+    )
+    intensity_metadata["pressure_map_coupling"] = map_metadata
+    forecast = _route_points(route, base_latitude, base_longitude, issue, intensity=intensity)
     systems = _system_series(state_pressure, latitude, longitude, forecast, base_latitude, base_longitude)
     payload = {
         "storm": "Dolphin",
@@ -449,11 +467,11 @@ def _dolphin() -> dict:
         "official": {"jtwc": [base_maps.point(row) for row in source["jtwc_official"]], "jma": [base_maps.point(row) for row in source["jma_official"]]},
         "route_diagnostics": {"pacific_weight": PACIFIC_WEIGHT, "local_weight": LOCAL_WEIGHT, "pacific": diagnostics, "local": local_diagnostics, "pressure_state": state_diagnostics, "pressure_systems": systems, "analysis_files": [str(path.relative_to(ROOT)) for path in DOLPHIN_FILES]},
         "intensity_model": intensity_metadata,
-        "input_policy": "Only GFS analysis files at or before the 2026-07-31 15Z issue were opened. The whole 100-190E, 0-60N state is extrapolated from current/t-12/t-24 analysis tendency. Intensity uses only the current/past observed track window plus the current four-channel analysis patch; official JMA/JTWC tracks are overlays only.",
+        "input_policy": "Only GFS analysis files at or before the 2026-07-31 15Z issue were opened. The whole 100-190E, 0-60N state is extrapolated from current/t-12/t-24 analysis tendency. Intensity starts from the current/past observed track window and current four-channel analysis patch, then uses only the causal forecast pressure-map minimum, annulus deficit, and anomaly radii for future changes; official JMA/JTWC tracks are overlays only.",
         "future_rows_used_for_inference": 0,
         "official_forecasts_used_for_inference": False,
         "forecast_products_used": [],
-        "forecast_intensity_source": "v62_intensity_structure.py using the frozen v37G spatial structure ensemble; current/past analysis only",
+        "forecast_intensity_source": "v62_intensity_structure.py using the frozen v37G spatial structure ensemble, coupled to the causal v62 pressure-map state; current/past analysis only",
         "other_typhoon_input": "No storm-center forecast or official typhoon track was used. Nearby lows/vortex candidates come from the causal SLP field.",
     }
     _draw_pressure_forecast(DOLPHIN_PRESSURE_PNG, state_fields, state_pressure, latitude, longitude, observed, forecast, systems, "Dolphin v62 whole western-Pacific causal pressure state")
@@ -470,6 +488,8 @@ def _dolphin() -> dict:
 def _tip() -> dict:
     source = json.loads(TIP_SOURCE.read_text(encoding="utf-8"))
     case = source["cases"][0]
+    intensity_source = json.loads(TIP_INTENSITY_SOURCE.read_text(encoding="utf-8"))
+    intensity_rows = intensity_source["input_history"]
     issue = dt.datetime.fromisoformat(case["issue_time_utc"].replace("Z", "+00:00"))
     fields, pressure, latitude, longitude = _decode_analysis(TIP_FILES)
     levels = np.load(TIP_LEVELS, allow_pickle=True)
@@ -481,14 +501,28 @@ def _tip() -> dict:
     route = LOCAL_WEIGHT * local_route + PACIFIC_WEIGHT * pacific_route
     ensemble = LOCAL_WEIGHT * local_route[None, :, :] + PACIFIC_WEIGHT * members
     intensity_field = _tip_intensity_field(np.load(ROOT / "v37_cfsr" / "tip_1979_causal" / "cfsr_tip_19791012.npz", allow_pickle=True))
-    intensity, intensity_metadata = _predict_intensity(case["observed_before_issue"], "time_utc", intensity_field)
-    forecast = _route_points(route, base_latitude, base_longitude, issue, intensity=intensity)
     observed = [{"time": row["time_utc"], "lat": float(row["lat"]), "lon": float(row["lon"])} for row in case["observed_before_issue"]]
     truth = [{"time_utc": row["time_utc"], "lat": float(row["lat"]), "lon": float(row["lon"])} for row in case["truth_after_issue"]]
     state_fields, state_pressure, state_diagnostics = forecast_pacific_state(fields, pressure)
+    base_forecast = _route_points(route, base_latitude, base_longitude, issue)
+    intensity, intensity_metadata = _predict_intensity(intensity_rows, "time_utc", intensity_field)
+    intensity, map_metadata = couple_forecast_to_pressure_map(
+        intensity,
+        state_pressure,
+        state_fields,
+        latitude,
+        longitude,
+        base_latitude,
+        base_longitude,
+        base_forecast,
+        float(intensity_rows[-1]["vmax_kt"]),
+        float(intensity_rows[-1]["pressure_hpa"]),
+    )
+    intensity_metadata["pressure_map_coupling"] = map_metadata
+    forecast = _route_points(route, base_latitude, base_longitude, issue, intensity=intensity)
     systems = _system_series(state_pressure, latitude, longitude, forecast, base_latitude, base_longitude)
     tip_case = {"issue_time_utc": case["issue_time_utc"], "observed_before_issue": observed, "forecast": forecast, "ensemble_forecasts": _member_points(ensemble, base_latitude, base_longitude, issue), "truth_after_issue": [{"time": row["time_utc"], "lat": row["lat"], "lon": row["lon"]} for row in truth], "score": _score(forecast, truth, issue_row), "persistence_score": case["persistence_score"], "intensity_model": intensity_metadata, "route_diagnostics": {"pacific_weight": PACIFIC_WEIGHT, "local_weight": LOCAL_WEIGHT, "pacific": diagnostics, "local": local_diagnostics, "pressure_state": state_diagnostics, "pressure_systems": systems, "analysis_files": [str(path.relative_to(ROOT)) for path in TIP_FILES]}}
-    payload = {"storm": "Tip", "model": "v62 whole western-Pacific causal state route + intensity/structure head (25% Pacific domain + 75% local)", "cases": [tip_case], "intensity_model": intensity_metadata, "input_policy": "Only CFSR analysis/reanalysis files at or before the 1979-10-12 00Z issue were opened. The whole 100-190E, 0-60N state is extrapolated from current/t-12/t-24 analysis tendency; intensity uses only the current/past observed track window and the current four-channel analysis patch. Later IBTrACS rows are verification truth only.", "future_rows_used_for_inference": 0, "official_jma_jtwc_forecasts_used": False, "forecast_products_used": [], "forecast_intensity_source": "v62_intensity_structure.py using the frozen v37G spatial structure ensemble; current/past analysis only", "other_typhoon_input": "No storm-center forecast or official typhoon track was used. Nearby lows/vortex candidates come from the causal SLP field.", "tip_used_for_training_or_calibration": False}
+    payload = {"storm": "Tip", "model": "v62 whole western-Pacific causal state route + intensity/structure head (25% Pacific domain + 75% local)", "cases": [tip_case], "intensity_model": intensity_metadata, "input_policy": "Only CFSR analysis/reanalysis files at or before the 1979-10-12 00Z issue were opened. The whole 100-190E, 0-60N state is extrapolated from current/t-12/t-24 analysis tendency. Intensity starts from the nine-row causal current/past track history and current four-channel analysis patch, then uses only the causal forecast pressure-map minimum, annulus deficit, and anomaly radii for future changes. Later IBTrACS rows are verification truth only.", "future_rows_used_for_inference": 0, "official_jma_jtwc_forecasts_used": False, "forecast_products_used": [], "forecast_intensity_source": "v62_intensity_structure.py using the frozen v37G spatial structure ensemble, coupled to the causal v62 pressure-map state; current/past analysis only", "other_typhoon_input": "No storm-center forecast or official typhoon track was used. Nearby lows/vortex candidates come from the causal SLP field.", "tip_used_for_training_or_calibration": False}
     _draw_pressure_forecast(TIP_PRESSURE_PNG, state_fields, state_pressure, latitude, longitude, observed, forecast, systems, "Typhoon Tip v62 whole western-Pacific causal pressure state")
     _draw_intensity_chart(TIP_INTENSITY_PNG, forecast, "Typhoon Tip v62 causal intensity and wind structure")
     base_maps.TIP_JSON, base_maps.TIP_HTML, base_maps.TIP_PNG = TIP_JSON, TIP_HTML, TIP_PNG

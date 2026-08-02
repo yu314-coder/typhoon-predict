@@ -48,7 +48,7 @@ def point(row: dict, *, time_key: str = "time", lon_key: str = "lon", lat_key: s
             result[target] = row[source]
         elif source in row:
             result[target] = row[source]
-    for source in ("central_pressure_hpa", "rmw_km", "wind_radii_km", "vmax_spread_kt", "pressure_spread_hpa", "rmw_spread_km", "wind_radii_spread_km"):
+    for source in ("central_pressure_hpa", "rmw_km", "wind_radii_km", "vmax_spread_kt", "pressure_spread_hpa", "rmw_spread_km", "wind_radii_spread_km", "pressure_map_features"):
         if source in row:
             result[source] = row[source]
     return result
@@ -195,7 +195,7 @@ const MODEL_LABEL={json.dumps(data.get("model", "model route"), ensure_ascii=Fal
 const map=L.map('{map_id}').setView([20,150],3);
 L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png',{{maxZoom:8,attribution:'&copy; OpenStreetMap'}}).addTo(map);
 const pt=p=>[p.lat,p.lon];
-const popup=p=>{{const pressure=p.central_pressure_hpa??p.pressure_hpa; const r=p.wind_radii_km; const r34=Array.isArray(r)&&r.length>=4?(r.slice(0,4).reduce((a,b)=>a+Number(b),0)/4):null; return `${{p.time||''}}<br>lat ${{p.lat.toFixed(2)}} · lon ${{p.lon.toFixed(2)}}${{p.lead_hours===undefined?'':`<br>lead +${{p.lead_hours}} h`}}${{p.vmax_kt===undefined?'':`<br>wind ${{Number(p.vmax_kt).toFixed(0)}} kt ±${{Number(p.vmax_spread_kt||0).toFixed(1)}}`}}${{pressure===undefined||pressure===null?'':`<br>central pressure ${{Number(pressure).toFixed(0)}} hPa ±${{Number(p.pressure_spread_hpa||0).toFixed(1)}}`}}${{p.rmw_km===undefined?'':`<br>RMW ${{Number(p.rmw_km).toFixed(0)}} km`}}${{r34===null?'':`<br>R34 mean ${{r34.toFixed(0)}} km`}}`}};
+const popup=p=>{{const pressure=p.central_pressure_hpa??p.pressure_hpa; const r=p.wind_radii_km; const r34=Array.isArray(r)&&r.length>=4?(r.slice(0,4).reduce((a,b)=>a+Number(b),0)/4):null; const mf=p.pressure_map_features; const mapLine=mf===undefined?'':`<br>map min ${{Number(mf.map_min_pressure_hpa).toFixed(0)}} hPa · deficit ${{Number(mf.map_pressure_deficit_hpa).toFixed(0)}} hPa`; return `${{p.time||''}}<br>lat ${{p.lat.toFixed(2)}} · lon ${{p.lon.toFixed(2)}}${{p.lead_hours===undefined?'':`<br>lead +${{p.lead_hours}} h`}}${{p.vmax_kt===undefined?'':`<br>wind ${{Number(p.vmax_kt).toFixed(0)}} kt ±${{Number(p.vmax_spread_kt||0).toFixed(1)}}`}}${{pressure===undefined||pressure===null?'':`<br>central pressure ${{Number(pressure).toFixed(0)}} hPa ±${{Number(p.pressure_spread_hpa||0).toFixed(1)}}`}}${{p.rmw_km===undefined?'':`<br>RMW ${{Number(p.rmw_km).toFixed(0)}} km`}}${{r34===null?'':`<br>R34 mean ${{r34.toFixed(0)}} km`}}${{mapLine}}`}};
 function line(rows,color,opts={{}}){{return L.polyline(rows.map(pt),{{color,weight:3,opacity:.92,...opts}}).addTo(map)}}
 function markers(rows,color,label){{rows.forEach(p=>L.circleMarker(pt(p),{{radius:5,color:'#fff',weight:1.3,fillColor:color,fillOpacity:.98}}).bindPopup(`<b>${{label}}</b><br>${{popup(p)}}`).addTo(map))}}
 const bounds=[];

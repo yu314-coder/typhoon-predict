@@ -16,9 +16,13 @@ channels are MSLP plus 500 hPa height and 850/500/200 hPa wind. The pressure pan
 
 The v62 case runner also emits a causal intensity/structure forecast. A frozen three-member
 v37G spatial ensemble predicts maximum wind, central pressure, radius of maximum wind (RMW),
-and four-quadrant R34/R50/R64 wind radii at every six-hour lead. It receives the nine-step
-observed track window and the current four-channel analysis patch; it does not receive a
-positive-lead weather field. Reported spread is the standard deviation across the three experts.
+and four-quadrant R34/R50/R64 wind radii at every six-hour lead. Its baseline receives the
+nine-step observed track window and current four-channel analysis patch; each future structure
+row is then coupled to the corresponding causal pressure-map state using the nearby pressure
+minimum, annulus pressure deficit, 850-hPa wind, and quadrant anomaly extent. This keeps wind,
+pressure, and radii tied to the same evolving map used by the route without reading a
+positive-lead weather field. Reported spread includes the frozen-expert spread and the bounded
+map correction.
 This remains a research output, not an operational intensity warning.
 
 The state forecast is a bounded extrapolation of the current, t-12 h, and t-24 h analysis
