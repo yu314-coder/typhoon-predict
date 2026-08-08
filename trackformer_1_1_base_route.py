@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Causal large-system steering ensemble for out-of-archive cases.
 
-v61 is a physical route candidate, not a consensus of official forecasts.
+Trackformer1.1 is a physical route candidate, not a consensus of official forecasts.
 Each member reads only analysis snapshots at or before the issue time.  It
 samples multiple pressure levels over inner and synoptic-scale rings around
 the evolving center, and a small SLP-gradient component can represent the
@@ -26,7 +26,7 @@ from typing import Sequence
 import numpy as np
 
 
-VERSION = "v61-causal-dynamic-big-system-steering-ensemble"
+VERSION = "Trackformer1.1-causal-dynamic-big-system-steering-ensemble"
 LEADS = 20
 LEVEL_WEIGHTS = np.asarray([0.269, 0.500, 0.231], dtype="float32")
 MOTION_SLOPES = np.asarray([0.76, 0.78], dtype="float32")

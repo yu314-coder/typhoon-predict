@@ -18,7 +18,7 @@ from typing import Sequence
 
 import numpy as np
 
-from v61_big_system_route import (
+from trackformer_1_1_base_route import (
     CURVATURE_VARIANTS,
     SNAPSHOT_WEIGHTS,
     TENDENCY_SCALES,
@@ -26,7 +26,7 @@ from v61_big_system_route import (
 )
 
 
-VERSION = "v62-causal-western-pacific-state-route"
+VERSION = "Trackformer1.1-causal-western-Pacific-state-route"
 CAUSAL_ONLY = True
 PACIFIC_LON_RANGE = (100.0, 190.0)
 PACIFIC_LAT_RANGE = (0.0, 60.0)

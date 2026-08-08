@@ -1,6 +1,6 @@
 {
   "storm": "Tip",
-  "model": "v62 whole western-Pacific causal state route + intensity/structure head (25% Pacific domain + 75% local)",
+  "model": "Trackformer1.1 whole western-Pacific causal state route + intensity/structure head (25% Pacific domain + 75% local)",
   "cases": [
     {
       "issue_time_utc": "1979-10-12T00:00:00Z",
@@ -32514,10 +32514,10 @@
         ]
       },
       "intensity_model": {
-        "model": "frozen v37G spatial structure ensemble used as the v62 intensity head",
+        "model": "frozen Trackformer1.1 structure spatial structure ensemble used as the Trackformer1.1 intensity head",
         "checkpoint_count": 3,
-        "calibration": "v37/structure_spatial/v37g_intensity_calibration.json",
-        "field_contract": "4x17x17 v23-compatible analysis patch, q/31.75 then clipped to [-4,4]",
+        "calibration": "models/trackformer_1_1/trackformer_1_1_calibration.json",
+        "field_contract": "4x17x17 analysis-compatible analysis patch, q/31.75 then clipped to [-4,4]",
         "outputs": [
           "vmax_kt",
           "central_pressure_hpa",
@@ -32530,7 +32530,7 @@
         "device": "mps",
         "pressure_map_coupling": {
           "enabled": true,
-          "method": "v62 forecast pressure-map query plus confidence-weighted local-minimum/anomaly-radius coupling",
+          "method": "Trackformer1.1 forecast pressure-map query plus confidence-weighted local-minimum/anomaly-radius coupling",
           "map_weight": 0.35,
           "minimum_confidence": "local minimum contribution decays with route-to-minimum offset; route-point map pressure remains the fallback",
           "wind_pressure_anchor": "observed current wind/pressure; map drives only future changes",
@@ -33112,7 +33112,7 @@
         "pacific_weight": 0.25,
         "local_weight": 0.75,
         "pacific": {
-          "version": "v62-causal-western-pacific-state-route",
+          "version": "Trackformer1.1-causal-western-pacific-state-route",
           "policy": "causal dynamic multi-level large-system analysis ensemble",
           "input_policy": "current, t-12, and t-24 analysis fields only; the lead evolution is a bounded extrapolation of their observed tendency; no future analysis, forecast product, official track, or future observed row",
           "channels": [
@@ -46259,7 +46259,7 @@
           "forecast_files_opened": []
         },
         "pressure_state": {
-          "version": "v62-causal-western-pacific-state-route",
+          "version": "Trackformer1.1-causal-western-pacific-state-route",
           "causal_only": true,
           "lead_hours": [
             0,
@@ -47582,9 +47582,9 @@
           }
         ],
         "analysis_files": [
-          "v37_cfsr/tip_1979_causal/raw/pgbhnl.gdas.1979101200.grb2",
-          "v37_cfsr/tip_1979_causal/raw/pgbhnl.gdas.1979101100.grb2",
-          "v37_cfsr/tip_1979_causal/raw/pgbhnl.gdas.1979101000.grb2"
+          "historical_analysis/tip_1979_causal/raw/pgbhnl.gdas.1979101200.grb2",
+          "historical_analysis/tip_1979_causal/raw/pgbhnl.gdas.1979101100.grb2",
+          "historical_analysis/tip_1979_causal/raw/pgbhnl.gdas.1979101000.grb2"
         ],
         "causal_input_guard": {
           "enabled": true,
@@ -47592,19 +47592,19 @@
           "issue_time_utc": "1979-10-12T00:00:00Z",
           "weather_files": [
             {
-              "path": "v37_cfsr/tip_1979_causal/raw/pgbhnl.gdas.1979101200.grb2",
+              "path": "historical_analysis/tip_1979_causal/raw/pgbhnl.gdas.1979101200.grb2",
               "valid_time_utc": "1979-10-12T00:00:00Z",
               "step_hours": 0,
               "accepted_as": "analysis_or_reanalysis"
             },
             {
-              "path": "v37_cfsr/tip_1979_causal/raw/pgbhnl.gdas.1979101100.grb2",
+              "path": "historical_analysis/tip_1979_causal/raw/pgbhnl.gdas.1979101100.grb2",
               "valid_time_utc": "1979-10-11T00:00:00Z",
               "step_hours": 0,
               "accepted_as": "analysis_or_reanalysis"
             },
             {
-              "path": "v37_cfsr/tip_1979_causal/raw/pgbhnl.gdas.1979101000.grb2",
+              "path": "historical_analysis/tip_1979_causal/raw/pgbhnl.gdas.1979101000.grb2",
               "valid_time_utc": "1979-10-10T00:00:00Z",
               "step_hours": 0,
               "accepted_as": "analysis_or_reanalysis"
@@ -47632,10 +47632,10 @@
     }
   ],
   "intensity_model": {
-    "model": "frozen v37G spatial structure ensemble used as the v62 intensity head",
+    "model": "frozen Trackformer1.1 structure spatial structure ensemble used as the Trackformer1.1 intensity head",
     "checkpoint_count": 3,
-    "calibration": "v37/structure_spatial/v37g_intensity_calibration.json",
-    "field_contract": "4x17x17 v23-compatible analysis patch, q/31.75 then clipped to [-4,4]",
+    "calibration": "models/trackformer_1_1/trackformer_1_1_calibration.json",
+    "field_contract": "4x17x17 analysis-compatible analysis patch, q/31.75 then clipped to [-4,4]",
     "outputs": [
       "vmax_kt",
       "central_pressure_hpa",
@@ -47648,7 +47648,7 @@
     "device": "mps",
     "pressure_map_coupling": {
       "enabled": true,
-      "method": "v62 forecast pressure-map query plus confidence-weighted local-minimum/anomaly-radius coupling",
+      "method": "Trackformer1.1 forecast pressure-map query plus confidence-weighted local-minimum/anomaly-radius coupling",
       "map_weight": 0.35,
       "minimum_confidence": "local minimum contribution decays with route-to-minimum offset; route-point map pressure remains the fallback",
       "wind_pressure_anchor": "observed current wind/pressure; map drives only future changes",
@@ -48233,19 +48233,19 @@
     "issue_time_utc": "1979-10-12T00:00:00Z",
     "weather_files": [
       {
-        "path": "v37_cfsr/tip_1979_causal/raw/pgbhnl.gdas.1979101200.grb2",
+        "path": "historical_analysis/tip_1979_causal/raw/pgbhnl.gdas.1979101200.grb2",
         "valid_time_utc": "1979-10-12T00:00:00Z",
         "step_hours": 0,
         "accepted_as": "analysis_or_reanalysis"
       },
       {
-        "path": "v37_cfsr/tip_1979_causal/raw/pgbhnl.gdas.1979101100.grb2",
+        "path": "historical_analysis/tip_1979_causal/raw/pgbhnl.gdas.1979101100.grb2",
         "valid_time_utc": "1979-10-11T00:00:00Z",
         "step_hours": 0,
         "accepted_as": "analysis_or_reanalysis"
       },
       {
-        "path": "v37_cfsr/tip_1979_causal/raw/pgbhnl.gdas.1979101000.grb2",
+        "path": "historical_analysis/tip_1979_causal/raw/pgbhnl.gdas.1979101000.grb2",
         "valid_time_utc": "1979-10-10T00:00:00Z",
         "step_hours": 0,
         "accepted_as": "analysis_or_reanalysis"
@@ -48272,7 +48272,7 @@
   "future_rows_used_for_inference": 0,
   "official_jma_jtwc_forecasts_used": false,
   "forecast_products_used": [],
-  "forecast_intensity_source": "v62_intensity_structure.py using the frozen v37G spatial structure ensemble, coupled to the causal v62 pressure-map state; current/past analysis only",
+  "forecast_intensity_source": "Trackformer1.1_intensity_structure.py using the frozen Trackformer1.1 structure spatial structure ensemble, coupled to the causal Trackformer1.1 pressure-map state; current/past analysis only",
   "other_typhoon_input": "No storm-center forecast or official typhoon track was used. Nearby lows/vortex candidates come from the causal SLP field.",
   "tip_used_for_training_or_calibration": false
 }

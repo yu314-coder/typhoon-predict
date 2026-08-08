@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Causal v62 intensity and wind-structure inference.
+"""Causal Trackformer1.1 intensity and wind-structure inference.
 
-The v62 route is responsible for position and the western-Pacific pressure
+The Trackformer1.1 route is responsible for position and the western-Pacific pressure
 state.  This module supplies the previously missing storm-structure outputs
 without changing that route: maximum sustained wind, central pressure, radius
 of maximum wind, and the four-quadrant R34/R50/R64 radii.
 
-The weights are the validated v37G spatial structure ensemble.  They are
-loaded only for inference, and are conditioned on the same nine-step observed
-track window plus the current v23-compatible four-channel analysis patch.
+The default weights are a validated residual-anchor spatial ensemble with a
+secondary structure expert and causal temporal branch. They are loaded only
+for inference and are conditioned on the same nine-step observed track window
+plus the current four-channel analysis patch.
 No positive-lead atmospheric field or official agency forecast is consumed.
 """
 
@@ -24,6 +25,7 @@ import torch.nn as nn
 
 
 LEADS = 20
+NM_TO_KM = 1.852
 TARGET_SCALE = np.asarray([100.0, 100.0, 35.0, 20.0, 50.0] + [50.0] * 12, dtype="float32")
 STRUCTURE_SCALE = TARGET_SCALE[2:]
 THERMO_ENV_COLS = (
@@ -32,6 +34,11 @@ THERMO_ENV_COLS = (
     + list(range(24, 40))
     + [44, 45, 46, 47, 48, 49, 50, 51, 52, 53]
 )
+# The 90th percentile of positive six-hour central-pressure changes in the
+# training split is 6 hPa.  Use that train-only statistic to stop a coarse
+# forecast-map minimum from disappearing in one step and being replaced by a
+# different synoptic cell.
+MAP_PRESSURE_RECOVERY_LIMIT_HPA = 6.0
 
 
 def sinusoidal(length: int, width: int) -> torch.Tensor:
@@ -43,11 +50,12 @@ def sinusoidal(length: int, width: int) -> torch.Tensor:
     return result
 
 
-class StructureSpatialV37G(nn.Module):
-    """Inference copy of the architecture used by the frozen v37G weights."""
+class StructureSpatialExpert(nn.Module):
+    """Inference copy of the architecture used by the frozen experts."""
 
-    def __init__(self, width: int, layers: int, heads: int):
+    def __init__(self, width: int, layers: int, heads: int, structure_residual: bool = False):
         super().__init__()
+        self.structure_residual = bool(structure_residual)
         self.track_proj = nn.Linear(len(THERMO_ENV_COLS), width)
         self.register_buffer("track_time", sinusoidal(9, width).unsqueeze(0))
         track_layer = nn.TransformerEncoderLayer(
@@ -92,6 +100,8 @@ class StructureSpatialV37G(nn.Module):
         field: torch.Tensor,
         current: torch.Tensor,
         available: torch.Tensor,
+        current_structure: torch.Tensor | None = None,
+        structure_available: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         track_tokens = self.track_encoder(self.track_proj(track[:, :, THERMO_ENV_COLS]) + self.track_time)
         field_tokens = self.field_pool(self.field_encoder(field)).flatten(2).transpose(1, 2)
@@ -102,11 +112,15 @@ class StructureSpatialV37G(nn.Module):
         state = self.state(hidden)
         state = state.clone()
         state[:, :, :2] = state[:, :, :2] + (current * available)[:, None, :]
+        if self.structure_residual:
+            if current_structure is None or structure_available is None:
+                raise ValueError("structure residual mode requires current structure and availability tensors")
+            state[:, :, 2:] = state[:, :, 2:] + current_structure[:, None, :] * structure_available[:, None, :]
         return state, self.log_scale(hidden)
 
 
 def _device(requested: str | None) -> torch.device:
-    value = requested or os.environ.get("V62_INTENSITY_DEVICE")
+    value = requested or os.environ.get("TRACKFORMER_1_1_DEVICE")
     if value:
         return torch.device(value)
     if torch.cuda.is_available():
@@ -158,6 +172,11 @@ def _calibrated_pressure(
         normalized = (features - mean) / scale
         normalized[:, 0] = 1.0
         result[:, lead] = normalized @ np.asarray(item["beta"], dtype="float32")
+    anchor_alpha = calibration.get("pressure_anchor_alpha")
+    if anchor_alpha and np.isfinite(current_pressure) and current_pressure > 0.0:
+        for lead, alpha in enumerate(anchor_alpha[:LEADS]):
+            alpha = float(np.clip(alpha, 0.0, 2.0))
+            result[:, lead] = alpha * result[:, lead] + (1.0 - alpha) * float(current_pressure)
     return np.clip(result, 850.0, 1025.0)
 
 
@@ -177,17 +196,20 @@ def _sanitize(states: np.ndarray) -> np.ndarray:
 
 
 def _row(mean: np.ndarray, spread: np.ndarray, lead: int) -> dict:
-    radii = mean[lead, 3:15]
-    radius_spread = spread[lead, 3:15]
+    # The historical IBTrACS structure labels are nautical miles. Keep the
+    # neural/calibration state in that native unit, but expose all distance
+    # fields in kilometres because the map and route use kilometres.
+    radii = mean[lead, 3:15] * NM_TO_KM
+    radius_spread = spread[lead, 3:15] * NM_TO_KM
     return {
         "vmax_kt": round(float(mean[lead, 0]), 2),
         "vmax_spread_kt": round(float(spread[lead, 0]), 2),
         "central_pressure_hpa": round(float(mean[lead, 1]), 2),
         "pressure_spread_hpa": round(float(spread[lead, 1]), 2),
-        "rmw_km": round(float(mean[lead, 2]), 2),
-        "rmw_spread_km": round(float(spread[lead, 2]), 2),
-        "wind_radii_km": np.round(radii, 2).tolist(),
-        "wind_radii_spread_km": np.round(radius_spread, 2).tolist(),
+        "rmw_km": round(float(mean[lead, 2] * NM_TO_KM), 2),
+        "rmw_spread_km": round(float(spread[lead, 2] * NM_TO_KM), 2),
+        "wind_radii_km": [round(float(value), 2) for value in radii],
+        "wind_radii_spread_km": [round(float(value), 2) for value in radius_spread],
         # Keep the map renderer's generic pressure field alias as well.
         "pressure_hpa": round(float(mean[lead, 1]), 2),
     }
@@ -304,7 +326,7 @@ def couple_forecast_to_pressure_map(
     current_wind: float,
     current_pressure: float,
 ) -> tuple[list[dict], dict]:
-    """Use the v62 pressure-map trajectory to correct structure forecasts.
+    """Use the causal pressure-map trajectory to correct structure forecasts.
 
     The correction is anchored to the observed current wind and pressure, so
     coarse reanalysis cannot replace a known storm intensity.  Future changes
@@ -316,7 +338,7 @@ def couple_forecast_to_pressure_map(
     pressure_states = np.asarray(pressure_states, dtype="float32")
     field_states = np.asarray(field_states, dtype="float32")
     if pressure_states.ndim != 3 or field_states.ndim != 4 or field_states.shape[1] < 3:
-        raise ValueError(f"invalid v62 map state shapes: {pressure_states.shape}, {field_states.shape}")
+        raise ValueError(f"invalid map state shapes: {pressure_states.shape}, {field_states.shape}")
     if len(structure_rows) != len(forecast_points) or len(pressure_states) < len(structure_rows) + 1:
         raise ValueError("map states, route points, and structure rows have incompatible lengths")
     if not np.isfinite(current_wind) or not np.isfinite(current_pressure):
@@ -365,6 +387,11 @@ def couple_forecast_to_pressure_map(
         smooth_deficit[index] = 0.65 * smooth_deficit[index - 1] + 0.35 * effective_deficit[index]
         if np.isfinite(effective_wind850[index]) and np.isfinite(smooth_wind850[index - 1]):
             smooth_wind850[index] = 0.65 * smooth_wind850[index - 1] + 0.35 * effective_wind850[index]
+        if np.isfinite(smooth_minimum[index - 1]) and np.isfinite(smooth_minimum[index]):
+            smooth_minimum[index] = min(
+                smooth_minimum[index],
+                smooth_minimum[index - 1] + MAP_PRESSURE_RECOVERY_LIMIT_HPA,
+            )
     reference_radii = np.asarray([
         float(value) if value is not None else np.nan
         for value in features[0]["map_pressure_radii_km"]
@@ -373,11 +400,18 @@ def couple_forecast_to_pressure_map(
     map_weight = 0.35
     for index, base in enumerate(structure_rows, start=1):
         row = dict(base)
-        row_weight = map_weight * (0.55 + 0.45 * float(features[index]["map_center_confidence"]))
+        # A distant minimum is an environmental candidate, not a reliable
+        # storm-center intensity observation.  The previous floor kept more
+        # than one-fifth of the map correction active even when confidence
+        # had fallen to 0.25, which made another synoptic cell rewrite the
+        # central pressure and wind.  Let confidence directly control the
+        # intensity correction; the map remains available for diagnostics and
+        # trusted radius adjustments.
+        row_weight = map_weight * float(np.clip(features[index]["map_center_confidence"], 0.0, 1.0))
         map_pressure = float(current_pressure + smooth_minimum[index] - smooth_minimum[0])
         pressure_signal = float(np.clip(
-            0.55 * (smooth_minimum[0] - smooth_minimum[index])
-            + 0.45 * (smooth_deficit[index] - smooth_deficit[0]),
+            0.75 * (smooth_minimum[0] - smooth_minimum[index])
+            + 0.25 * (smooth_deficit[index] - smooth_deficit[0]),
             -30.0,
             30.0,
         ))
@@ -425,7 +459,7 @@ def couple_forecast_to_pressure_map(
         for quadrant in range(4):
             adjusted_radii[4 + quadrant] = min(adjusted_radii[4 + quadrant], adjusted_radii[quadrant])
             adjusted_radii[8 + quadrant] = min(adjusted_radii[8 + quadrant], adjusted_radii[4 + quadrant])
-        row["wind_radii_km"] = np.round(adjusted_radii, 2).tolist()
+        row["wind_radii_km"] = [round(float(value), 2) for value in adjusted_radii]
         map_rmw_ratio = 1.0
         if features[0]["map_center_trusted"] and features[index]["map_center_trusted"]:
             ref_r64 = float(np.nanmedian(reference_radii[8:])) if np.isfinite(reference_radii[8:]).any() else np.nan
@@ -441,9 +475,15 @@ def couple_forecast_to_pressure_map(
         corrected.append(row)
     metadata = {
         "enabled": True,
-        "method": "v62 forecast pressure-map query plus confidence-weighted local-minimum/anomaly-radius coupling",
+        "method": "causal forecast pressure-map query plus confidence-weighted local-minimum/anomaly-radius coupling",
         "map_weight": map_weight,
-        "minimum_confidence": "local minimum contribution decays with route-to-minimum offset; route-point map pressure remains the fallback",
+        "minimum_confidence": "local minimum contribution decays directly with route-to-minimum confidence; untrusted minima have near-zero central-intensity weight",
+        "pressure_recovery_limit_hpa_per_6h": MAP_PRESSURE_RECOVERY_LIMIT_HPA,
+        "pressure_recovery_limit_source": "training-split 90th percentile of positive six-hour pressure changes",
+        "pressure_signal_weights": {
+            "tracked_map_minimum": 0.75,
+            "map_anomaly_extent": 0.25,
+        },
         "wind_pressure_anchor": "observed current wind/pressure; map drives only future changes",
         "radius_method": "learned radius baseline rescaled by trusted local quadrant pressure-anomaly extent; max four-degree footprint",
         "map_features": features,
@@ -453,8 +493,8 @@ def couple_forecast_to_pressure_map(
     return corrected, metadata
 
 
-class V62IntensityEnsemble:
-    """Load the frozen v37G experts and emit calibrated v62 structure rows."""
+class Trackformer11IntensityEnsemble:
+    """Load frozen Trackformer1.1 experts and emit calibrated structure rows."""
 
     def __init__(
         self,
@@ -465,21 +505,61 @@ class V62IntensityEnsemble:
         self.checkpoint_root = Path(checkpoint_root)
         self.calibration_path = Path(calibration_path) if calibration_path else None
         self.device = _device(device)
-        paths = sorted(self.checkpoint_root.glob("structure_spatial_v37g_seed*.pt"))
+        paths = sorted(self.checkpoint_root.glob("trackformer_1_1_intensity_seed*.pt"))
         if len(paths) < 3:
             raise FileNotFoundError(
-                f"expected the three validated v37G intensity checkpoints in {self.checkpoint_root}; found {len(paths)}"
+                f"expected three Trackformer1.1 intensity checkpoints in {self.checkpoint_root}; found {len(paths)}"
             )
-        self.models: list[StructureSpatialV37G] = []
+        self.models: list[StructureSpatialExpert] = []
         for path in paths[:3]:
             payload = torch.load(path, map_location="cpu", weights_only=False)
             config = payload["config"]
-            model = StructureSpatialV37G(config["width"], config["layers"], config["heads"])
+            model = StructureSpatialExpert(
+                config["width"],
+                config["layers"],
+                config["heads"],
+                structure_residual=bool(config.get("structure_residual", False)),
+            )
             model.load_state_dict(payload["model"])
             self.models.append(model.to(self.device).eval())
         self.calibration = {}
         if self.calibration_path and self.calibration_path.exists():
             self.calibration = json.loads(self.calibration_path.read_text(encoding="utf-8"))
+        self.structure_models: list[StructureSpatialExpert] = []
+        structure_root = self.calibration.get("structure_checkpoint_root")
+        if structure_root:
+            structure_root_path = self._resolve_root(structure_root)
+            structure_paths = sorted(structure_root_path.glob("trackformer_1_1_structure_seed*.pt"))
+            for path in structure_paths[:3]:
+                payload = torch.load(path, map_location="cpu", weights_only=False)
+                config = payload["config"]
+                model = StructureSpatialExpert(
+                    config["width"], config["layers"], config["heads"],
+                    structure_residual=bool(config.get("structure_residual", False)),
+                )
+                model.load_state_dict(payload["model"])
+                self.structure_models.append(model.to(self.device).eval())
+        self.temporal_models = []
+        temporal_root = self.calibration.get("temporal_checkpoint_root")
+        self.temporal_calibration = self.calibration
+        if temporal_root:
+            from trackformer_1_1_temporal import TemporalStructureSpatial
+
+            temporal_root_path = self._resolve_root(temporal_root)
+            temporal_paths = sorted(temporal_root_path.glob("trackformer_1_1_temporal_seed*.pt"))
+            for path in temporal_paths[:3]:
+                payload = torch.load(path, map_location="cpu", weights_only=False)
+                config = payload["config"]
+                model = TemporalStructureSpatial(
+                    config["width"], config["layers"], config["heads"]
+                )
+                model.load_state_dict(payload["model"])
+                self.temporal_models.append(model.to(self.device).eval())
+
+    @staticmethod
+    def _resolve_root(value: str | Path) -> Path:
+        path = Path(value)
+        return path if path.is_absolute() else Path(__file__).resolve().parent / path
 
     @torch.no_grad()
     def predict(
@@ -490,15 +570,45 @@ class V62IntensityEnsemble:
         current_pressure: float,
         previous_wind: float,
         previous_pressure: float,
+        current_structure: np.ndarray | None = None,
+        history_field: np.ndarray | None = None,
+        history_available: np.ndarray | None = None,
     ) -> tuple[list[dict], dict]:
         track = np.asarray(track, dtype="float32")
         field = np.asarray(field, dtype="float32")
         if track.shape != (9, 54):
-            raise ValueError(f"v62 intensity track must have shape (9, 54), got {track.shape}")
+            raise ValueError(f"Trackformer1.1 track must have shape (9, 54), got {track.shape}")
         if field.shape != (4, 17, 17):
-            raise ValueError(f"v62 intensity field must have shape (4, 17, 17), got {field.shape}")
+            raise ValueError(f"Trackformer1.1 field must have shape (4, 17, 17), got {field.shape}")
+        if history_field is not None:
+            history_field = np.asarray(history_field, dtype="float32")
+            if history_field.shape != (8, 17, 17):
+                raise ValueError(
+                    f"Trackformer1.1 history field must have shape (8, 17, 17), got {history_field.shape}"
+                )
+            if history_available is None:
+                history_available = np.ones(2, dtype="float32")
+            history_available = np.asarray(history_available, dtype="float32").reshape(-1)
+            if history_available.shape != (2,):
+                raise ValueError("Trackformer1.1 history availability must have shape (2,)")
         if not np.isfinite(track).all() or not np.isfinite(field).all():
-            raise ValueError("v62 intensity inputs contain non-finite values")
+            raise ValueError("Trackformer1.1 inputs contain non-finite values")
+        track_clip = self.calibration.get("track_input_clip", {})
+        lower = np.asarray(track_clip.get("lower", []), dtype="float32")
+        upper = np.asarray(track_clip.get("upper", []), dtype="float32")
+        if lower.shape == (track.shape[1],) and upper.shape == (track.shape[1],):
+            track = np.clip(track, lower[None, :], upper[None, :])
+        if current_structure is not None:
+            current_structure = np.asarray(current_structure, dtype="float32").reshape(-1)
+            if current_structure.shape != (13,):
+                raise ValueError(
+                    "Trackformer1.1 current structure must contain RMW plus twelve radii in native nautical miles"
+                )
+        structure_available = (
+            np.isfinite(current_structure).astype("float32")
+            if current_structure is not None
+            else None
+        )
         current_available = float(np.isfinite(current_wind) and np.isfinite(current_pressure))
         current_values = np.nan_to_num(
             np.asarray([current_wind, current_pressure], dtype="float32") / TARGET_SCALE[2:4],
@@ -509,11 +619,62 @@ class V62IntensityEnsemble:
         field_tensor = torch.from_numpy(field[None]).to(self.device)
         current_tensor = torch.from_numpy(current_values[None]).to(self.device)
         available_tensor = torch.from_numpy(available[None]).to(self.device)
+        structure_tensor = None
+        structure_available_tensor = None
+        if current_structure is not None:
+            structure_tensor = torch.from_numpy(
+                np.nan_to_num(
+                    current_structure / TARGET_SCALE[4:],
+                    nan=0.0,
+                    posinf=0.0,
+                    neginf=0.0,
+                )[None]
+            ).to(self.device)
+            structure_available_tensor = torch.from_numpy(structure_available[None]).to(self.device)
         states = np.stack([
-            model(track_tensor, field_tensor, current_tensor, available_tensor)[0][0].detach().cpu().numpy()
+            model(
+                track_tensor,
+                field_tensor,
+                current_tensor,
+                available_tensor,
+                structure_tensor,
+                structure_available_tensor,
+            )[0][0].detach().cpu().numpy()
             for model in self.models
         ]).astype("float32")
         states *= STRUCTURE_SCALE[None, None, :]
+        if self.structure_models:
+            structure_states = np.stack([
+                model(track_tensor, field_tensor, current_tensor, available_tensor)[0][0].detach().cpu().numpy()
+                for model in self.structure_models
+            ]).astype("float32") * STRUCTURE_SCALE[None, None, :]
+            expert_alpha = np.asarray(
+                self.calibration.get("structure_expert_alpha", []), dtype="float32"
+            )
+            if expert_alpha.shape != (LEADS, 13):
+                expert_alpha = np.zeros((LEADS, 13), dtype="float32")
+            for lead in range(LEADS):
+                states[:, lead, 2:] = (
+                    expert_alpha[lead][None, :] * states[:, lead, 2:]
+                    + (1.0 - expert_alpha[lead][None, :]) * structure_states[:, lead, 2:]
+                )
+        temporal_states = None
+        if self.temporal_models and history_field is not None and current_structure is not None:
+            history_tensor = torch.from_numpy(history_field[None]).to(self.device)
+            history_available_tensor = torch.from_numpy(history_available[None]).to(self.device)
+            temporal_states = np.stack([
+                model(
+                    track_tensor,
+                    field_tensor,
+                    current_tensor,
+                    available_tensor,
+                    structure_tensor,
+                    structure_available_tensor,
+                    history_tensor,
+                    history_available_tensor,
+                )[0][0].detach().cpu().numpy()
+                for model in self.temporal_models
+            ]).astype("float32") * STRUCTURE_SCALE[None, None, :]
         if current_available:
             calibrated_wind = _calibrated_wind(states, float(current_wind), self.calibration)
             states[:, :, 1] = _calibrated_pressure(
@@ -526,17 +687,60 @@ class V62IntensityEnsemble:
                 self.calibration,
             )
             states[:, :, 0] = calibrated_wind
+            if temporal_states is not None:
+                temporal_alpha = self.calibration.get("temporal_wind_blend_alpha")
+                temporal_min_wind = float(self.calibration.get("temporal_wind_min_current_kt", 0.0))
+                if temporal_alpha and float(current_wind) >= temporal_min_wind:
+                    temporal_calibration = {"wind_blend_alpha": temporal_alpha}
+                    states[:, :, 0] = _calibrated_wind(
+                        temporal_states,
+                        float(current_wind),
+                        temporal_calibration,
+                    )
+        structure_alpha = np.asarray(
+            self.calibration.get("structure_blend_alpha", []), dtype="float32"
+        )
+        if current_structure is not None and structure_alpha.shape == (LEADS, 13):
+            available_structure = np.isfinite(current_structure)
+            anchor = np.nan_to_num(current_structure, nan=0.0, posinf=0.0, neginf=0.0)
+            for lead in range(LEADS):
+                alpha = np.clip(structure_alpha[lead], 0.0, 1.0)
+                for offset in np.flatnonzero(available_structure):
+                    channel = 2 + int(offset)
+                    states[:, lead, channel] = (
+                        alpha[int(offset)] * states[:, lead, channel]
+                        + (1.0 - alpha[int(offset)]) * anchor[int(offset)]
+                    )
         states = _sanitize(states)
         mean = states.mean(axis=0)
         spread = states.std(axis=0)
+        model_label = (
+            "Trackformer1.1 residual-anchor spatial ensemble"
+            if self.models and self.models[0].structure_residual
+            else "frozen spatial structure ensemble"
+        )
         rows = [_row(mean, spread, lead) for lead in range(LEADS)]
         metadata = {
-            "model": "frozen v37G spatial structure ensemble used as the v62 intensity head",
+            "model": f"{model_label} used as the Trackformer1.1 intensity head",
             "checkpoint_count": len(self.models),
             "calibration": str(self.calibration_path) if self.calibration_path and self.calibration_path.exists() else None,
-            "field_contract": "4x17x17 v23-compatible analysis patch, q/31.75 then clipped to [-4,4]",
+            "field_contract": "4x17x17 analysis patch, q/31.75 then clipped to [-4,4]",
             "outputs": ["vmax_kt", "central_pressure_hpa", "rmw_km", "wind_radii_km"],
+            "native_structure_unit": "nautical_miles",
+            "output_distance_unit": "kilometres",
             "ensemble_spread": "standard deviation across the three frozen spatial experts",
+            "structure_calibration": "lead- and component-wise validation blend with observed current RMW/radii when available",
+            "structure_expert_blend": bool(self.structure_models),
+            "temporal_wind_branch": bool(
+                self.temporal_models
+                and history_field is not None
+                and current_available
+                and float(current_wind) >= float(self.calibration.get("temporal_wind_min_current_kt", 0.0))
+            ),
+            "temporal_wind_branch_policy": "same-storm t-12/t-24 analysis patches; wind only; enabled above the validation-selected current-wind gate; base pressure calibration retained",
+            "pressure_anchor_alpha": self.calibration.get("pressure_anchor_alpha"),
+            "pressure_anchor_policy": self.calibration.get("pressure_anchor_policy"),
+            "track_input_policy": self.calibration.get("track_input_clip", {}).get("method"),
             "official_forecasts_used": False,
             "positive_lead_weather_used": False,
             "device": str(self.device),
