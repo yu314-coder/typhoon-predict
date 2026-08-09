@@ -1,0 +1,198 @@
+{
+  "version": "Trackformer1.2.12-causal-motion-anchored-route",
+  "created_utc": "2026-08-09T07:34:52.052510+00:00",
+  "selection": {
+    "fit_split": "2016-2019 validation storms",
+    "evaluation_split": "untouched 2020+ test storms",
+    "policy": "fixed capped exponentially decaying recent-motion anchor selected without official forecast paths",
+    "zonal_max_weight": 0.6,
+    "meridional_max_weight": 0.84,
+    "zonal_tau_hours": 120.0,
+    "meridional_tau_hours": 240.0,
+    "motion_cap_km_per_6h": 120.0
+  },
+  "input_policy": {
+    "current_and_past_analysis_fields": true,
+    "issue_time_recent_motion": true,
+    "future_observed_rows_as_inputs": false,
+    "official_forecasts_as_inputs": false,
+    "jma_or_jtwc_paths_used_for_calibration": false
+  },
+  "metrics": {
+    "train": {
+      "baseline_v1_1": {
+        "windows": 67283,
+        "mean_track_error_km": 916.4645,
+        "track_error_120h_km": 1847.6951,
+        "endpoint_rms_km": 2173.7334,
+        "track_error_by_lead_km": [
+          73.5392,
+          145.3038,
+          221.9399,
+          302.5381,
+          386.8114,
+          474.5176,
+          565.4198,
+          659.2878,
+          754.1351,
+          849.4996,
+          945.3519,
+          1041.7562,
+          1138.7897,
+          1236.5647,
+          1335.1959,
+          1434.9235,
+          1535.8199,
+          1638.1334,
+          1742.0428,
+          1847.6917
+        ]
+      },
+      "candidate_v1_2_12": {
+        "windows": 67283,
+        "mean_track_error_km": 670.1859,
+        "track_error_120h_km": 1443.781,
+        "endpoint_rms_km": 1727.2673,
+        "track_error_by_lead_km": [
+          40.7721,
+          85.1829,
+          135.2152,
+          190.0612,
+          249.3809,
+          312.6914,
+          379.49,
+          449.3295,
+          521.478,
+          595.5938,
+          671.4712,
+          749.0584,
+          828.504,
+          909.7812,
+          993.0679,
+          1078.4357,
+          1166.0172,
+          1255.9723,
+          1348.4315,
+          1443.7764
+        ]
+      }
+    },
+    "val": {
+      "baseline_v1_1": {
+        "windows": 6873,
+        "mean_track_error_km": 912.7347,
+        "track_error_120h_km": 1835.2754,
+        "endpoint_rms_km": 2160.0286,
+        "track_error_by_lead_km": [
+          75.5154,
+          145.1494,
+          220.3768,
+          299.6858,
+          382.7333,
+          469.259,
+          559.3556,
+          652.8301,
+          747.789,
+          843.9747,
+          941.2138,
+          1039.2621,
+          1137.7283,
+          1236.0253,
+          1334.5988,
+          1433.6309,
+          1533.1661,
+          1633.2878,
+          1733.838,
+          1835.2732
+        ]
+      },
+      "candidate_v1_2_12": {
+        "windows": 6873,
+        "mean_track_error_km": 674.6567,
+        "track_error_120h_km": 1439.7756,
+        "endpoint_rms_km": 1711.8213,
+        "track_error_by_lead_km": [
+          42.1777,
+          87.2442,
+          138.0981,
+          193.6658,
+          253.5741,
+          317.214,
+          384.1201,
+          453.8697,
+          526.0858,
+          600.8556,
+          677.7783,
+          756.3752,
+          836.9129,
+          918.6889,
+          1001.6303,
+          1085.8807,
+          1171.6416,
+          1259.1177,
+          1348.4255,
+          1439.7758
+        ]
+      }
+    },
+    "test": {
+      "baseline_v1_1": {
+        "windows": 9845,
+        "mean_track_error_km": 955.1144,
+        "track_error_120h_km": 1916.8776,
+        "endpoint_rms_km": 2236.6531,
+        "track_error_by_lead_km": [
+          80.2133,
+          156.1495,
+          236.3192,
+          320.0731,
+          407.2416,
+          497.6922,
+          591.5343,
+          688.4478,
+          786.3617,
+          885.31,
+          985.2621,
+          1085.7885,
+          1186.8322,
+          1288.1381,
+          1389.9259,
+          1492.6792,
+          1596.6232,
+          1702.0145,
+          1808.7996,
+          1916.8766
+        ]
+      },
+      "candidate_v1_2_12": {
+        "windows": 9845,
+        "mean_track_error_km": 701.817,
+        "track_error_120h_km": 1484.4849,
+        "endpoint_rms_km": 1768.7842,
+        "track_error_by_lead_km": [
+          46.3136,
+          95.2585,
+          149.3425,
+          208.0565,
+          270.9141,
+          337.3891,
+          406.9932,
+          479.1561,
+          553.4835,
+          629.9142,
+          708.446,
+          788.4878,
+          869.6836,
+          952.1352,
+          1036.0833,
+          1121.7518,
+          1209.202,
+          1298.7935,
+          1390.4517,
+          1484.4862
+        ]
+      }
+    }
+  },
+  "promotion_rule": "candidate must improve both validation and untouched test mean and 120-hour route error; official forecasts remain comparison-only overlays"
+}

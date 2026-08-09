@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Evaluate Trackformer 1.2.11 causal intensity head on Dolphin."""
+"""Evaluate the Trackformer causal intensity head on Dolphin."""
 
 from __future__ import annotations
 
@@ -40,6 +40,16 @@ OUT_GRAPH = ROOT / "paper" / "dolphin_trackformer_1_2_11_intensity_graph.png"
 OUT_MAP = ROOT / "paper" / "dolphin_trackformer_1_2_11_world_map.png"
 OUT_HTML = ROOT / "paper" / "dolphin_trackformer_1_2_11_intensity.html"
 LEADS = np.arange(6, 126, 6, dtype="int32")
+MODEL_NAME = "Trackformer 1.2.11"
+MODEL_VERSION = "1.2.11"
+ROUTE_LABEL = "Trackformer route (frozen geometry)"
+INFERENCE_NOTICE = (
+    "Trackformer 1.2.11 uses current/past track and weather analysis, then the frozen "
+    "1.2.10 causal SST and 200-850 hPa shear forecasts. Future weather rows are training "
+    "labels only. JMA/JTWC forecast paths are loaded after inference as comparison overlays "
+    "and are never model inputs. The route and radius remain the frozen route model outputs; "
+    "this version upgrades only the wind/pressure intensity residual."
+)
 
 
 def _ridge_models(archive: dict, prefix: str) -> list[dict]:
@@ -135,13 +145,13 @@ def _load_case() -> dict:
 
     v128_forecast = v128_case._enrich(v127_case._rows(points, v128_state), "Trackformer 1.2.8")
     v210_forecast = v128_case._enrich(v127_case._rows(points, v210_state), "Trackformer 1.2.10")
-    v211_forecast = v128_case._enrich(v127_case._rows(points, v211_state), "Trackformer 1.2.11")
+    v211_forecast = v128_case._enrich(v127_case._rows(points, v211_state), MODEL_NAME)
     actual = v127_case._actual_rows()
     jma = dolphin._jma_official()
     jtwc = dolphin._jtwc_official()
     comparison_environment = json.loads(COMPARISON_ENV_JSON.read_text(encoding="utf-8")).get("official_environment", {"jma": [], "jtwc": []})
     return {
-        "version": "Trackformer1.2.11-causal-intensity-only-Dolphin",
+        "version": f"Trackformer{MODEL_VERSION}-causal-intensity-only-Dolphin",
         "issue_time_utc": dolphin.ISSUE_TIME.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "v128_forecast": v128_forecast,
         "v210_forecast": v210_forecast,
@@ -154,7 +164,9 @@ def _load_case() -> dict:
         "official_environment": comparison_environment,
         "routes": {
             "observed": [[row["lon"], row["lat"]] for row in history],
-            "model": points.tolist(),
+            # Internal route points are [lat, lon]. Map/JSON routes use the
+            # conventional [lon, lat] order used by the official overlays.
+            "model": points[:, ::-1].tolist(),
             "jma": [[history[-1]["lon"], history[-1]["lat"]]] + [[row["lon"], row["lat"]] for row in jma if row["lead_hours"] > 0],
             "jtwc": [[history[-1]["lon"], history[-1]["lat"]]] + [[row["lon"], row["lat"]] for row in jtwc],
         },
@@ -185,12 +197,12 @@ def _draw_graph(payload: dict) -> None:
     actual = payload["actual_rows"]
     candidate = payload["v211_forecast"]
     fig, axes = plt.subplots(4, 1, figsize=(12, 13.5), sharex=True, dpi=170)
-    fig.suptitle("Dolphin | Trackformer 1.2.11 causal intensity", fontsize=15, fontweight="bold")
+    fig.suptitle(f"Dolphin | {MODEL_NAME} causal intensity", fontsize=15, fontweight="bold")
     fig.text(0.5, 0.955, "Future SST/shear are frozen model forecasts generated from issue-time/past inputs; JMA/JTWC are comparison-only", ha="center", fontsize=8, color="#334155")
     specs = [
         (payload["v128_forecast"], "#dc2626", "-", "Trackformer 1.2.8"),
         (payload["v210_forecast"], "#64748b", "--", "Trackformer 1.2.10 corrected"),
-        (candidate, "#0891b2", "-", "Trackformer 1.2.11"),
+        (candidate, "#0891b2", "-", MODEL_NAME),
     ]
     for rows, color, style, label in specs:
         axes[0].plot(x, [r["vmax_1min_kt"] for r in rows], color=color, linestyle=style, marker="o", label=f"{label} 1-min")
@@ -206,7 +218,7 @@ def _draw_graph(payload: dict) -> None:
     for rows, color, style, label in (
         (payload["v128_forecast"], "#dc2626", "-", "Trackformer 1.2.8"),
         (payload["v210_forecast"], "#64748b", "--", "Trackformer 1.2.10 corrected"),
-        (candidate, "#0891b2", "-", "Trackformer 1.2.11"),
+        (candidate, "#0891b2", "-", MODEL_NAME),
     ):
         axes[1].plot(x, [r["pressure_hpa"] for r in rows], color=color, linestyle=style, marker="o", label=label)
     rows = [r for r in payload["jma_official"] if r.get("pressure_hpa") is not None]
@@ -240,7 +252,7 @@ def _draw_map(payload: dict) -> None:
     jma = np.asarray(payload["routes"]["jma"], dtype="float64")
     jtwc = np.asarray(payload["routes"]["jtwc"], dtype="float64")
     fig, axes = plt.subplots(1, 2, figsize=(16, 7.2), dpi=170, gridspec_kw={"width_ratios": [1.15, 1.0]})
-    fig.suptitle("Dolphin | Trackformer 1.2.11 intensity route comparison", fontsize=14, fontweight="bold")
+    fig.suptitle(f"Dolphin | {MODEL_NAME} intensity route comparison", fontsize=14, fontweight="bold")
     for axis, xlim, ylim, title in zip(axes, [(-180, 180), (105, 180)], [(-10, 75), (5, 55)], ["World overview", "Western Pacific detail"]):
         draw_coastlines(axis); axis.set_xlim(*xlim); axis.set_ylim(*ylim); axis.grid(color="#cbd5e1", linewidth=.45, alpha=.65)
         axis.plot(observed[:, 0], observed[:, 1], color="#111827", linewidth=2.4)
@@ -250,7 +262,7 @@ def _draw_map(payload: dict) -> None:
         wind = np.asarray([r["vmax_1min_kt"] for r in payload["v211_forecast"]])
         axis.scatter(model[1:, 0], model[1:, 1], c=wind, cmap="magma", vmin=30, vmax=140, s=31, edgecolors="white", linewidths=.35, zorder=5)
         axis.set_title(title, loc="left", fontsize=11); axis.set_xlabel("Longitude (deg)"); axis.set_ylabel("Latitude (deg)")
-    axes[0].legend(handles=[Line2D([0], [0], color="#111827", linewidth=2.4, label="Observed history"), Line2D([0], [0], color="#0891b2", linewidth=2.8, label="Trackformer route (frozen geometry)"), Line2D([0], [0], color="#2563eb", linestyle="-.", label="JMA official"), Line2D([0], [0], color="#7c3aed", linestyle=(0, (2, 3)), label="JTWC official")], fontsize=7.5, loc="lower left")
+    axes[0].legend(handles=[Line2D([0], [0], color="#111827", linewidth=2.4, label="Observed history"), Line2D([0], [0], color="#0891b2", linewidth=2.8, label=ROUTE_LABEL), Line2D([0], [0], color="#2563eb", linestyle="-.", label="JMA official overlay"), Line2D([0], [0], color="#7c3aed", linestyle=(0, (2, 3)), label="JTWC official overlay")], fontsize=7.5, loc="lower left")
     scalar = plt.cm.ScalarMappable(cmap="magma", norm=plt.Normalize(30, 140)); scalar.set_array([]); fig.colorbar(scalar, ax=axes, shrink=.82, pad=.02, label="1-min wind (kt)")
     fig.tight_layout(rect=(0, 0, 1, .93)); fig.savefig(OUT_MAP, bbox_inches="tight", facecolor="white"); plt.close(fig)
 
@@ -258,10 +270,10 @@ def _draw_map(payload: dict) -> None:
 def _write_html(payload: dict) -> None:
     score = html.escape(json.dumps(payload["scores"], indent=2))
     OUT_HTML.write_text(
-        "<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Dolphin Trackformer 1.2.11</title><style>body{font:15px system-ui;margin:24px auto;max-width:1400px;color:#0f172a;background:#f8fafc}img{max-width:100%;display:block;background:#fff;border:1px solid #cbd5e1;margin:12px 0 24px}.notice{padding:12px;border-left:4px solid #0891b2;background:#fff}pre{background:#fff;padding:12px;overflow:auto}</style></head><body>"
-        + "<h1>Dolphin | Trackformer 1.2.11 causal intensity</h1>"
-        + f"<p>Issue: <code>{html.escape(payload['issue_time_utc'])}</code>.</p><p class='notice'><b>Inference policy:</b> Trackformer 1.2.11 uses current/past track and weather analysis, then the frozen 1.2.10 causal SST and 200-850 hPa shear forecasts. Future weather rows are training labels only. JMA/JTWC forecast paths are loaded after inference as comparison overlays and are never model inputs. The route and radius remain the frozen route model outputs; this version upgrades only the wind/pressure intensity residual.</p>"
-        + f"<h2>World map</h2><img src='{OUT_MAP.name}' alt='Dolphin Trackformer 1.2.11 route comparison'><h2>Intensity and predicted environment</h2><img src='{OUT_GRAPH.name}' alt='Dolphin Trackformer 1.2.11 intensity, SST, and shear graph'><h2>Dolphin scores</h2><pre>{score}</pre><h2>Environment contract</h2><pre>{html.escape(json.dumps(payload['environment_model'], indent=2))}</pre><h2>Intensity contract</h2><pre>{html.escape(json.dumps(payload['intensity_model'], indent=2))}</pre></body></html>",
+        f"<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Dolphin {html.escape(MODEL_NAME)}</title><style>body{{font:15px system-ui;margin:24px auto;max-width:1400px;color:#0f172a;background:#f8fafc}}img{{max-width:100%;display:block;background:#fff;border:1px solid #cbd5e1;margin:12px 0 24px}}.notice{{padding:12px;border-left:4px solid #0891b2;background:#fff}}pre{{background:#fff;padding:12px;overflow:auto}}</style></head><body>"
+        + f"<h1>Dolphin | {html.escape(MODEL_NAME)} causal intensity</h1>"
+        + f"<p>Issue: <code>{html.escape(payload['issue_time_utc'])}</code>.</p><p class='notice'><b>Inference policy:</b> {html.escape(INFERENCE_NOTICE)}</p>"
+        + f"<h2>World map</h2><img src='{OUT_MAP.name}' alt='Dolphin route comparison'><h2>Intensity and predicted environment</h2><img src='{OUT_GRAPH.name}' alt='Dolphin intensity, SST, and shear graph'><h2>Dolphin scores</h2><pre>{score}</pre><h2>Environment contract</h2><pre>{html.escape(json.dumps(payload['environment_model'], indent=2))}</pre><h2>Intensity contract</h2><pre>{html.escape(json.dumps(payload['intensity_model'], indent=2))}</pre></body></html>",
         encoding="utf-8",
     )
 
