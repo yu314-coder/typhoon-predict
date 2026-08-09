@@ -1,0 +1,14 @@
+{
+  "version": "Trackformer1.2.10-causal-corrected-environment-expert",
+  "sst_source": "steer5 channel 4, center and 5x5 inner mean",
+  "shear_source": "basin_context_features channels u850,v850,u500,v500,u200,v200",
+  "shear_formula": "u200-u850, v200-v850, hypot(u200-u850,v200-v850)",
+  "future_rows_are_labels_only": true,
+  "target_units": [
+    "SST anomaly C",
+    "inner SST anomaly C",
+    "m/s",
+    "m/s",
+    "m/s"
+  ]
+}

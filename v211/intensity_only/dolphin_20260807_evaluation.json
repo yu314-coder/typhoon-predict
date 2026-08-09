@@ -1,0 +1,4053 @@
+{
+  "version": "Trackformer1.2.11-causal-intensity-only-Dolphin",
+  "issue_time_utc": "2026-08-07T00:00:00Z",
+  "v128_forecast": [
+    {
+      "lead_hours": 6,
+      "valid_time_utc": "2026-08-07T06:00:00Z",
+      "lat": 27.2905,
+      "lon": 128.4537,
+      "vmax_kt": 73.55,
+      "pressure_hpa": 956.49,
+      "rmw_nm": 25.93,
+      "radii_nm": [
+        34.42,
+        35.19,
+        34.11,
+        33.4,
+        13.19,
+        14.95,
+        14.4,
+        13.35,
+        10.16,
+        11.56,
+        11.2,
+        10.25
+      ],
+      "model": "Trackformer 1.2.8",
+      "vmax_1min_kt": 73.55,
+      "vmax_10min_kt": 64.51754385964912
+    },
+    {
+      "lead_hours": 12,
+      "valid_time_utc": "2026-08-07T12:00:00Z",
+      "lat": 27.3824,
+      "lon": 128.0314,
+      "vmax_kt": 74.59,
+      "pressure_hpa": 955.72,
+      "rmw_nm": 27.01,
+      "radii_nm": [
+        42.47,
+        43.39,
+        41.73,
+        40.81,
+        16.56,
+        18.64,
+        17.92,
+        16.6,
+        12.07,
+        13.67,
+        13.34,
+        12.23
+      ],
+      "model": "Trackformer 1.2.8",
+      "vmax_1min_kt": 74.59,
+      "vmax_10min_kt": 65.42982456140352
+    },
+    {
+      "lead_hours": 18,
+      "valid_time_utc": "2026-08-07T18:00:00Z",
+      "lat": 27.4747,
+      "lon": 127.6356,
+      "vmax_kt": 74.18,
+      "pressure_hpa": 955.49,
+      "rmw_nm": 27.48,
+      "radii_nm": [
+        49.59,
+        50.81,
+        48.65,
+        47.22,
+        19.25,
+        21.81,
+        20.91,
+        19.12,
+        13.31,
+        15.21,
+        14.92,
+        13.5
+      ],
+      "model": "Trackformer 1.2.8",
+      "vmax_1min_kt": 74.18,
+      "vmax_10min_kt": 65.07017543859651
+    },
+    {
+      "lead_hours": 24,
+      "valid_time_utc": "2026-08-08T00:00:00Z",
+      "lat": 27.5329,
+      "lon": 127.262,
+      "vmax_kt": 72.85,
+      "pressure_hpa": 956.56,
+      "rmw_nm": 28.21,
+      "radii_nm": [
+        54.46,
+        56.1,
+        53.59,
+        51.47,
+        20.79,
+        23.89,
+        22.84,
+        20.49,
+        13.77,
+        16.02,
+        15.74,
+        13.96
+      ],
+      "model": "Trackformer 1.2.8",
+      "vmax_1min_kt": 72.85,
+      "vmax_10min_kt": 63.90350877192982
+    },
+    {
+      "lead_hours": 30,
+      "valid_time_utc": "2026-08-08T06:00:00Z",
+      "lat": 27.5283,
+      "lon": 126.9104,
+      "vmax_kt": 71.2,
+      "pressure_hpa": 957.49,
+      "rmw_nm": 28.71,
+      "radii_nm": [
+        58.75,
+        60.87,
+        58.03,
+        55.14,
+        22.13,
+        25.79,
+        24.57,
+        21.66,
+        14.14,
+        16.74,
+        16.45,
+        14.3
+      ],
+      "model": "Trackformer 1.2.8",
+      "vmax_1min_kt": 71.2,
+      "vmax_10min_kt": 62.4561403508772
+    },
+    {
+      "lead_hours": 36,
+      "valid_time_utc": "2026-08-08T12:00:00Z",
+      "lat": 27.4546,
+      "lon": 126.6023,
+      "vmax_kt": 69.76,
+      "pressure_hpa": 958.58,
+      "rmw_nm": 28.63,
+      "radii_nm": [
+        61.13,
+        63.64,
+        60.54,
+        57.0,
+        22.88,
+        26.96,
+        25.57,
+        22.23,
+        14.22,
+        17.07,
+        16.75,
+        14.31
+      ],
+      "model": "Trackformer 1.2.8",
+      "vmax_1min_kt": 69.76,
+      "vmax_10min_kt": 61.192982456140356
+    },
+    {
+      "lead_hours": 42,
+      "valid_time_utc": "2026-08-08T18:00:00Z",
+      "lat": 27.3165,
+      "lon": 126.3516,
+      "vmax_kt": 68.84,
+      "pressure_hpa": 959.13,
+      "rmw_nm": 28.3,
+      "radii_nm": [
+        62.21,
+        64.98,
+        61.69,
+        57.68,
+        23.32,
+        27.64,
+        26.1,
+        22.49,
+        14.23,
+        17.2,
+        16.85,
+        14.22
+      ],
+      "model": "Trackformer 1.2.8",
+      "vmax_1min_kt": 68.84,
+      "vmax_10min_kt": 60.385964912280706
+    },
+    {
+      "lead_hours": 48,
+      "valid_time_utc": "2026-08-09T00:00:00Z",
+      "lat": 27.1391,
+      "lon": 126.1758,
+      "vmax_kt": 67.65,
+      "pressure_hpa": 960.26,
+      "rmw_nm": 28.24,
+      "radii_nm": [
+        62.85,
+        65.83,
+        62.42,
+        57.98,
+        23.49,
+        28.06,
+        26.41,
+        22.53,
+        14.14,
+        17.24,
+        16.88,
+        14.06
+      ],
+      "model": "Trackformer 1.2.8",
+      "vmax_1min_kt": 67.65,
+      "vmax_10min_kt": 59.342105263157904
+    },
+    {
+      "lead_hours": 54,
+      "valid_time_utc": "2026-08-09T06:00:00Z",
+      "lat": 26.962,
+      "lon": 126.0627,
+      "vmax_kt": 66.13,
+      "pressure_hpa": 961.24,
+      "rmw_nm": 28.12,
+      "radii_nm": [
+        64.07,
+        67.39,
+        63.81,
+        58.83,
+        23.9,
+        28.78,
+        26.99,
+        22.77,
+        14.03,
+        17.3,
+        16.91,
+        13.88
+      ],
+      "model": "Trackformer 1.2.8",
+      "vmax_1min_kt": 66.13,
+      "vmax_10min_kt": 58.00877192982456
+    },
+    {
+      "lead_hours": 60,
+      "valid_time_utc": "2026-08-09T12:00:00Z",
+      "lat": 26.8242,
+      "lon": 126.0079,
+      "vmax_kt": 64.59,
+      "pressure_hpa": 962.51,
+      "rmw_nm": 27.92,
+      "radii_nm": [
+        64.18,
+        67.63,
+        63.97,
+        58.63,
+        23.83,
+        28.9,
+        27.01,
+        22.57,
+        13.81,
+        17.17,
+        16.77,
+        13.58
+      ],
+      "model": "Trackformer 1.2.8",
+      "vmax_1min_kt": 64.59,
+      "vmax_10min_kt": 56.65789473684211
+    },
+    {
+      "lead_hours": 66,
+      "valid_time_utc": "2026-08-09T18:00:00Z",
+      "lat": 26.7383,
+      "lon": 125.9795,
+      "vmax_kt": 62.85,
+      "pressure_hpa": 963.65,
+      "rmw_nm": 27.7,
+      "radii_nm": [
+        64.25,
+        68.01,
+        64.24,
+        58.36,
+        23.85,
+        29.19,
+        27.15,
+        22.43,
+        13.64,
+        17.14,
+        16.67,
+        13.3
+      ],
+      "model": "Trackformer 1.2.8",
+      "vmax_1min_kt": 62.85,
+      "vmax_10min_kt": 55.131578947368425
+    },
+    {
+      "lead_hours": 72,
+      "valid_time_utc": "2026-08-10T00:00:00Z",
+      "lat": 26.6983,
+      "lon": 125.9298,
+      "vmax_kt": 61.29,
+      "pressure_hpa": 965.13,
+      "rmw_nm": 27.71,
+      "radii_nm": [
+        64.63,
+        68.7,
+        64.78,
+        58.37,
+        24.05,
+        29.66,
+        27.45,
+        22.46,
+        13.59,
+        17.22,
+        16.67,
+        13.13
+      ],
+      "model": "Trackformer 1.2.8",
+      "vmax_1min_kt": 61.29,
+      "vmax_10min_kt": 53.76315789473684
+    },
+    {
+      "lead_hours": 78,
+      "valid_time_utc": "2026-08-10T06:00:00Z",
+      "lat": 26.6845,
+      "lon": 125.8401,
+      "vmax_kt": 59.46,
+      "pressure_hpa": 966.49,
+      "rmw_nm": 27.73,
+      "radii_nm": [
+        63.69,
+        67.91,
+        63.98,
+        57.23,
+        23.66,
+        29.41,
+        27.1,
+        21.96,
+        13.26,
+        16.96,
+        16.37,
+        12.72
+      ],
+      "model": "Trackformer 1.2.8",
+      "vmax_1min_kt": 59.46,
+      "vmax_10min_kt": 52.15789473684211
+    },
+    {
+      "lead_hours": 84,
+      "valid_time_utc": "2026-08-10T12:00:00Z",
+      "lat": 26.7012,
+      "lon": 125.705,
+      "vmax_kt": 58.17,
+      "pressure_hpa": 967.86,
+      "rmw_nm": 28.12,
+      "radii_nm": [
+        63.11,
+        67.59,
+        63.61,
+        56.45,
+        23.4,
+        29.34,
+        26.93,
+        21.61,
+        12.98,
+        16.78,
+        16.12,
+        12.36
+      ],
+      "model": "Trackformer 1.2.8",
+      "vmax_1min_kt": 58.17,
+      "vmax_10min_kt": 51.02631578947369
+    },
+    {
+      "lead_hours": 90,
+      "valid_time_utc": "2026-08-10T18:00:00Z",
+      "lat": 26.7567,
+      "lon": 125.5009,
+      "vmax_kt": 56.54,
+      "pressure_hpa": 968.99,
+      "rmw_nm": 28.43,
+      "radii_nm": [
+        62.08,
+        66.77,
+        62.77,
+        55.25,
+        23.09,
+        29.19,
+        26.68,
+        21.23,
+        12.72,
+        16.6,
+        15.86,
+        12.01
+      ],
+      "model": "Trackformer 1.2.8",
+      "vmax_1min_kt": 56.54,
+      "vmax_10min_kt": 49.59649122807018
+    },
+    {
+      "lead_hours": 96,
+      "valid_time_utc": "2026-08-11T00:00:00Z",
+      "lat": 26.8047,
+      "lon": 125.1765,
+      "vmax_kt": 55.11,
+      "pressure_hpa": 970.44,
+      "rmw_nm": 28.81,
+      "radii_nm": [
+        60.7,
+        65.42,
+        61.43,
+        53.77,
+        22.62,
+        28.75,
+        26.19,
+        20.7,
+        12.43,
+        16.32,
+        15.55,
+        11.65
+      ],
+      "model": "Trackformer 1.2.8",
+      "vmax_1min_kt": 55.11,
+      "vmax_10min_kt": 48.3421052631579
+    },
+    {
+      "lead_hours": 102,
+      "valid_time_utc": "2026-08-11T06:00:00Z",
+      "lat": 26.8016,
+      "lon": 124.7875,
+      "vmax_kt": 54.01,
+      "pressure_hpa": 971.81,
+      "rmw_nm": 29.4,
+      "radii_nm": [
+        60.35,
+        65.23,
+        61.21,
+        53.28,
+        22.57,
+        28.86,
+        26.21,
+        20.59,
+        12.32,
+        16.31,
+        15.48,
+        11.49
+      ],
+      "model": "Trackformer 1.2.8",
+      "vmax_1min_kt": 54.01,
+      "vmax_10min_kt": 47.377192982456144
+    },
+    {
+      "lead_hours": 108,
+      "valid_time_utc": "2026-08-11T12:00:00Z",
+      "lat": 26.7444,
+      "lon": 124.373,
+      "vmax_kt": 52.87,
+      "pressure_hpa": 972.84,
+      "rmw_nm": 29.87,
+      "radii_nm": [
+        59.44,
+        64.52,
+        60.55,
+        52.29,
+        22.21,
+        28.66,
+        25.97,
+        20.21,
+        12.06,
+        16.13,
+        15.26,
+        11.18
+      ],
+      "model": "Trackformer 1.2.8",
+      "vmax_1min_kt": 52.87,
+      "vmax_10min_kt": 46.377192982456144
+    },
+    {
+      "lead_hours": 114,
+      "valid_time_utc": "2026-08-11T18:00:00Z",
+      "lat": 26.629,
+      "lon": 123.9383,
+      "vmax_kt": 51.85,
+      "pressure_hpa": 973.73,
+      "rmw_nm": 29.98,
+      "radii_nm": [
+        59.06,
+        63.99,
+        60.03,
+        51.85,
+        22.11,
+        28.51,
+        25.81,
+        20.09,
+        11.99,
+        16.01,
+        15.14,
+        11.08
+      ],
+      "model": "Trackformer 1.2.8",
+      "vmax_1min_kt": 51.85,
+      "vmax_10min_kt": 45.482456140350884
+    },
+    {
+      "lead_hours": 120,
+      "valid_time_utc": "2026-08-12T00:00:00Z",
+      "lat": 26.4422,
+      "lon": 123.5184,
+      "vmax_kt": 51.09,
+      "pressure_hpa": 974.75,
+      "rmw_nm": 30.26,
+      "radii_nm": [
+        58.33,
+        63.46,
+        59.5,
+        51.02,
+        21.78,
+        28.34,
+        25.58,
+        19.72,
+        11.74,
+        15.85,
+        14.93,
+        10.78
+      ],
+      "model": "Trackformer 1.2.8",
+      "vmax_1min_kt": 51.09,
+      "vmax_10min_kt": 44.81578947368422
+    }
+  ],
+  "v210_forecast": [
+    {
+      "lead_hours": 6,
+      "valid_time_utc": "2026-08-07T06:00:00Z",
+      "lat": 27.2905,
+      "lon": 128.4537,
+      "vmax_kt": 73.4,
+      "pressure_hpa": 955.71,
+      "rmw_nm": 25.93,
+      "radii_nm": [
+        34.42,
+        35.19,
+        34.11,
+        33.4,
+        13.19,
+        14.95,
+        14.4,
+        13.35,
+        10.16,
+        11.56,
+        11.2,
+        10.25
+      ],
+      "model": "Trackformer 1.2.10",
+      "vmax_1min_kt": 73.4,
+      "vmax_10min_kt": 64.38596491228071
+    },
+    {
+      "lead_hours": 12,
+      "valid_time_utc": "2026-08-07T12:00:00Z",
+      "lat": 27.3824,
+      "lon": 128.0314,
+      "vmax_kt": 74.7,
+      "pressure_hpa": 954.66,
+      "rmw_nm": 27.01,
+      "radii_nm": [
+        42.47,
+        43.39,
+        41.73,
+        40.81,
+        16.56,
+        18.64,
+        17.92,
+        16.6,
+        12.07,
+        13.67,
+        13.34,
+        12.23
+      ],
+      "model": "Trackformer 1.2.10",
+      "vmax_1min_kt": 74.7,
+      "vmax_10min_kt": 65.52631578947368
+    },
+    {
+      "lead_hours": 18,
+      "valid_time_utc": "2026-08-07T18:00:00Z",
+      "lat": 27.4747,
+      "lon": 127.6356,
+      "vmax_kt": 75.75,
+      "pressure_hpa": 954.0,
+      "rmw_nm": 27.48,
+      "radii_nm": [
+        49.59,
+        50.81,
+        48.65,
+        47.22,
+        19.25,
+        21.81,
+        20.91,
+        19.12,
+        13.31,
+        15.21,
+        14.92,
+        13.5
+      ],
+      "model": "Trackformer 1.2.10",
+      "vmax_1min_kt": 75.75,
+      "vmax_10min_kt": 66.44736842105263
+    },
+    {
+      "lead_hours": 24,
+      "valid_time_utc": "2026-08-08T00:00:00Z",
+      "lat": 27.5329,
+      "lon": 127.262,
+      "vmax_kt": 74.36,
+      "pressure_hpa": 955.73,
+      "rmw_nm": 28.21,
+      "radii_nm": [
+        54.46,
+        56.1,
+        53.59,
+        51.47,
+        20.79,
+        23.89,
+        22.84,
+        20.49,
+        13.77,
+        16.02,
+        15.74,
+        13.96
+      ],
+      "model": "Trackformer 1.2.10",
+      "vmax_1min_kt": 74.36,
+      "vmax_10min_kt": 65.2280701754386
+    },
+    {
+      "lead_hours": 30,
+      "valid_time_utc": "2026-08-08T06:00:00Z",
+      "lat": 27.5283,
+      "lon": 126.9104,
+      "vmax_kt": 74.25,
+      "pressure_hpa": 955.44,
+      "rmw_nm": 28.71,
+      "radii_nm": [
+        58.75,
+        60.87,
+        58.03,
+        55.14,
+        22.13,
+        25.79,
+        24.57,
+        21.66,
+        14.14,
+        16.74,
+        16.45,
+        14.3
+      ],
+      "model": "Trackformer 1.2.10",
+      "vmax_1min_kt": 74.25,
+      "vmax_10min_kt": 65.13157894736842
+    },
+    {
+      "lead_hours": 36,
+      "valid_time_utc": "2026-08-08T12:00:00Z",
+      "lat": 27.4546,
+      "lon": 126.6023,
+      "vmax_kt": 73.78,
+      "pressure_hpa": 957.8,
+      "rmw_nm": 28.63,
+      "radii_nm": [
+        61.13,
+        63.64,
+        60.54,
+        57.0,
+        22.88,
+        26.96,
+        25.57,
+        22.23,
+        14.22,
+        17.07,
+        16.75,
+        14.31
+      ],
+      "model": "Trackformer 1.2.10",
+      "vmax_1min_kt": 73.78,
+      "vmax_10min_kt": 64.71929824561404
+    },
+    {
+      "lead_hours": 42,
+      "valid_time_utc": "2026-08-08T18:00:00Z",
+      "lat": 27.3165,
+      "lon": 126.3516,
+      "vmax_kt": 71.78,
+      "pressure_hpa": 960.33,
+      "rmw_nm": 28.3,
+      "radii_nm": [
+        62.21,
+        64.98,
+        61.69,
+        57.68,
+        23.32,
+        27.64,
+        26.1,
+        22.49,
+        14.23,
+        17.2,
+        16.85,
+        14.22
+      ],
+      "model": "Trackformer 1.2.10",
+      "vmax_1min_kt": 71.78,
+      "vmax_10min_kt": 62.96491228070176
+    },
+    {
+      "lead_hours": 48,
+      "valid_time_utc": "2026-08-09T00:00:00Z",
+      "lat": 27.1391,
+      "lon": 126.1758,
+      "vmax_kt": 68.79,
+      "pressure_hpa": 967.75,
+      "rmw_nm": 28.24,
+      "radii_nm": [
+        62.85,
+        65.83,
+        62.42,
+        57.98,
+        23.49,
+        28.06,
+        26.41,
+        22.53,
+        14.14,
+        17.24,
+        16.88,
+        14.06
+      ],
+      "model": "Trackformer 1.2.10",
+      "vmax_1min_kt": 68.79,
+      "vmax_10min_kt": 60.342105263157904
+    },
+    {
+      "lead_hours": 54,
+      "valid_time_utc": "2026-08-09T06:00:00Z",
+      "lat": 26.962,
+      "lon": 126.0627,
+      "vmax_kt": 66.68,
+      "pressure_hpa": 971.26,
+      "rmw_nm": 28.12,
+      "radii_nm": [
+        64.07,
+        67.39,
+        63.81,
+        58.83,
+        23.9,
+        28.78,
+        26.99,
+        22.77,
+        14.03,
+        17.3,
+        16.91,
+        13.88
+      ],
+      "model": "Trackformer 1.2.10",
+      "vmax_1min_kt": 66.68,
+      "vmax_10min_kt": 58.491228070175445
+    },
+    {
+      "lead_hours": 60,
+      "valid_time_utc": "2026-08-09T12:00:00Z",
+      "lat": 26.8242,
+      "lon": 126.0079,
+      "vmax_kt": 65.02,
+      "pressure_hpa": 973.34,
+      "rmw_nm": 27.92,
+      "radii_nm": [
+        64.18,
+        67.63,
+        63.97,
+        58.63,
+        23.83,
+        28.9,
+        27.01,
+        22.57,
+        13.81,
+        17.17,
+        16.77,
+        13.58
+      ],
+      "model": "Trackformer 1.2.10",
+      "vmax_1min_kt": 65.02,
+      "vmax_10min_kt": 57.03508771929825
+    },
+    {
+      "lead_hours": 66,
+      "valid_time_utc": "2026-08-09T18:00:00Z",
+      "lat": 26.7383,
+      "lon": 125.9795,
+      "vmax_kt": 63.43,
+      "pressure_hpa": 974.68,
+      "rmw_nm": 27.7,
+      "radii_nm": [
+        64.25,
+        68.01,
+        64.24,
+        58.36,
+        23.85,
+        29.19,
+        27.15,
+        22.43,
+        13.64,
+        17.14,
+        16.67,
+        13.3
+      ],
+      "model": "Trackformer 1.2.10",
+      "vmax_1min_kt": 63.43,
+      "vmax_10min_kt": 55.640350877192986
+    },
+    {
+      "lead_hours": 72,
+      "valid_time_utc": "2026-08-10T00:00:00Z",
+      "lat": 26.6983,
+      "lon": 125.9298,
+      "vmax_kt": 60.34,
+      "pressure_hpa": 980.08,
+      "rmw_nm": 27.71,
+      "radii_nm": [
+        64.63,
+        68.7,
+        64.78,
+        58.37,
+        24.05,
+        29.66,
+        27.45,
+        22.46,
+        13.59,
+        17.22,
+        16.67,
+        13.13
+      ],
+      "model": "Trackformer 1.2.10",
+      "vmax_1min_kt": 60.34,
+      "vmax_10min_kt": 52.929824561403514
+    },
+    {
+      "lead_hours": 78,
+      "valid_time_utc": "2026-08-10T06:00:00Z",
+      "lat": 26.6845,
+      "lon": 125.8401,
+      "vmax_kt": 57.77,
+      "pressure_hpa": 983.28,
+      "rmw_nm": 27.73,
+      "radii_nm": [
+        63.69,
+        67.91,
+        63.98,
+        57.23,
+        23.66,
+        29.41,
+        27.1,
+        21.96,
+        13.26,
+        16.96,
+        16.37,
+        12.72
+      ],
+      "model": "Trackformer 1.2.10",
+      "vmax_1min_kt": 57.77,
+      "vmax_10min_kt": 50.67543859649123
+    },
+    {
+      "lead_hours": 84,
+      "valid_time_utc": "2026-08-10T12:00:00Z",
+      "lat": 26.7012,
+      "lon": 125.705,
+      "vmax_kt": 56.67,
+      "pressure_hpa": 983.91,
+      "rmw_nm": 28.12,
+      "radii_nm": [
+        63.11,
+        67.59,
+        63.61,
+        56.45,
+        23.4,
+        29.34,
+        26.93,
+        21.61,
+        12.98,
+        16.78,
+        16.12,
+        12.36
+      ],
+      "model": "Trackformer 1.2.10",
+      "vmax_1min_kt": 56.67,
+      "vmax_10min_kt": 49.71052631578948
+    },
+    {
+      "lead_hours": 90,
+      "valid_time_utc": "2026-08-10T18:00:00Z",
+      "lat": 26.7567,
+      "lon": 125.5009,
+      "vmax_kt": 55.78,
+      "pressure_hpa": 983.3,
+      "rmw_nm": 28.43,
+      "radii_nm": [
+        62.08,
+        66.77,
+        62.77,
+        55.25,
+        23.09,
+        29.19,
+        26.68,
+        21.23,
+        12.72,
+        16.6,
+        15.86,
+        12.01
+      ],
+      "model": "Trackformer 1.2.10",
+      "vmax_1min_kt": 55.78,
+      "vmax_10min_kt": 48.929824561403514
+    },
+    {
+      "lead_hours": 96,
+      "valid_time_utc": "2026-08-11T00:00:00Z",
+      "lat": 26.8047,
+      "lon": 125.1765,
+      "vmax_kt": 55.48,
+      "pressure_hpa": 983.04,
+      "rmw_nm": 28.81,
+      "radii_nm": [
+        60.7,
+        65.42,
+        61.43,
+        53.77,
+        22.62,
+        28.75,
+        26.19,
+        20.7,
+        12.43,
+        16.32,
+        15.55,
+        11.65
+      ],
+      "model": "Trackformer 1.2.10",
+      "vmax_1min_kt": 55.48,
+      "vmax_10min_kt": 48.666666666666664
+    },
+    {
+      "lead_hours": 102,
+      "valid_time_utc": "2026-08-11T06:00:00Z",
+      "lat": 26.8016,
+      "lon": 124.7875,
+      "vmax_kt": 51.67,
+      "pressure_hpa": 984.91,
+      "rmw_nm": 29.4,
+      "radii_nm": [
+        60.35,
+        65.23,
+        61.21,
+        53.28,
+        22.57,
+        28.86,
+        26.21,
+        20.59,
+        12.32,
+        16.31,
+        15.48,
+        11.49
+      ],
+      "model": "Trackformer 1.2.10",
+      "vmax_1min_kt": 51.67,
+      "vmax_10min_kt": 45.324561403508774
+    },
+    {
+      "lead_hours": 108,
+      "valid_time_utc": "2026-08-11T12:00:00Z",
+      "lat": 26.7444,
+      "lon": 124.373,
+      "vmax_kt": 49.85,
+      "pressure_hpa": 986.66,
+      "rmw_nm": 29.87,
+      "radii_nm": [
+        59.44,
+        64.52,
+        60.55,
+        52.29,
+        22.21,
+        28.66,
+        25.97,
+        20.21,
+        12.06,
+        16.13,
+        15.26,
+        11.18
+      ],
+      "model": "Trackformer 1.2.10",
+      "vmax_1min_kt": 49.85,
+      "vmax_10min_kt": 43.7280701754386
+    },
+    {
+      "lead_hours": 114,
+      "valid_time_utc": "2026-08-11T18:00:00Z",
+      "lat": 26.629,
+      "lon": 123.9383,
+      "vmax_kt": 49.98,
+      "pressure_hpa": 987.23,
+      "rmw_nm": 29.98,
+      "radii_nm": [
+        59.06,
+        63.99,
+        60.03,
+        51.85,
+        22.11,
+        28.51,
+        25.81,
+        20.09,
+        11.99,
+        16.01,
+        15.14,
+        11.08
+      ],
+      "model": "Trackformer 1.2.10",
+      "vmax_1min_kt": 49.98,
+      "vmax_10min_kt": 43.8421052631579
+    },
+    {
+      "lead_hours": 120,
+      "valid_time_utc": "2026-08-12T00:00:00Z",
+      "lat": 26.4422,
+      "lon": 123.5184,
+      "vmax_kt": 48.96,
+      "pressure_hpa": 987.33,
+      "rmw_nm": 30.26,
+      "radii_nm": [
+        58.33,
+        63.46,
+        59.5,
+        51.02,
+        21.78,
+        28.34,
+        25.58,
+        19.72,
+        11.74,
+        15.85,
+        14.93,
+        10.78
+      ],
+      "model": "Trackformer 1.2.10",
+      "vmax_1min_kt": 48.96,
+      "vmax_10min_kt": 42.94736842105264
+    }
+  ],
+  "v211_forecast": [
+    {
+      "lead_hours": 6,
+      "valid_time_utc": "2026-08-07T06:00:00Z",
+      "lat": 27.2905,
+      "lon": 128.4537,
+      "vmax_kt": 72.95,
+      "pressure_hpa": 954.78,
+      "rmw_nm": 25.93,
+      "radii_nm": [
+        34.42,
+        35.19,
+        34.11,
+        33.4,
+        13.19,
+        14.95,
+        14.4,
+        13.35,
+        10.16,
+        11.56,
+        11.2,
+        10.25
+      ],
+      "model": "Trackformer 1.2.11",
+      "vmax_1min_kt": 72.95,
+      "vmax_10min_kt": 63.991228070175445
+    },
+    {
+      "lead_hours": 12,
+      "valid_time_utc": "2026-08-07T12:00:00Z",
+      "lat": 27.3824,
+      "lon": 128.0314,
+      "vmax_kt": 72.59,
+      "pressure_hpa": 955.24,
+      "rmw_nm": 27.01,
+      "radii_nm": [
+        42.47,
+        43.39,
+        41.73,
+        40.81,
+        16.56,
+        18.64,
+        17.92,
+        16.6,
+        12.07,
+        13.67,
+        13.34,
+        12.23
+      ],
+      "model": "Trackformer 1.2.11",
+      "vmax_1min_kt": 72.59,
+      "vmax_10min_kt": 63.67543859649123
+    },
+    {
+      "lead_hours": 18,
+      "valid_time_utc": "2026-08-07T18:00:00Z",
+      "lat": 27.4747,
+      "lon": 127.6356,
+      "vmax_kt": 74.25,
+      "pressure_hpa": 953.93,
+      "rmw_nm": 27.48,
+      "radii_nm": [
+        49.59,
+        50.81,
+        48.65,
+        47.22,
+        19.25,
+        21.81,
+        20.91,
+        19.12,
+        13.31,
+        15.21,
+        14.92,
+        13.5
+      ],
+      "model": "Trackformer 1.2.11",
+      "vmax_1min_kt": 74.25,
+      "vmax_10min_kt": 65.13157894736842
+    },
+    {
+      "lead_hours": 24,
+      "valid_time_utc": "2026-08-08T00:00:00Z",
+      "lat": 27.5329,
+      "lon": 127.262,
+      "vmax_kt": 74.08,
+      "pressure_hpa": 953.28,
+      "rmw_nm": 28.21,
+      "radii_nm": [
+        54.46,
+        56.1,
+        53.59,
+        51.47,
+        20.79,
+        23.89,
+        22.84,
+        20.49,
+        13.77,
+        16.02,
+        15.74,
+        13.96
+      ],
+      "model": "Trackformer 1.2.11",
+      "vmax_1min_kt": 74.08,
+      "vmax_10min_kt": 64.98245614035088
+    },
+    {
+      "lead_hours": 30,
+      "valid_time_utc": "2026-08-08T06:00:00Z",
+      "lat": 27.5283,
+      "lon": 126.9104,
+      "vmax_kt": 76.36,
+      "pressure_hpa": 951.42,
+      "rmw_nm": 28.71,
+      "radii_nm": [
+        58.75,
+        60.87,
+        58.03,
+        55.14,
+        22.13,
+        25.79,
+        24.57,
+        21.66,
+        14.14,
+        16.74,
+        16.45,
+        14.3
+      ],
+      "model": "Trackformer 1.2.11",
+      "vmax_1min_kt": 76.36,
+      "vmax_10min_kt": 66.98245614035088
+    },
+    {
+      "lead_hours": 36,
+      "valid_time_utc": "2026-08-08T12:00:00Z",
+      "lat": 27.4546,
+      "lon": 126.6023,
+      "vmax_kt": 75.13,
+      "pressure_hpa": 956.23,
+      "rmw_nm": 28.63,
+      "radii_nm": [
+        61.13,
+        63.64,
+        60.54,
+        57.0,
+        22.88,
+        26.96,
+        25.57,
+        22.23,
+        14.22,
+        17.07,
+        16.75,
+        14.31
+      ],
+      "model": "Trackformer 1.2.11",
+      "vmax_1min_kt": 75.13,
+      "vmax_10min_kt": 65.90350877192982
+    },
+    {
+      "lead_hours": 42,
+      "valid_time_utc": "2026-08-08T18:00:00Z",
+      "lat": 27.3165,
+      "lon": 126.3516,
+      "vmax_kt": 69.93,
+      "pressure_hpa": 958.12,
+      "rmw_nm": 28.3,
+      "radii_nm": [
+        62.21,
+        64.98,
+        61.69,
+        57.68,
+        23.32,
+        27.64,
+        26.1,
+        22.49,
+        14.23,
+        17.2,
+        16.85,
+        14.22
+      ],
+      "model": "Trackformer 1.2.11",
+      "vmax_1min_kt": 69.93,
+      "vmax_10min_kt": 61.342105263157904
+    },
+    {
+      "lead_hours": 48,
+      "valid_time_utc": "2026-08-09T00:00:00Z",
+      "lat": 27.1391,
+      "lon": 126.1758,
+      "vmax_kt": 65.64,
+      "pressure_hpa": 967.92,
+      "rmw_nm": 28.24,
+      "radii_nm": [
+        62.85,
+        65.83,
+        62.42,
+        57.98,
+        23.49,
+        28.06,
+        26.41,
+        22.53,
+        14.14,
+        17.24,
+        16.88,
+        14.06
+      ],
+      "model": "Trackformer 1.2.11",
+      "vmax_1min_kt": 65.64,
+      "vmax_10min_kt": 57.578947368421055
+    },
+    {
+      "lead_hours": 54,
+      "valid_time_utc": "2026-08-09T06:00:00Z",
+      "lat": 26.962,
+      "lon": 126.0627,
+      "vmax_kt": 63.59,
+      "pressure_hpa": 972.9,
+      "rmw_nm": 28.12,
+      "radii_nm": [
+        64.07,
+        67.39,
+        63.81,
+        58.83,
+        23.9,
+        28.78,
+        26.99,
+        22.77,
+        14.03,
+        17.3,
+        16.91,
+        13.88
+      ],
+      "model": "Trackformer 1.2.11",
+      "vmax_1min_kt": 63.59,
+      "vmax_10min_kt": 55.78070175438597
+    },
+    {
+      "lead_hours": 60,
+      "valid_time_utc": "2026-08-09T12:00:00Z",
+      "lat": 26.8242,
+      "lon": 126.0079,
+      "vmax_kt": 59.22,
+      "pressure_hpa": 978.99,
+      "rmw_nm": 27.92,
+      "radii_nm": [
+        64.18,
+        67.63,
+        63.97,
+        58.63,
+        23.83,
+        28.9,
+        27.01,
+        22.57,
+        13.81,
+        17.17,
+        16.77,
+        13.58
+      ],
+      "model": "Trackformer 1.2.11",
+      "vmax_1min_kt": 59.22,
+      "vmax_10min_kt": 51.94736842105264
+    },
+    {
+      "lead_hours": 66,
+      "valid_time_utc": "2026-08-09T18:00:00Z",
+      "lat": 26.7383,
+      "lon": 125.9795,
+      "vmax_kt": 59.64,
+      "pressure_hpa": 978.46,
+      "rmw_nm": 27.7,
+      "radii_nm": [
+        64.25,
+        68.01,
+        64.24,
+        58.36,
+        23.85,
+        29.19,
+        27.15,
+        22.43,
+        13.64,
+        17.14,
+        16.67,
+        13.3
+      ],
+      "model": "Trackformer 1.2.11",
+      "vmax_1min_kt": 59.64,
+      "vmax_10min_kt": 52.31578947368421
+    },
+    {
+      "lead_hours": 72,
+      "valid_time_utc": "2026-08-10T00:00:00Z",
+      "lat": 26.6983,
+      "lon": 125.9298,
+      "vmax_kt": 55.42,
+      "pressure_hpa": 984.07,
+      "rmw_nm": 27.71,
+      "radii_nm": [
+        64.63,
+        68.7,
+        64.78,
+        58.37,
+        24.05,
+        29.66,
+        27.45,
+        22.46,
+        13.59,
+        17.22,
+        16.67,
+        13.13
+      ],
+      "model": "Trackformer 1.2.11",
+      "vmax_1min_kt": 55.42,
+      "vmax_10min_kt": 48.6140350877193
+    },
+    {
+      "lead_hours": 78,
+      "valid_time_utc": "2026-08-10T06:00:00Z",
+      "lat": 26.6845,
+      "lon": 125.8401,
+      "vmax_kt": 53.9,
+      "pressure_hpa": 983.9,
+      "rmw_nm": 27.73,
+      "radii_nm": [
+        63.69,
+        67.91,
+        63.98,
+        57.23,
+        23.66,
+        29.41,
+        27.1,
+        21.96,
+        13.26,
+        16.96,
+        16.37,
+        12.72
+      ],
+      "model": "Trackformer 1.2.11",
+      "vmax_1min_kt": 53.9,
+      "vmax_10min_kt": 47.280701754385966
+    },
+    {
+      "lead_hours": 84,
+      "valid_time_utc": "2026-08-10T12:00:00Z",
+      "lat": 26.7012,
+      "lon": 125.705,
+      "vmax_kt": 50.11,
+      "pressure_hpa": 989.97,
+      "rmw_nm": 28.12,
+      "radii_nm": [
+        63.11,
+        67.59,
+        63.61,
+        56.45,
+        23.4,
+        29.34,
+        26.93,
+        21.61,
+        12.98,
+        16.78,
+        16.12,
+        12.36
+      ],
+      "model": "Trackformer 1.2.11",
+      "vmax_1min_kt": 50.11,
+      "vmax_10min_kt": 43.9561403508772
+    },
+    {
+      "lead_hours": 90,
+      "valid_time_utc": "2026-08-10T18:00:00Z",
+      "lat": 26.7567,
+      "lon": 125.5009,
+      "vmax_kt": 53.02,
+      "pressure_hpa": 988.2,
+      "rmw_nm": 28.43,
+      "radii_nm": [
+        62.08,
+        66.77,
+        62.77,
+        55.25,
+        23.09,
+        29.19,
+        26.68,
+        21.23,
+        12.72,
+        16.6,
+        15.86,
+        12.01
+      ],
+      "model": "Trackformer 1.2.11",
+      "vmax_1min_kt": 53.02,
+      "vmax_10min_kt": 46.50877192982457
+    },
+    {
+      "lead_hours": 96,
+      "valid_time_utc": "2026-08-11T00:00:00Z",
+      "lat": 26.8047,
+      "lon": 125.1765,
+      "vmax_kt": 52.14,
+      "pressure_hpa": 987.31,
+      "rmw_nm": 28.81,
+      "radii_nm": [
+        60.7,
+        65.42,
+        61.43,
+        53.77,
+        22.62,
+        28.75,
+        26.19,
+        20.7,
+        12.43,
+        16.32,
+        15.55,
+        11.65
+      ],
+      "model": "Trackformer 1.2.11",
+      "vmax_1min_kt": 52.14,
+      "vmax_10min_kt": 45.736842105263165
+    },
+    {
+      "lead_hours": 102,
+      "valid_time_utc": "2026-08-11T06:00:00Z",
+      "lat": 26.8016,
+      "lon": 124.7875,
+      "vmax_kt": 51.38,
+      "pressure_hpa": 982.49,
+      "rmw_nm": 29.4,
+      "radii_nm": [
+        60.35,
+        65.23,
+        61.21,
+        53.28,
+        22.57,
+        28.86,
+        26.21,
+        20.59,
+        12.32,
+        16.31,
+        15.48,
+        11.49
+      ],
+      "model": "Trackformer 1.2.11",
+      "vmax_1min_kt": 51.38,
+      "vmax_10min_kt": 45.07017543859649
+    },
+    {
+      "lead_hours": 108,
+      "valid_time_utc": "2026-08-11T12:00:00Z",
+      "lat": 26.7444,
+      "lon": 124.373,
+      "vmax_kt": 47.16,
+      "pressure_hpa": 985.61,
+      "rmw_nm": 29.87,
+      "radii_nm": [
+        59.44,
+        64.52,
+        60.55,
+        52.29,
+        22.21,
+        28.66,
+        25.97,
+        20.21,
+        12.06,
+        16.13,
+        15.26,
+        11.18
+      ],
+      "model": "Trackformer 1.2.11",
+      "vmax_1min_kt": 47.16,
+      "vmax_10min_kt": 41.36842105263158
+    },
+    {
+      "lead_hours": 114,
+      "valid_time_utc": "2026-08-11T18:00:00Z",
+      "lat": 26.629,
+      "lon": 123.9383,
+      "vmax_kt": 43.55,
+      "pressure_hpa": 992.37,
+      "rmw_nm": 29.98,
+      "radii_nm": [
+        59.06,
+        63.99,
+        60.03,
+        51.85,
+        22.11,
+        28.51,
+        25.81,
+        20.09,
+        11.99,
+        16.01,
+        15.14,
+        11.08
+      ],
+      "model": "Trackformer 1.2.11",
+      "vmax_1min_kt": 43.55,
+      "vmax_10min_kt": 38.20175438596491
+    },
+    {
+      "lead_hours": 120,
+      "valid_time_utc": "2026-08-12T00:00:00Z",
+      "lat": 26.4422,
+      "lon": 123.5184,
+      "vmax_kt": 43.33,
+      "pressure_hpa": 990.56,
+      "rmw_nm": 30.26,
+      "radii_nm": [
+        58.33,
+        63.46,
+        59.5,
+        51.02,
+        21.78,
+        28.34,
+        25.58,
+        19.72,
+        11.74,
+        15.85,
+        14.93,
+        10.78
+      ],
+      "model": "Trackformer 1.2.11",
+      "vmax_1min_kt": 43.33,
+      "vmax_10min_kt": 38.00877192982456
+    }
+  ],
+  "jma_official": [
+    {
+      "lead_hours": 0,
+      "valid_time_utc": "2026-08-07T00:00:00Z",
+      "lat": 27.2,
+      "lon": 128.9,
+      "vmax_kt": 77.75,
+      "pressure_hpa": 950.0,
+      "source": "JMA Digital Typhoon forecast archive"
+    },
+    {
+      "lead_hours": 6,
+      "valid_time_utc": "2026-08-07T06:00:00Z",
+      "lat": 27.0,
+      "lon": 128.0,
+      "vmax_kt": 77.75,
+      "pressure_hpa": 950.0,
+      "source": "JMA Digital Typhoon forecast archive"
+    },
+    {
+      "lead_hours": 12,
+      "valid_time_utc": "2026-08-07T12:00:00Z",
+      "lat": 27.0,
+      "lon": 127.0,
+      "vmax_kt": 77.75,
+      "pressure_hpa": 950.0,
+      "source": "JMA Digital Typhoon forecast archive"
+    },
+    {
+      "lead_hours": 18,
+      "valid_time_utc": "2026-08-07T18:00:00Z",
+      "lat": 26.9,
+      "lon": 126.3,
+      "vmax_kt": 77.75,
+      "pressure_hpa": 950.0,
+      "source": "JMA Digital Typhoon forecast archive"
+    },
+    {
+      "lead_hours": 24,
+      "valid_time_utc": "2026-08-08T00:00:00Z",
+      "lat": 26.9,
+      "lon": 125.7,
+      "vmax_kt": 77.75,
+      "pressure_hpa": 950.0,
+      "source": "JMA Digital Typhoon forecast archive"
+    },
+    {
+      "lead_hours": 48,
+      "valid_time_utc": "2026-08-09T00:00:00Z",
+      "lat": 27.3,
+      "lon": 123.2,
+      "vmax_kt": 77.75,
+      "pressure_hpa": 950.0,
+      "source": "JMA Digital Typhoon forecast archive"
+    },
+    {
+      "lead_hours": 72,
+      "valid_time_utc": "2026-08-10T00:00:00Z",
+      "lat": 28.0,
+      "lon": 119.7,
+      "vmax_kt": 44.71,
+      "pressure_hpa": 980.0,
+      "source": "JMA Digital Typhoon forecast archive"
+    },
+    {
+      "lead_hours": 96,
+      "valid_time_utc": "2026-08-11T00:00:00Z",
+      "lat": 29.7,
+      "lon": 117.1,
+      "vmax_kt": 34.99,
+      "pressure_hpa": 990.0,
+      "source": "JMA Digital Typhoon forecast archive"
+    },
+    {
+      "lead_hours": 120,
+      "valid_time_utc": "2026-08-12T00:00:00Z",
+      "lat": 31.4,
+      "lon": 117.3,
+      "vmax_kt": 34.99,
+      "pressure_hpa": 992.0,
+      "source": "JMA Digital Typhoon forecast archive"
+    }
+  ],
+  "jtwc_official": [
+    {
+      "lead_hours": 12,
+      "valid_time_utc": "2026-08-07T12:00:00Z",
+      "lat": 27.1,
+      "lon": 128.2,
+      "vmax_kt": 80.0,
+      "pressure_hpa": null,
+      "source": "JTWC Warning 44 capture, issued 2026-08-06 21Z"
+    },
+    {
+      "lead_hours": 24,
+      "valid_time_utc": "2026-08-08T00:00:00Z",
+      "lat": 27.0,
+      "lon": 126.4,
+      "vmax_kt": 80.0,
+      "pressure_hpa": null,
+      "source": "JTWC Warning 44 capture, issued 2026-08-06 21Z"
+    },
+    {
+      "lead_hours": 36,
+      "valid_time_utc": "2026-08-08T12:00:00Z",
+      "lat": 27.0,
+      "lon": 125.0,
+      "vmax_kt": 80.0,
+      "pressure_hpa": null,
+      "source": "JTWC Warning 44 capture, issued 2026-08-06 21Z"
+    },
+    {
+      "lead_hours": 48,
+      "valid_time_utc": "2026-08-09T00:00:00Z",
+      "lat": 27.1,
+      "lon": 123.7,
+      "vmax_kt": 80.0,
+      "pressure_hpa": null,
+      "source": "JTWC Warning 44 capture, issued 2026-08-06 21Z"
+    },
+    {
+      "lead_hours": 60,
+      "valid_time_utc": "2026-08-09T12:00:00Z",
+      "lat": 27.3,
+      "lon": 122.3,
+      "vmax_kt": 70.0,
+      "pressure_hpa": null,
+      "source": "JTWC Warning 44 capture, issued 2026-08-06 21Z"
+    },
+    {
+      "lead_hours": 72,
+      "valid_time_utc": "2026-08-10T00:00:00Z",
+      "lat": 27.6,
+      "lon": 120.6,
+      "vmax_kt": 60.0,
+      "pressure_hpa": null,
+      "source": "JTWC Warning 44 capture, issued 2026-08-06 21Z"
+    },
+    {
+      "lead_hours": 96,
+      "valid_time_utc": "2026-08-11T00:00:00Z",
+      "lat": 29.0,
+      "lon": 118.1,
+      "vmax_kt": 30.0,
+      "pressure_hpa": null,
+      "source": "JTWC Warning 44 capture, issued 2026-08-06 21Z"
+    },
+    {
+      "lead_hours": 120,
+      "valid_time_utc": "2026-08-12T00:00:00Z",
+      "lat": 30.6,
+      "lon": 116.4,
+      "vmax_kt": 20.0,
+      "pressure_hpa": null,
+      "source": "JTWC Warning 44 capture, issued 2026-08-06 21Z"
+    }
+  ],
+  "actual_rows": {
+    "2026-07-26T18:00:00Z": {
+      "time_utc": "2026-07-26T18:00:00Z",
+      "lat": 13.0,
+      "lon": 179.6,
+      "vmax_kt": 30.0,
+      "pressure_hpa": 1004.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-26T21:00:00Z": {
+      "time_utc": "2026-07-26T21:00:00Z",
+      "lat": 13.1,
+      "lon": 178.9,
+      "vmax_kt": 30.0,
+      "pressure_hpa": 1004.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-27T00:00:00Z": {
+      "time_utc": "2026-07-27T00:00:00Z",
+      "lat": 13.0,
+      "lon": 178.4,
+      "vmax_kt": 30.0,
+      "pressure_hpa": 1002.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-27T03:00:00Z": {
+      "time_utc": "2026-07-27T03:00:00Z",
+      "lat": 13.1,
+      "lon": 177.6,
+      "vmax_kt": 30.0,
+      "pressure_hpa": 1002.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-27T06:00:00Z": {
+      "time_utc": "2026-07-27T06:00:00Z",
+      "lat": 13.3,
+      "lon": 176.9,
+      "vmax_kt": 35.0,
+      "pressure_hpa": 1000.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-27T09:00:00Z": {
+      "time_utc": "2026-07-27T09:00:00Z",
+      "lat": 13.5,
+      "lon": 176.1,
+      "vmax_kt": 40.0,
+      "pressure_hpa": 998.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-27T12:00:00Z": {
+      "time_utc": "2026-07-27T12:00:00Z",
+      "lat": 13.7,
+      "lon": 175.3,
+      "vmax_kt": 40.0,
+      "pressure_hpa": 998.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-27T15:00:00Z": {
+      "time_utc": "2026-07-27T15:00:00Z",
+      "lat": 13.5,
+      "lon": 174.5,
+      "vmax_kt": 40.0,
+      "pressure_hpa": 998.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-27T18:00:00Z": {
+      "time_utc": "2026-07-27T18:00:00Z",
+      "lat": 13.4,
+      "lon": 173.6,
+      "vmax_kt": 50.0,
+      "pressure_hpa": 992.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-27T21:00:00Z": {
+      "time_utc": "2026-07-27T21:00:00Z",
+      "lat": 13.1,
+      "lon": 173.2,
+      "vmax_kt": 55.0,
+      "pressure_hpa": 990.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-28T00:00:00Z": {
+      "time_utc": "2026-07-28T00:00:00Z",
+      "lat": 13.0,
+      "lon": 172.8,
+      "vmax_kt": 55.0,
+      "pressure_hpa": 990.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-28T03:00:00Z": {
+      "time_utc": "2026-07-28T03:00:00Z",
+      "lat": 13.1,
+      "lon": 172.3,
+      "vmax_kt": 60.0,
+      "pressure_hpa": 985.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-28T06:00:00Z": {
+      "time_utc": "2026-07-28T06:00:00Z",
+      "lat": 13.3,
+      "lon": 171.7,
+      "vmax_kt": 65.0,
+      "pressure_hpa": 980.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-28T09:00:00Z": {
+      "time_utc": "2026-07-28T09:00:00Z",
+      "lat": 13.3,
+      "lon": 171.2,
+      "vmax_kt": 70.0,
+      "pressure_hpa": 975.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-28T12:00:00Z": {
+      "time_utc": "2026-07-28T12:00:00Z",
+      "lat": 13.4,
+      "lon": 170.8,
+      "vmax_kt": 70.0,
+      "pressure_hpa": 975.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-28T15:00:00Z": {
+      "time_utc": "2026-07-28T15:00:00Z",
+      "lat": 13.5,
+      "lon": 170.3,
+      "vmax_kt": 75.0,
+      "pressure_hpa": 970.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-28T18:00:00Z": {
+      "time_utc": "2026-07-28T18:00:00Z",
+      "lat": 13.7,
+      "lon": 169.9,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 955.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-28T21:00:00Z": {
+      "time_utc": "2026-07-28T21:00:00Z",
+      "lat": 13.9,
+      "lon": 169.6,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 955.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-29T00:00:00Z": {
+      "time_utc": "2026-07-29T00:00:00Z",
+      "lat": 14.1,
+      "lon": 169.1,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 955.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-29T03:00:00Z": {
+      "time_utc": "2026-07-29T03:00:00Z",
+      "lat": 14.4,
+      "lon": 168.7,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 955.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-29T06:00:00Z": {
+      "time_utc": "2026-07-29T06:00:00Z",
+      "lat": 14.7,
+      "lon": 168.4,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 955.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-29T09:00:00Z": {
+      "time_utc": "2026-07-29T09:00:00Z",
+      "lat": 14.8,
+      "lon": 168.0,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 955.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-29T12:00:00Z": {
+      "time_utc": "2026-07-29T12:00:00Z",
+      "lat": 15.2,
+      "lon": 167.7,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 955.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-29T15:00:00Z": {
+      "time_utc": "2026-07-29T15:00:00Z",
+      "lat": 15.5,
+      "lon": 167.2,
+      "vmax_kt": 90.0,
+      "pressure_hpa": 950.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-29T18:00:00Z": {
+      "time_utc": "2026-07-29T18:00:00Z",
+      "lat": 15.8,
+      "lon": 166.8,
+      "vmax_kt": 100.0,
+      "pressure_hpa": 935.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-29T21:00:00Z": {
+      "time_utc": "2026-07-29T21:00:00Z",
+      "lat": 16.1,
+      "lon": 166.3,
+      "vmax_kt": 105.0,
+      "pressure_hpa": 920.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-30T00:00:00Z": {
+      "time_utc": "2026-07-30T00:00:00Z",
+      "lat": 16.4,
+      "lon": 165.8,
+      "vmax_kt": 110.0,
+      "pressure_hpa": 910.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-30T03:00:00Z": {
+      "time_utc": "2026-07-30T03:00:00Z",
+      "lat": 16.7,
+      "lon": 165.3,
+      "vmax_kt": 110.0,
+      "pressure_hpa": 910.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-30T06:00:00Z": {
+      "time_utc": "2026-07-30T06:00:00Z",
+      "lat": 16.9,
+      "lon": 164.9,
+      "vmax_kt": 110.0,
+      "pressure_hpa": 910.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-30T09:00:00Z": {
+      "time_utc": "2026-07-30T09:00:00Z",
+      "lat": 17.2,
+      "lon": 164.5,
+      "vmax_kt": 110.0,
+      "pressure_hpa": 910.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-30T12:00:00Z": {
+      "time_utc": "2026-07-30T12:00:00Z",
+      "lat": 17.5,
+      "lon": 163.9,
+      "vmax_kt": 110.0,
+      "pressure_hpa": 910.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-30T15:00:00Z": {
+      "time_utc": "2026-07-30T15:00:00Z",
+      "lat": 17.6,
+      "lon": 163.4,
+      "vmax_kt": 110.0,
+      "pressure_hpa": 910.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-30T18:00:00Z": {
+      "time_utc": "2026-07-30T18:00:00Z",
+      "lat": 17.8,
+      "lon": 163.0,
+      "vmax_kt": 110.0,
+      "pressure_hpa": 910.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-30T21:00:00Z": {
+      "time_utc": "2026-07-30T21:00:00Z",
+      "lat": 18.0,
+      "lon": 162.5,
+      "vmax_kt": 110.0,
+      "pressure_hpa": 910.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-31T00:00:00Z": {
+      "time_utc": "2026-07-31T00:00:00Z",
+      "lat": 18.3,
+      "lon": 161.9,
+      "vmax_kt": 110.0,
+      "pressure_hpa": 910.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-31T03:00:00Z": {
+      "time_utc": "2026-07-31T03:00:00Z",
+      "lat": 18.4,
+      "lon": 161.4,
+      "vmax_kt": 110.0,
+      "pressure_hpa": 910.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-31T06:00:00Z": {
+      "time_utc": "2026-07-31T06:00:00Z",
+      "lat": 18.7,
+      "lon": 161.0,
+      "vmax_kt": 110.0,
+      "pressure_hpa": 910.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-31T09:00:00Z": {
+      "time_utc": "2026-07-31T09:00:00Z",
+      "lat": 18.9,
+      "lon": 160.5,
+      "vmax_kt": 110.0,
+      "pressure_hpa": 910.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-31T12:00:00Z": {
+      "time_utc": "2026-07-31T12:00:00Z",
+      "lat": 19.1,
+      "lon": 160.2,
+      "vmax_kt": 110.0,
+      "pressure_hpa": 910.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-31T15:00:00Z": {
+      "time_utc": "2026-07-31T15:00:00Z",
+      "lat": 19.5,
+      "lon": 159.8,
+      "vmax_kt": 110.0,
+      "pressure_hpa": 910.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-31T18:00:00Z": {
+      "time_utc": "2026-07-31T18:00:00Z",
+      "lat": 19.8,
+      "lon": 159.2,
+      "vmax_kt": 110.0,
+      "pressure_hpa": 910.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-07-31T21:00:00Z": {
+      "time_utc": "2026-07-31T21:00:00Z",
+      "lat": 20.0,
+      "lon": 158.8,
+      "vmax_kt": 110.0,
+      "pressure_hpa": 910.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-01T00:00:00Z": {
+      "time_utc": "2026-08-01T00:00:00Z",
+      "lat": 20.2,
+      "lon": 158.3,
+      "vmax_kt": 100.0,
+      "pressure_hpa": 925.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-01T03:00:00Z": {
+      "time_utc": "2026-08-01T03:00:00Z",
+      "lat": 20.5,
+      "lon": 158.0,
+      "vmax_kt": 100.0,
+      "pressure_hpa": 925.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-01T06:00:00Z": {
+      "time_utc": "2026-08-01T06:00:00Z",
+      "lat": 20.8,
+      "lon": 157.5,
+      "vmax_kt": 95.0,
+      "pressure_hpa": 935.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-01T09:00:00Z": {
+      "time_utc": "2026-08-01T09:00:00Z",
+      "lat": 21.3,
+      "lon": 157.0,
+      "vmax_kt": 95.0,
+      "pressure_hpa": 935.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-01T12:00:00Z": {
+      "time_utc": "2026-08-01T12:00:00Z",
+      "lat": 21.5,
+      "lon": 156.3,
+      "vmax_kt": 90.0,
+      "pressure_hpa": 940.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-01T15:00:00Z": {
+      "time_utc": "2026-08-01T15:00:00Z",
+      "lat": 21.8,
+      "lon": 155.6,
+      "vmax_kt": 90.0,
+      "pressure_hpa": 940.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-01T18:00:00Z": {
+      "time_utc": "2026-08-01T18:00:00Z",
+      "lat": 22.1,
+      "lon": 155.0,
+      "vmax_kt": 90.0,
+      "pressure_hpa": 940.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-01T21:00:00Z": {
+      "time_utc": "2026-08-01T21:00:00Z",
+      "lat": 22.4,
+      "lon": 154.3,
+      "vmax_kt": 90.0,
+      "pressure_hpa": 940.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-02T00:00:00Z": {
+      "time_utc": "2026-08-02T00:00:00Z",
+      "lat": 22.6,
+      "lon": 153.7,
+      "vmax_kt": 90.0,
+      "pressure_hpa": 940.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-02T03:00:00Z": {
+      "time_utc": "2026-08-02T03:00:00Z",
+      "lat": 22.9,
+      "lon": 153.0,
+      "vmax_kt": 90.0,
+      "pressure_hpa": 940.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-02T06:00:00Z": {
+      "time_utc": "2026-08-02T06:00:00Z",
+      "lat": 23.3,
+      "lon": 152.3,
+      "vmax_kt": 90.0,
+      "pressure_hpa": 940.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-02T09:00:00Z": {
+      "time_utc": "2026-08-02T09:00:00Z",
+      "lat": 23.4,
+      "lon": 151.6,
+      "vmax_kt": 90.0,
+      "pressure_hpa": 940.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-02T12:00:00Z": {
+      "time_utc": "2026-08-02T12:00:00Z",
+      "lat": 23.6,
+      "lon": 150.9,
+      "vmax_kt": 90.0,
+      "pressure_hpa": 940.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-02T15:00:00Z": {
+      "time_utc": "2026-08-02T15:00:00Z",
+      "lat": 23.8,
+      "lon": 150.4,
+      "vmax_kt": 90.0,
+      "pressure_hpa": 940.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-02T18:00:00Z": {
+      "time_utc": "2026-08-02T18:00:00Z",
+      "lat": 24.1,
+      "lon": 149.6,
+      "vmax_kt": 90.0,
+      "pressure_hpa": 940.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-02T21:00:00Z": {
+      "time_utc": "2026-08-02T21:00:00Z",
+      "lat": 24.2,
+      "lon": 149.0,
+      "vmax_kt": 90.0,
+      "pressure_hpa": 940.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-03T00:00:00Z": {
+      "time_utc": "2026-08-03T00:00:00Z",
+      "lat": 24.4,
+      "lon": 148.5,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-03T03:00:00Z": {
+      "time_utc": "2026-08-03T03:00:00Z",
+      "lat": 24.7,
+      "lon": 148.0,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-03T06:00:00Z": {
+      "time_utc": "2026-08-03T06:00:00Z",
+      "lat": 25.0,
+      "lon": 147.2,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-03T09:00:00Z": {
+      "time_utc": "2026-08-03T09:00:00Z",
+      "lat": 25.1,
+      "lon": 146.4,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-03T12:00:00Z": {
+      "time_utc": "2026-08-03T12:00:00Z",
+      "lat": 25.1,
+      "lon": 145.7,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-03T15:00:00Z": {
+      "time_utc": "2026-08-03T15:00:00Z",
+      "lat": 25.1,
+      "lon": 145.1,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-03T18:00:00Z": {
+      "time_utc": "2026-08-03T18:00:00Z",
+      "lat": 25.2,
+      "lon": 144.1,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-03T21:00:00Z": {
+      "time_utc": "2026-08-03T21:00:00Z",
+      "lat": 25.2,
+      "lon": 143.6,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-04T00:00:00Z": {
+      "time_utc": "2026-08-04T00:00:00Z",
+      "lat": 25.2,
+      "lon": 143.2,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-04T03:00:00Z": {
+      "time_utc": "2026-08-04T03:00:00Z",
+      "lat": 25.3,
+      "lon": 142.5,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-04T06:00:00Z": {
+      "time_utc": "2026-08-04T06:00:00Z",
+      "lat": 25.4,
+      "lon": 141.9,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-04T09:00:00Z": {
+      "time_utc": "2026-08-04T09:00:00Z",
+      "lat": 25.4,
+      "lon": 141.2,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-04T12:00:00Z": {
+      "time_utc": "2026-08-04T12:00:00Z",
+      "lat": 25.2,
+      "lon": 140.6,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-04T15:00:00Z": {
+      "time_utc": "2026-08-04T15:00:00Z",
+      "lat": 25.3,
+      "lon": 140.2,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-04T18:00:00Z": {
+      "time_utc": "2026-08-04T18:00:00Z",
+      "lat": 25.4,
+      "lon": 139.3,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-04T21:00:00Z": {
+      "time_utc": "2026-08-04T21:00:00Z",
+      "lat": 25.4,
+      "lon": 138.9,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-05T00:00:00Z": {
+      "time_utc": "2026-08-05T00:00:00Z",
+      "lat": 25.5,
+      "lon": 138.3,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-05T03:00:00Z": {
+      "time_utc": "2026-08-05T03:00:00Z",
+      "lat": 25.6,
+      "lon": 137.8,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-05T06:00:00Z": {
+      "time_utc": "2026-08-05T06:00:00Z",
+      "lat": 25.7,
+      "lon": 137.3,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-05T09:00:00Z": {
+      "time_utc": "2026-08-05T09:00:00Z",
+      "lat": 25.8,
+      "lon": 136.8,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-05T12:00:00Z": {
+      "time_utc": "2026-08-05T12:00:00Z",
+      "lat": 26.0,
+      "lon": 136.1,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-05T15:00:00Z": {
+      "time_utc": "2026-08-05T15:00:00Z",
+      "lat": 25.9,
+      "lon": 135.7,
+      "vmax_kt": 80.0,
+      "pressure_hpa": 950.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-05T18:00:00Z": {
+      "time_utc": "2026-08-05T18:00:00Z",
+      "lat": 26.3,
+      "lon": 135.1,
+      "vmax_kt": 80.0,
+      "pressure_hpa": 950.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-05T21:00:00Z": {
+      "time_utc": "2026-08-05T21:00:00Z",
+      "lat": 26.4,
+      "lon": 134.3,
+      "vmax_kt": 80.0,
+      "pressure_hpa": 950.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-06T00:00:00Z": {
+      "time_utc": "2026-08-06T00:00:00Z",
+      "lat": 26.2,
+      "lon": 133.6,
+      "vmax_kt": 80.0,
+      "pressure_hpa": 950.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-06T03:00:00Z": {
+      "time_utc": "2026-08-06T03:00:00Z",
+      "lat": 26.3,
+      "lon": 133.3,
+      "vmax_kt": 80.0,
+      "pressure_hpa": 950.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-06T06:00:00Z": {
+      "time_utc": "2026-08-06T06:00:00Z",
+      "lat": 26.6,
+      "lon": 132.6,
+      "vmax_kt": 80.0,
+      "pressure_hpa": 950.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-06T09:00:00Z": {
+      "time_utc": "2026-08-06T09:00:00Z",
+      "lat": 26.6,
+      "lon": 132.0,
+      "vmax_kt": 80.0,
+      "pressure_hpa": 950.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-06T12:00:00Z": {
+      "time_utc": "2026-08-06T12:00:00Z",
+      "lat": 26.5,
+      "lon": 131.4,
+      "vmax_kt": 80.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-06T15:00:00Z": {
+      "time_utc": "2026-08-06T15:00:00Z",
+      "lat": 26.7,
+      "lon": 131.0,
+      "vmax_kt": 80.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-06T18:00:00Z": {
+      "time_utc": "2026-08-06T18:00:00Z",
+      "lat": 26.9,
+      "lon": 130.4,
+      "vmax_kt": 75.0,
+      "pressure_hpa": 950.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-06T21:00:00Z": {
+      "time_utc": "2026-08-06T21:00:00Z",
+      "lat": 27.2,
+      "lon": 129.8,
+      "vmax_kt": 75.0,
+      "pressure_hpa": 950.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-07T00:00:00Z": {
+      "time_utc": "2026-08-07T00:00:00Z",
+      "lat": 27.2,
+      "lon": 128.9,
+      "vmax_kt": 75.0,
+      "pressure_hpa": 950.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-07T03:00:00Z": {
+      "time_utc": "2026-08-07T03:00:00Z",
+      "lat": 27.0,
+      "lon": 128.2,
+      "vmax_kt": 75.0,
+      "pressure_hpa": 940.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-07T06:00:00Z": {
+      "time_utc": "2026-08-07T06:00:00Z",
+      "lat": 26.7,
+      "lon": 128.0,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 935.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-07T09:00:00Z": {
+      "time_utc": "2026-08-07T09:00:00Z",
+      "lat": 27.0,
+      "lon": 127.9,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 935.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-07T12:00:00Z": {
+      "time_utc": "2026-08-07T12:00:00Z",
+      "lat": 27.2,
+      "lon": 127.2,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 935.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-07T15:00:00Z": {
+      "time_utc": "2026-08-07T15:00:00Z",
+      "lat": 26.9,
+      "lon": 126.5,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 935.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-07T18:00:00Z": {
+      "time_utc": "2026-08-07T18:00:00Z",
+      "lat": 26.5,
+      "lon": 126.5,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 940.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-07T21:00:00Z": {
+      "time_utc": "2026-08-07T21:00:00Z",
+      "lat": 26.8,
+      "lon": 126.6,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-08T00:00:00Z": {
+      "time_utc": "2026-08-08T00:00:00Z",
+      "lat": 27.0,
+      "lon": 126.1,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-08T03:00:00Z": {
+      "time_utc": "2026-08-08T03:00:00Z",
+      "lat": 27.1,
+      "lon": 125.5,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-08T06:00:00Z": {
+      "time_utc": "2026-08-08T06:00:00Z",
+      "lat": 26.9,
+      "lon": 125.2,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-08T09:00:00Z": {
+      "time_utc": "2026-08-08T09:00:00Z",
+      "lat": 26.9,
+      "lon": 125.0,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-08T12:00:00Z": {
+      "time_utc": "2026-08-08T12:00:00Z",
+      "lat": 27.0,
+      "lon": 124.8,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    },
+    "2026-08-08T15:00:00Z": {
+      "time_utc": "2026-08-08T15:00:00Z",
+      "lat": 27.1,
+      "lon": 124.3,
+      "vmax_kt": 85.0,
+      "pressure_hpa": 945.0,
+      "source": "JMA Digital Typhoon actual track"
+    }
+  },
+  "environment_forecast": [
+    {
+      "lead_hours": 6,
+      "sst_anomaly_c": -1.6497299671173096,
+      "sst_c": 26.350269317626953,
+      "sst_inner_anomaly_c": -1.2784556150436401,
+      "shear_u_ms": 15.451552391052246,
+      "shear_v_ms": 15.585586547851562,
+      "shear_200_850_ms": 21.946775436401367
+    },
+    {
+      "lead_hours": 12,
+      "sst_anomaly_c": -0.8389017581939697,
+      "sst_c": 27.16109848022461,
+      "sst_inner_anomaly_c": -0.3483465313911438,
+      "shear_u_ms": 4.795827388763428,
+      "shear_v_ms": 14.790454864501953,
+      "shear_200_850_ms": 15.548553466796875
+    },
+    {
+      "lead_hours": 18,
+      "sst_anomaly_c": -0.07124761492013931,
+      "sst_c": 27.928752899169922,
+      "sst_inner_anomaly_c": 0.2517585754394531,
+      "shear_u_ms": -0.011448106728494167,
+      "shear_v_ms": 13.941414833068848,
+      "shear_200_850_ms": 13.94141960144043
+    },
+    {
+      "lead_hours": 24,
+      "sst_anomaly_c": 0.9979652166366577,
+      "sst_c": 28.99796485900879,
+      "sst_inner_anomaly_c": 1.1897045373916626,
+      "shear_u_ms": -2.9656219482421875,
+      "shear_v_ms": 11.098549842834473,
+      "shear_200_850_ms": 11.487937927246094
+    },
+    {
+      "lead_hours": 30,
+      "sst_anomaly_c": 1.706774353981018,
+      "sst_c": 29.70677375793457,
+      "sst_inner_anomaly_c": 1.7703791856765747,
+      "shear_u_ms": -4.403378009796143,
+      "shear_v_ms": 11.985365867614746,
+      "shear_200_850_ms": 12.768662452697754
+    },
+    {
+      "lead_hours": 36,
+      "sst_anomaly_c": 1.5546612739562988,
+      "sst_c": 29.55466079711914,
+      "sst_inner_anomaly_c": 1.5229700803756714,
+      "shear_u_ms": -9.210025787353516,
+      "shear_v_ms": 9.894206047058105,
+      "shear_200_850_ms": 13.5173921585083
+    },
+    {
+      "lead_hours": 42,
+      "sst_anomaly_c": 1.8830348253250122,
+      "sst_c": 29.88303565979004,
+      "sst_inner_anomaly_c": 1.7836350202560425,
+      "shear_u_ms": -10.959692001342773,
+      "shear_v_ms": 5.772592544555664,
+      "shear_200_850_ms": 12.386996269226074
+    },
+    {
+      "lead_hours": 48,
+      "sst_anomaly_c": 1.051078200340271,
+      "sst_c": 29.05107879638672,
+      "sst_inner_anomaly_c": 0.7068924307823181,
+      "shear_u_ms": -13.209917068481445,
+      "shear_v_ms": 1.5811097621917725,
+      "shear_200_850_ms": 13.304203033447266
+    },
+    {
+      "lead_hours": 54,
+      "sst_anomaly_c": 0.9240702390670776,
+      "sst_c": 28.924070358276367,
+      "sst_inner_anomaly_c": 0.5893920660018921,
+      "shear_u_ms": -13.295576095581055,
+      "shear_v_ms": 0.0013397984439507127,
+      "shear_200_850_ms": 13.295576095581055
+    },
+    {
+      "lead_hours": 60,
+      "sst_anomaly_c": 0.8291400671005249,
+      "sst_c": 28.829139709472656,
+      "sst_inner_anomaly_c": 0.47035616636276245,
+      "shear_u_ms": -14.619257926940918,
+      "shear_v_ms": -0.7718053460121155,
+      "shear_200_850_ms": 14.639616966247559
+    },
+    {
+      "lead_hours": 66,
+      "sst_anomaly_c": 0.6900354623794556,
+      "sst_c": 28.690034866333008,
+      "sst_inner_anomaly_c": 0.3569108247756958,
+      "shear_u_ms": -14.2570219039917,
+      "shear_v_ms": -1.154225468635559,
+      "shear_200_850_ms": 14.303668022155762
+    },
+    {
+      "lead_hours": 72,
+      "sst_anomaly_c": 0.5506766438484192,
+      "sst_c": 28.550676345825195,
+      "sst_inner_anomaly_c": 0.2502612769603729,
+      "shear_u_ms": -14.958569526672363,
+      "shear_v_ms": -0.815496563911438,
+      "shear_200_850_ms": 14.980782508850098
+    },
+    {
+      "lead_hours": 78,
+      "sst_anomaly_c": 0.1484479010105133,
+      "sst_c": 28.148447036743164,
+      "sst_inner_anomaly_c": -0.05794822424650192,
+      "shear_u_ms": -16.7741641998291,
+      "shear_v_ms": 0.624538004398346,
+      "shear_200_850_ms": 16.785785675048828
+    },
+    {
+      "lead_hours": 84,
+      "sst_anomaly_c": -0.3372511863708496,
+      "sst_c": 27.662748336791992,
+      "sst_inner_anomaly_c": -0.5103841423988342,
+      "shear_u_ms": -17.755393981933594,
+      "shear_v_ms": 0.5965097546577454,
+      "shear_200_850_ms": 17.765411376953125
+    },
+    {
+      "lead_hours": 90,
+      "sst_anomaly_c": -1.1311419010162354,
+      "sst_c": 26.868858337402344,
+      "sst_inner_anomaly_c": -1.2905645370483398,
+      "shear_u_ms": -17.81284523010254,
+      "shear_v_ms": 0.22110944986343384,
+      "shear_200_850_ms": 17.81421661376953
+    },
+    {
+      "lead_hours": 96,
+      "sst_anomaly_c": -1.5405497550964355,
+      "sst_c": 26.459449768066406,
+      "sst_inner_anomaly_c": -1.7021000385284424,
+      "shear_u_ms": -17.524324417114258,
+      "shear_v_ms": 0.123788021504879,
+      "shear_200_850_ms": 17.524761199951172
+    },
+    {
+      "lead_hours": 102,
+      "sst_anomaly_c": -2.505958080291748,
+      "sst_c": 25.494041442871094,
+      "sst_inner_anomaly_c": -2.609909772872925,
+      "shear_u_ms": -17.19875717163086,
+      "shear_v_ms": 0.49524253606796265,
+      "shear_200_850_ms": 17.205886840820312
+    },
+    {
+      "lead_hours": 108,
+      "sst_anomaly_c": -3.2661824226379395,
+      "sst_c": 24.73381805419922,
+      "sst_inner_anomaly_c": -3.3265597820281982,
+      "shear_u_ms": -16.2130184173584,
+      "shear_v_ms": -0.04515649005770683,
+      "shear_200_850_ms": 16.21308135986328
+    },
+    {
+      "lead_hours": 114,
+      "sst_anomaly_c": -3.644681692123413,
+      "sst_c": 24.355318069458008,
+      "sst_inner_anomaly_c": -3.7020418643951416,
+      "shear_u_ms": -14.698259353637695,
+      "shear_v_ms": 0.1863771677017212,
+      "shear_200_850_ms": 14.699440956115723
+    },
+    {
+      "lead_hours": 120,
+      "sst_anomaly_c": -3.7518038749694824,
+      "sst_c": 24.24819564819336,
+      "sst_inner_anomaly_c": -3.836276054382324,
+      "shear_u_ms": -14.127018928527832,
+      "shear_v_ms": 1.0118608474731445,
+      "shear_200_850_ms": 14.163209915161133
+    }
+  ],
+  "environment_persistence": [
+    {
+      "lead_hours": 6,
+      "sst_anomaly_c": -1.010616421699524,
+      "sst_c": 26.989383697509766,
+      "sst_inner_anomaly_c": -0.30081290006637573,
+      "shear_u_ms": 5.234665870666504,
+      "shear_v_ms": 7.532267093658447,
+      "shear_200_850_ms": 9.172609329223633
+    },
+    {
+      "lead_hours": 12,
+      "sst_anomaly_c": -0.9925071001052856,
+      "sst_c": 27.007492065429688,
+      "sst_inner_anomaly_c": -0.30081290006637573,
+      "shear_u_ms": 6.6410627365112305,
+      "shear_v_ms": 11.577407836914062,
+      "shear_200_850_ms": 13.34691333770752
+    },
+    {
+      "lead_hours": 18,
+      "sst_anomaly_c": -0.970382809638977,
+      "sst_c": 27.029617309570312,
+      "sst_inner_anomaly_c": -0.30081290006637573,
+      "shear_u_ms": 4.001114845275879,
+      "shear_v_ms": 9.966106414794922,
+      "shear_200_850_ms": 10.739282608032227
+    },
+    {
+      "lead_hours": 24,
+      "sst_anomaly_c": -0.9597556591033936,
+      "sst_c": 27.040245056152344,
+      "sst_inner_anomaly_c": -0.30081290006637573,
+      "shear_u_ms": -3.5694117546081543,
+      "shear_v_ms": 17.724838256835938,
+      "shear_200_850_ms": 18.080669403076172
+    },
+    {
+      "lead_hours": 30,
+      "sst_anomaly_c": -0.9751615524291992,
+      "sst_c": 27.024837493896484,
+      "sst_inner_anomaly_c": -0.30081290006637573,
+      "shear_u_ms": -14.867270469665527,
+      "shear_v_ms": 16.117340087890625,
+      "shear_200_850_ms": 21.9272518157959
+    },
+    {
+      "lead_hours": 36,
+      "sst_anomaly_c": -1.0209851264953613,
+      "sst_c": 26.979015350341797,
+      "sst_inner_anomaly_c": -0.30081290006637573,
+      "shear_u_ms": -14.309083938598633,
+      "shear_v_ms": 16.184036254882812,
+      "shear_200_850_ms": 21.60261344909668
+    },
+    {
+      "lead_hours": 42,
+      "sst_anomaly_c": -1.0963534116744995,
+      "sst_c": 26.90364646911621,
+      "sst_inner_anomaly_c": -0.30081290006637573,
+      "shear_u_ms": -9.467578887939453,
+      "shear_v_ms": 18.703876495361328,
+      "shear_200_850_ms": 20.96354103088379
+    },
+    {
+      "lead_hours": 48,
+      "sst_anomaly_c": -1.2065638303756714,
+      "sst_c": 26.79343605041504,
+      "sst_inner_anomaly_c": -1.6312201023101807,
+      "shear_u_ms": -6.41694974899292,
+      "shear_v_ms": 21.331844329833984,
+      "shear_200_850_ms": 22.276103973388672
+    },
+    {
+      "lead_hours": 54,
+      "sst_anomaly_c": -1.3532203435897827,
+      "sst_c": 26.646780014038086,
+      "sst_inner_anomaly_c": -1.7504816055297852,
+      "shear_u_ms": -8.173526763916016,
+      "shear_v_ms": 20.762985229492188,
+      "shear_200_850_ms": 22.313854217529297
+    },
+    {
+      "lead_hours": 60,
+      "sst_anomaly_c": -1.469743251800537,
+      "sst_c": 26.530256271362305,
+      "sst_inner_anomaly_c": -1.7504816055297852,
+      "shear_u_ms": -10.368688583374023,
+      "shear_v_ms": 19.38497543334961,
+      "shear_200_850_ms": 21.983789443969727
+    },
+    {
+      "lead_hours": 66,
+      "sst_anomaly_c": -1.5418438911437988,
+      "sst_c": 26.45815658569336,
+      "sst_inner_anomaly_c": -1.7504816055297852,
+      "shear_u_ms": -12.125904083251953,
+      "shear_v_ms": 18.67310905456543,
+      "shear_200_850_ms": 22.264827728271484
+    },
+    {
+      "lead_hours": 72,
+      "sst_anomaly_c": -1.5823540687561035,
+      "sst_c": 26.417646408081055,
+      "sst_inner_anomaly_c": -1.7504816055297852,
+      "shear_u_ms": -13.096485137939453,
+      "shear_v_ms": 18.05744171142578,
+      "shear_200_850_ms": 22.306705474853516
+    },
+    {
+      "lead_hours": 78,
+      "sst_anomaly_c": -1.6100919246673584,
+      "sst_c": 26.389907836914062,
+      "sst_inner_anomaly_c": -1.7504816055297852,
+      "shear_u_ms": -13.945301055908203,
+      "shear_v_ms": 17.956079483032227,
+      "shear_200_850_ms": 22.73526382446289
+    },
+    {
+      "lead_hours": 84,
+      "sst_anomaly_c": -1.622220754623413,
+      "sst_c": 26.377779006958008,
+      "sst_inner_anomaly_c": -1.7504816055297852,
+      "shear_u_ms": -14.398223876953125,
+      "shear_v_ms": 18.611026763916016,
+      "shear_200_850_ms": 23.5303897857666
+    },
+    {
+      "lead_hours": 90,
+      "sst_anomaly_c": -1.615543246269226,
+      "sst_c": 26.384456634521484,
+      "sst_inner_anomaly_c": -1.7504816055297852,
+      "shear_u_ms": -13.691431045532227,
+      "shear_v_ms": 22.253013610839844,
+      "shear_200_850_ms": 26.127609252929688
+    },
+    {
+      "lead_hours": 96,
+      "sst_anomaly_c": -1.63529634475708,
+      "sst_c": 26.364704132080078,
+      "sst_inner_anomaly_c": -1.7504816055297852,
+      "shear_u_ms": -11.796152114868164,
+      "shear_v_ms": 23.417783737182617,
+      "shear_200_850_ms": 26.221017837524414
+    },
+    {
+      "lead_hours": 102,
+      "sst_anomaly_c": -1.7083269357681274,
+      "sst_c": 26.29167366027832,
+      "sst_inner_anomaly_c": -1.7504816055297852,
+      "shear_u_ms": -14.23194694519043,
+      "shear_v_ms": 23.954240798950195,
+      "shear_200_850_ms": 27.863130569458008
+    },
+    {
+      "lead_hours": 108,
+      "sst_anomaly_c": -1.8339929580688477,
+      "sst_c": 26.16600799560547,
+      "sst_inner_anomaly_c": -1.7504816055297852,
+      "shear_u_ms": -12.513348579406738,
+      "shear_v_ms": 25.062973022460938,
+      "shear_200_850_ms": 28.013147354125977
+    },
+    {
+      "lead_hours": 114,
+      "sst_anomaly_c": -2.0198113918304443,
+      "sst_c": 25.980188369750977,
+      "sst_inner_anomaly_c": -1.7504816055297852,
+      "shear_u_ms": -8.092309951782227,
+      "shear_v_ms": 20.482654571533203,
+      "shear_200_850_ms": 22.023273468017578
+    },
+    {
+      "lead_hours": 120,
+      "sst_anomaly_c": -2.27642560005188,
+      "sst_c": 25.723573684692383,
+      "sst_inner_anomaly_c": -1.7504816055297852,
+      "shear_u_ms": -6.484426498413086,
+      "shear_v_ms": 21.840524673461914,
+      "shear_200_850_ms": 22.782806396484375
+    }
+  ],
+  "official_environment": {
+    "jma": [
+      {
+        "lead_hours": 6,
+        "sst_c": 26.818,
+        "sst_inner_mean_c": 26.369,
+        "shear_200_850_ms": 18.836,
+        "shear_500_850_ms": 5.761,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 12,
+        "sst_c": 26.746,
+        "sst_inner_mean_c": 26.369,
+        "shear_200_850_ms": 27.099,
+        "shear_500_850_ms": 8.706,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 18,
+        "sst_c": 26.621,
+        "sst_inner_mean_c": 26.369,
+        "shear_200_850_ms": 24.249,
+        "shear_500_850_ms": 5.75,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 24,
+        "sst_c": 26.535,
+        "sst_inner_mean_c": 26.25,
+        "shear_200_850_ms": 23.02,
+        "shear_500_850_ms": 7.802,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 30,
+        "sst_c": 26.51,
+        "sst_inner_mean_c": 26.25,
+        "shear_200_850_ms": 26.886,
+        "shear_500_850_ms": 7.138,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 36,
+        "sst_c": 26.493,
+        "sst_inner_mean_c": 26.25,
+        "shear_200_850_ms": 29.058,
+        "shear_500_850_ms": 2.857,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 42,
+        "sst_c": 26.484,
+        "sst_inner_mean_c": 26.25,
+        "shear_200_850_ms": 23.885,
+        "shear_500_850_ms": 1.88,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 48,
+        "sst_c": 26.509,
+        "sst_inner_mean_c": 27.858,
+        "shear_200_850_ms": 20.947,
+        "shear_500_850_ms": 0.46,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 54,
+        "sst_c": 26.994,
+        "sst_inner_mean_c": 27.858,
+        "shear_200_850_ms": 18.0,
+        "shear_500_850_ms": 0.945,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 60,
+        "sst_c": 27.407,
+        "sst_inner_mean_c": 27.858,
+        "shear_200_850_ms": 13.096,
+        "shear_500_850_ms": 2.29,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 66,
+        "sst_c": 27.747,
+        "sst_inner_mean_c": 27.858,
+        "shear_200_850_ms": 10.741,
+        "shear_500_850_ms": 2.805,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 72,
+        "sst_c": 27.865,
+        "sst_inner_mean_c": 28.189,
+        "shear_200_850_ms": 9.83,
+        "shear_500_850_ms": 5.271,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 78,
+        "sst_c": 28.021,
+        "sst_inner_mean_c": 28.189,
+        "shear_200_850_ms": 8.408,
+        "shear_500_850_ms": 4.362,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 84,
+        "sst_c": 28.253,
+        "sst_inner_mean_c": 28.189,
+        "shear_200_850_ms": 7.385,
+        "shear_500_850_ms": 1.457,
+        "land_distance_km": 2736.253,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 90,
+        "sst_c": 28.562,
+        "sst_inner_mean_c": 28.189,
+        "shear_200_850_ms": 9.007,
+        "shear_500_850_ms": 2.652,
+        "land_distance_km": 2782.78,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 96,
+        "sst_c": 28.0,
+        "sst_inner_mean_c": 28.0,
+        "shear_200_850_ms": 12.611,
+        "shear_500_850_ms": 2.772,
+        "land_distance_km": 2830.057,
+        "sea_flag": 0.0,
+        "sst_available": 0.0
+      },
+      {
+        "lead_hours": 102,
+        "sst_c": 28.0,
+        "sst_inner_mean_c": 28.0,
+        "shear_200_850_ms": 14.426,
+        "shear_500_850_ms": 5.407,
+        "land_distance_km": 2877.316,
+        "sea_flag": 0.0,
+        "sst_available": 0.0
+      },
+      {
+        "lead_hours": 108,
+        "sst_c": 28.0,
+        "sst_inner_mean_c": 28.0,
+        "shear_200_850_ms": 15.126,
+        "shear_500_850_ms": 6.495,
+        "land_distance_km": 2924.564,
+        "sea_flag": 0.0,
+        "sst_available": 0.0
+      },
+      {
+        "lead_hours": 114,
+        "sst_c": 28.0,
+        "sst_inner_mean_c": 28.0,
+        "shear_200_850_ms": 13.316,
+        "shear_500_850_ms": 5.103,
+        "land_distance_km": 2971.82,
+        "sea_flag": 0.0,
+        "sst_available": 0.0
+      },
+      {
+        "lead_hours": 120,
+        "sst_c": 28.0,
+        "sst_inner_mean_c": 28.0,
+        "shear_200_850_ms": 12.166,
+        "shear_500_850_ms": 3.872,
+        "land_distance_km": 3019.083,
+        "sea_flag": 0.0,
+        "sst_available": 0.0
+      }
+    ],
+    "jtwc": [
+      {
+        "lead_hours": 6,
+        "sst_c": 26.933,
+        "sst_inner_mean_c": 26.369,
+        "shear_200_850_ms": 6.246,
+        "shear_500_850_ms": 8.847,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 12,
+        "sst_c": 26.886,
+        "sst_inner_mean_c": 26.369,
+        "shear_200_850_ms": 14.965,
+        "shear_500_850_ms": 8.803,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 18,
+        "sst_c": 26.8,
+        "sst_inner_mean_c": 26.369,
+        "shear_200_850_ms": 24.104,
+        "shear_500_850_ms": 11.938,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 24,
+        "sst_c": 26.703,
+        "sst_inner_mean_c": 26.369,
+        "shear_200_850_ms": 20.212,
+        "shear_500_850_ms": 4.898,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 30,
+        "sst_c": 26.615,
+        "sst_inner_mean_c": 26.25,
+        "shear_200_850_ms": 23.233,
+        "shear_500_850_ms": 7.691,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 36,
+        "sst_c": 26.498,
+        "sst_inner_mean_c": 26.25,
+        "shear_200_850_ms": 27.101,
+        "shear_500_850_ms": 6.235,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 42,
+        "sst_c": 26.433,
+        "sst_inner_mean_c": 26.25,
+        "shear_200_850_ms": 29.326,
+        "shear_500_850_ms": 2.617,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 48,
+        "sst_c": 26.372,
+        "sst_inner_mean_c": 26.25,
+        "shear_200_850_ms": 22.494,
+        "shear_500_850_ms": 1.902,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 54,
+        "sst_c": 26.543,
+        "sst_inner_mean_c": 26.377,
+        "shear_200_850_ms": 21.143,
+        "shear_500_850_ms": 0.593,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 60,
+        "sst_c": 26.929,
+        "sst_inner_mean_c": 27.858,
+        "shear_200_850_ms": 20.924,
+        "shear_500_850_ms": 0.768,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 66,
+        "sst_c": 27.361,
+        "sst_inner_mean_c": 27.858,
+        "shear_200_850_ms": 13.46,
+        "shear_500_850_ms": 2.197,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 72,
+        "sst_c": 27.732,
+        "sst_inner_mean_c": 27.858,
+        "shear_200_850_ms": 10.548,
+        "shear_500_850_ms": 2.406,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 78,
+        "sst_c": 27.831,
+        "sst_inner_mean_c": 28.189,
+        "shear_200_850_ms": 9.982,
+        "shear_500_850_ms": 6.077,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 84,
+        "sst_c": 27.951,
+        "sst_inner_mean_c": 28.189,
+        "shear_200_850_ms": 8.038,
+        "shear_500_850_ms": 5.429,
+        "land_distance_km": 5000.0,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 90,
+        "sst_c": 28.131,
+        "sst_inner_mean_c": 28.189,
+        "shear_200_850_ms": 9.101,
+        "shear_500_850_ms": 1.089,
+        "land_distance_km": 2714.947,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 96,
+        "sst_c": 28.371,
+        "sst_inner_mean_c": 28.189,
+        "shear_200_850_ms": 7.164,
+        "shear_500_850_ms": 1.43,
+        "land_distance_km": 2752.41,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 102,
+        "sst_c": 28.631,
+        "sst_inner_mean_c": 28.747,
+        "shear_200_850_ms": 9.821,
+        "shear_500_850_ms": 2.447,
+        "land_distance_km": 2796.69,
+        "sea_flag": 1.0,
+        "sst_available": 1.0
+      },
+      {
+        "lead_hours": 108,
+        "sst_c": 28.0,
+        "sst_inner_mean_c": 28.0,
+        "shear_200_850_ms": 12.299,
+        "shear_500_850_ms": 2.952,
+        "land_distance_km": 2841.16,
+        "sea_flag": 0.0,
+        "sst_available": 0.0
+      },
+      {
+        "lead_hours": 114,
+        "sst_c": 28.0,
+        "sst_inner_mean_c": 28.0,
+        "shear_200_850_ms": 14.187,
+        "shear_500_850_ms": 5.978,
+        "land_distance_km": 2885.649,
+        "sea_flag": 0.0,
+        "sst_available": 0.0
+      },
+      {
+        "lead_hours": 120,
+        "sst_c": 28.0,
+        "sst_inner_mean_c": 28.0,
+        "shear_200_850_ms": 11.993,
+        "shear_500_850_ms": 4.386,
+        "land_distance_km": 2930.135,
+        "sea_flag": 0.0,
+        "sst_available": 0.0
+      }
+    ]
+  },
+  "routes": {
+    "observed": [
+      [
+        138.3,
+        25.5
+      ],
+      [
+        137.3,
+        25.7
+      ],
+      [
+        136.1,
+        26.0
+      ],
+      [
+        135.1,
+        26.3
+      ],
+      [
+        133.6,
+        26.2
+      ],
+      [
+        132.6,
+        26.6
+      ],
+      [
+        131.4,
+        26.5
+      ],
+      [
+        130.4,
+        26.9
+      ],
+      [
+        128.9,
+        27.2
+      ]
+    ],
+    "model": [
+      [
+        27.200000762939453,
+        128.89999389648438
+      ],
+      [
+        27.2905330657959,
+        128.45370483398438
+      ],
+      [
+        27.38241958618164,
+        128.0314178466797
+      ],
+      [
+        27.47469139099121,
+        127.63558959960938
+      ],
+      [
+        27.532926559448242,
+        127.26197814941406
+      ],
+      [
+        27.528305053710938,
+        126.9104232788086
+      ],
+      [
+        27.454612731933594,
+        126.60233306884766
+      ],
+      [
+        27.316482543945312,
+        126.35163116455078
+      ],
+      [
+        27.139074325561523,
+        126.17582702636719
+      ],
+      [
+        26.962032318115234,
+        126.06269073486328
+      ],
+      [
+        26.824203491210938,
+        126.0079116821289
+      ],
+      [
+        26.73826026916504,
+        125.9794692993164
+      ],
+      [
+        26.698272705078125,
+        125.92975616455078
+      ],
+      [
+        26.684463500976562,
+        125.84008026123047
+      ],
+      [
+        26.701242446899414,
+        125.7049560546875
+      ],
+      [
+        26.75670051574707,
+        125.50093078613281
+      ],
+      [
+        26.804712295532227,
+        125.17649841308594
+      ],
+      [
+        26.801605224609375,
+        124.7874984741211
+      ],
+      [
+        26.744436264038086,
+        124.37297821044922
+      ],
+      [
+        26.62898826599121,
+        123.93833923339844
+      ],
+      [
+        26.442203521728516,
+        123.51837158203125
+      ]
+    ],
+    "jma": [
+      [
+        128.9,
+        27.2
+      ],
+      [
+        128.0,
+        27.0
+      ],
+      [
+        127.0,
+        27.0
+      ],
+      [
+        126.3,
+        26.9
+      ],
+      [
+        125.7,
+        26.9
+      ],
+      [
+        123.2,
+        27.3
+      ],
+      [
+        119.7,
+        28.0
+      ],
+      [
+        117.1,
+        29.7
+      ],
+      [
+        117.3,
+        31.4
+      ]
+    ],
+    "jtwc": [
+      [
+        128.9,
+        27.2
+      ],
+      [
+        128.2,
+        27.1
+      ],
+      [
+        126.4,
+        27.0
+      ],
+      [
+        125.0,
+        27.0
+      ],
+      [
+        123.7,
+        27.1
+      ],
+      [
+        122.3,
+        27.3
+      ],
+      [
+        120.6,
+        27.6
+      ],
+      [
+        118.1,
+        29.0
+      ],
+      [
+        116.4,
+        30.6
+      ]
+    ]
+  },
+  "scores": {
+    "trackformer_1_2_8": {
+      "matched_leads": 6,
+      "track_mae_km": 136.314,
+      "wind_mae_kt": 12.312,
+      "pressure_mae_hpa": 15.888,
+      "by_lead": [
+        {
+          "lead_hours": 6,
+          "track_error_km": 79.574,
+          "wind_abs_error_kt": 11.45,
+          "pressure_abs_error_hpa": 21.49,
+          "truth_lat": 26.7,
+          "truth_lon": 128.0,
+          "truth_vmax_kt": 85.0,
+          "truth_pressure_hpa": 935.0
+        },
+        {
+          "lead_hours": 12,
+          "track_error_km": 84.623,
+          "wind_abs_error_kt": 10.41,
+          "pressure_abs_error_hpa": 20.72,
+          "truth_lat": 27.2,
+          "truth_lon": 127.2,
+          "truth_vmax_kt": 85.0,
+          "truth_pressure_hpa": 935.0
+        },
+        {
+          "lead_hours": 18,
+          "track_error_km": 156.228,
+          "wind_abs_error_kt": 10.82,
+          "pressure_abs_error_hpa": 15.49,
+          "truth_lat": 26.5,
+          "truth_lon": 126.5,
+          "truth_vmax_kt": 85.0,
+          "truth_pressure_hpa": 940.0
+        },
+        {
+          "lead_hours": 24,
+          "track_error_km": 129.236,
+          "wind_abs_error_kt": 12.15,
+          "pressure_abs_error_hpa": 11.56,
+          "truth_lat": 27.0,
+          "truth_lon": 126.1,
+          "truth_vmax_kt": 85.0,
+          "truth_pressure_hpa": 945.0
+        },
+        {
+          "lead_hours": 30,
+          "track_error_km": 182.993,
+          "wind_abs_error_kt": 13.8,
+          "pressure_abs_error_hpa": 12.49,
+          "truth_lat": 26.9,
+          "truth_lon": 125.2,
+          "truth_vmax_kt": 85.0,
+          "truth_pressure_hpa": 945.0
+        },
+        {
+          "lead_hours": 36,
+          "track_error_km": 185.23,
+          "wind_abs_error_kt": 15.24,
+          "pressure_abs_error_hpa": 13.58,
+          "truth_lat": 27.0,
+          "truth_lon": 124.8,
+          "truth_vmax_kt": 85.0,
+          "truth_pressure_hpa": 945.0
+        }
+      ]
+    },
+    "trackformer_1_2_10": {
+      "matched_leads": 6,
+      "track_mae_km": 136.314,
+      "wind_mae_kt": 10.627,
+      "pressure_mae_hpa": 14.723,
+      "by_lead": [
+        {
+          "lead_hours": 6,
+          "track_error_km": 79.574,
+          "wind_abs_error_kt": 11.6,
+          "pressure_abs_error_hpa": 20.71,
+          "truth_lat": 26.7,
+          "truth_lon": 128.0,
+          "truth_vmax_kt": 85.0,
+          "truth_pressure_hpa": 935.0
+        },
+        {
+          "lead_hours": 12,
+          "track_error_km": 84.623,
+          "wind_abs_error_kt": 10.3,
+          "pressure_abs_error_hpa": 19.66,
+          "truth_lat": 27.2,
+          "truth_lon": 127.2,
+          "truth_vmax_kt": 85.0,
+          "truth_pressure_hpa": 935.0
+        },
+        {
+          "lead_hours": 18,
+          "track_error_km": 156.228,
+          "wind_abs_error_kt": 9.25,
+          "pressure_abs_error_hpa": 14.0,
+          "truth_lat": 26.5,
+          "truth_lon": 126.5,
+          "truth_vmax_kt": 85.0,
+          "truth_pressure_hpa": 940.0
+        },
+        {
+          "lead_hours": 24,
+          "track_error_km": 129.236,
+          "wind_abs_error_kt": 10.64,
+          "pressure_abs_error_hpa": 10.73,
+          "truth_lat": 27.0,
+          "truth_lon": 126.1,
+          "truth_vmax_kt": 85.0,
+          "truth_pressure_hpa": 945.0
+        },
+        {
+          "lead_hours": 30,
+          "track_error_km": 182.993,
+          "wind_abs_error_kt": 10.75,
+          "pressure_abs_error_hpa": 10.44,
+          "truth_lat": 26.9,
+          "truth_lon": 125.2,
+          "truth_vmax_kt": 85.0,
+          "truth_pressure_hpa": 945.0
+        },
+        {
+          "lead_hours": 36,
+          "track_error_km": 185.23,
+          "wind_abs_error_kt": 11.22,
+          "pressure_abs_error_hpa": 12.8,
+          "truth_lat": 27.0,
+          "truth_lon": 124.8,
+          "truth_vmax_kt": 85.0,
+          "truth_pressure_hpa": 945.0
+        }
+      ]
+    },
+    "trackformer_1_2_11": {
+      "matched_leads": 6,
+      "track_mae_km": 136.314,
+      "wind_mae_kt": 10.773,
+      "pressure_mae_hpa": 13.313,
+      "by_lead": [
+        {
+          "lead_hours": 6,
+          "track_error_km": 79.574,
+          "wind_abs_error_kt": 12.05,
+          "pressure_abs_error_hpa": 19.78,
+          "truth_lat": 26.7,
+          "truth_lon": 128.0,
+          "truth_vmax_kt": 85.0,
+          "truth_pressure_hpa": 935.0
+        },
+        {
+          "lead_hours": 12,
+          "track_error_km": 84.623,
+          "wind_abs_error_kt": 12.41,
+          "pressure_abs_error_hpa": 20.24,
+          "truth_lat": 27.2,
+          "truth_lon": 127.2,
+          "truth_vmax_kt": 85.0,
+          "truth_pressure_hpa": 935.0
+        },
+        {
+          "lead_hours": 18,
+          "track_error_km": 156.228,
+          "wind_abs_error_kt": 10.75,
+          "pressure_abs_error_hpa": 13.93,
+          "truth_lat": 26.5,
+          "truth_lon": 126.5,
+          "truth_vmax_kt": 85.0,
+          "truth_pressure_hpa": 940.0
+        },
+        {
+          "lead_hours": 24,
+          "track_error_km": 129.236,
+          "wind_abs_error_kt": 10.92,
+          "pressure_abs_error_hpa": 8.28,
+          "truth_lat": 27.0,
+          "truth_lon": 126.1,
+          "truth_vmax_kt": 85.0,
+          "truth_pressure_hpa": 945.0
+        },
+        {
+          "lead_hours": 30,
+          "track_error_km": 182.993,
+          "wind_abs_error_kt": 8.64,
+          "pressure_abs_error_hpa": 6.42,
+          "truth_lat": 26.9,
+          "truth_lon": 125.2,
+          "truth_vmax_kt": 85.0,
+          "truth_pressure_hpa": 945.0
+        },
+        {
+          "lead_hours": 36,
+          "track_error_km": 185.23,
+          "wind_abs_error_kt": 9.87,
+          "pressure_abs_error_hpa": 11.23,
+          "truth_lat": 27.0,
+          "truth_lon": 124.8,
+          "truth_vmax_kt": 85.0,
+          "truth_pressure_hpa": 945.0
+        }
+      ]
+    }
+  },
+  "environment_model": {
+    "manifest": "v210/corrected_environment_expert/trackformer_1_2_10_manifest.json",
+    "targets": [
+      "SST center anomaly",
+      "inner SST anomaly",
+      "200-850 shear u",
+      "200-850 shear v",
+      "200-850 shear magnitude"
+    ],
+    "threshold_kt": 55.0
+  },
+  "intensity_model": {
+    "manifest": "v211/intensity_only/trackformer_1_2_11_manifest.json",
+    "weights": "v211/intensity_only/trackformer_1_2_11_intensity_weights.npz",
+    "base_intensity": "frozen Trackformer 1.2.10 corrected environment expert",
+    "selected_heads": {
+      "wind": {
+        "variant": "phase",
+        "lambda": 10.0,
+        "alpha": 0.25,
+        "name": "wind",
+        "feature_dim": 124
+      },
+      "pressure": {
+        "variant": "phase",
+        "lambda": 10.0,
+        "alpha": 0.30000001192092896,
+        "name": "pressure",
+        "feature_dim": 124
+      }
+    }
+  },
+  "data_policy": {
+    "future_weather_as_inputs": false,
+    "future_weather_as_labels_only": true,
+    "official_forecasts_as_inputs": false,
+    "forecast_products_used": [],
+    "tip_used_for_training": false,
+    "current_and_past_weather_only_at_inference": true
+  },
+  "route_diagnostics": {
+    "version": "Trackformer1.1-causal-western-Pacific-state-route",
+    "policy": "vectorized weighted full Trackformer 1.1 Pacific route",
+    "member_count": 189,
+    "route_variants": [
+      {
+        "name": "inner_850",
+        "level_weights": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "ring_degrees": [
+          3.0,
+          6.0
+        ],
+        "pressure_fraction": 0.05,
+        "weight": 0.1
+      },
+      {
+        "name": "deep_inner",
+        "level_weights": [
+          0.269,
+          0.5,
+          0.231
+        ],
+        "ring_degrees": [
+          4.0,
+          10.0
+        ],
+        "pressure_fraction": 0.1,
+        "weight": 0.14
+      },
+      {
+        "name": "broad_850_ridge",
+        "level_weights": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "ring_degrees": [
+          8.0,
+          20.0
+        ],
+        "pressure_fraction": 0.15,
+        "weight": 0.18
+      },
+      {
+        "name": "pacific_850_environment",
+        "level_weights": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "ring_degrees": [
+          12.0,
+          32.0
+        ],
+        "pressure_fraction": 0.18,
+        "weight": 0.18
+      },
+      {
+        "name": "pacific_deep_environment",
+        "level_weights": [
+          0.269,
+          0.5,
+          0.231
+        ],
+        "ring_degrees": [
+          10.0,
+          30.0
+        ],
+        "pressure_fraction": 0.22,
+        "weight": 0.2
+      },
+      {
+        "name": "broad_500_trough",
+        "level_weights": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "ring_degrees": [
+          12.0,
+          34.0
+        ],
+        "pressure_fraction": 0.16,
+        "weight": 0.11
+      },
+      {
+        "name": "outer_200_jet",
+        "level_weights": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "ring_degrees": [
+          15.0,
+          35.0
+        ],
+        "pressure_fraction": 0.08,
+        "weight": 0.09
+      }
+    ],
+    "curvature_variants": [
+      0.0,
+      0.2,
+      0.4
+    ],
+    "tendency_scales": [
+      0.0,
+      0.65,
+      1.25
+    ],
+    "input_policy": "current, t-12, and t-24 analysis fields only; no positive-lead or official forecast field",
+    "route_policy": "{'epochs': 6, 'patience': 2, 'batch': 512, 'seeds': 3, 'width': 192, 'layers': 2, 'heads': 8, 'lr': 0.00015, 'weight_decay': 0.03, 'route_mode': 'full_1_1', 'route_variants': 7, 'route_tendency_scales': [0.0, 0.65, 1.25], 'route_curvature': [0.0, 0.2, 0.4], 'future_weather_as_input': False, 'official_forecasts_as_input': False, 'tip_used_for_training': False}",
+    "positions": [
+      [
+        27.200000762939453,
+        128.89999389648438
+      ],
+      [
+        27.2905330657959,
+        128.45370483398438
+      ],
+      [
+        27.38241958618164,
+        128.0314178466797
+      ],
+      [
+        27.47469139099121,
+        127.63558959960938
+      ],
+      [
+        27.532926559448242,
+        127.26197814941406
+      ],
+      [
+        27.528305053710938,
+        126.9104232788086
+      ],
+      [
+        27.454612731933594,
+        126.60233306884766
+      ],
+      [
+        27.316482543945312,
+        126.35163116455078
+      ],
+      [
+        27.139074325561523,
+        126.17582702636719
+      ],
+      [
+        26.962032318115234,
+        126.06269073486328
+      ],
+      [
+        26.824203491210938,
+        126.0079116821289
+      ],
+      [
+        26.73826026916504,
+        125.9794692993164
+      ],
+      [
+        26.698272705078125,
+        125.92975616455078
+      ],
+      [
+        26.684463500976562,
+        125.84008026123047
+      ],
+      [
+        26.701242446899414,
+        125.7049560546875
+      ],
+      [
+        26.75670051574707,
+        125.50093078613281
+      ],
+      [
+        26.804712295532227,
+        125.17649841308594
+      ],
+      [
+        26.801605224609375,
+        124.7874984741211
+      ],
+      [
+        26.744436264038086,
+        124.37297821044922
+      ],
+      [
+        26.62898826599121,
+        123.93833923339844
+      ],
+      [
+        26.442203521728516,
+        123.51837158203125
+      ]
+    ],
+    "environment_feature_names": [
+      "dx_1500km",
+      "dy_1500km",
+      "lead_fraction",
+      "u850",
+      "v850",
+      "u500",
+      "v500",
+      "u200",
+      "v200",
+      "shear200_850_u",
+      "shear200_850_v",
+      "shear200_850_mag",
+      "shear500_850_u",
+      "shear500_850_v",
+      "shear500_850_mag",
+      "shear200_500_u",
+      "shear200_500_v",
+      "shear200_500_mag",
+      "du850",
+      "dv850",
+      "du500",
+      "dv500",
+      "du200",
+      "dv200",
+      "slp_anomaly",
+      "slp_tendency",
+      "slp_gradient_east",
+      "slp_gradient_north",
+      "sst",
+      "sst_gradient_east",
+      "sst_gradient_north",
+      "sst_inner_mean",
+      "sst_available",
+      "sst_warm_excess",
+      "sst_cold_deficit",
+      "sst_warm_flag",
+      "sst_cold_flag",
+      "land_distance_500km",
+      "land_flag",
+      "sea_flag",
+      "analysis_available",
+      "sst_available_flag"
+    ]
+  },
+  "models": {
+    "v128": {
+      "manifest": "v128/causal_intensity_upgrade/trackformer_1_2_8_manifest.json",
+      "checkpoint_paths": [
+        "v128/causal_intensity_upgrade/checkpoints/trackformer_1_2_8_seed0.pt",
+        "v128/causal_intensity_upgrade/checkpoints/trackformer_1_2_8_seed1.pt",
+        "v128/causal_intensity_upgrade/checkpoints/trackformer_1_2_8_seed2.pt"
+      ],
+      "checkpoint_count": 3,
+      "device": "mps",
+      "wind_persistence_blend": 0.15
+    },
+    "v127": {
+      "checkpoint_paths": [
+        "v127/causal_v11_intensity_full/checkpoints/trackformer_1_2_7_seed0.pt",
+        "v127/causal_v11_intensity_full/checkpoints/trackformer_1_2_7_seed1.pt",
+        "v127/causal_v11_intensity_full/checkpoints/trackformer_1_2_7_seed2.pt"
+      ],
+      "checkpoint_count": 3,
+      "device": "mps",
+      "warm_start_sources": [
+        "/Volumes/D/typhoon_predict/v122/causal_intensity/checkpoints/trackformer_1_2_2_seed2.pt",
+        "/Volumes/D/typhoon_predict/v122/causal_intensity/checkpoints/trackformer_1_2_2_seed2.pt",
+        "/Volumes/D/typhoon_predict/v122/causal_intensity/checkpoints/trackformer_1_2_2_seed2.pt"
+      ]
+    }
+  }
+}

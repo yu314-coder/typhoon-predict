@@ -1,0 +1,501 @@
+{
+  "version": "Trackformer1.2.11-causal-intensity-only",
+  "created_utc": "2026-08-09T06:47:29.357813+00:00",
+  "status": "promoted",
+  "base_model": "v210/corrected_environment_expert/trackformer_1_2_10_manifest.json",
+  "frozen_environment_model": "v210/corrected_environment_expert/trackformer_1_2_10_corrected_environment_weights.npz",
+  "architecture": "frozen Trackformer 1.2.10 causal environment/intensity output plus per-lead causal residual head with generic or strengthening/mature/weakening ridge experts",
+  "selected_heads": {
+    "wind": {
+      "variant": "phase",
+      "lambda": 10.0,
+      "alpha": 0.25,
+      "name": "wind",
+      "feature_dim": 124
+    },
+    "pressure": {
+      "variant": "phase",
+      "lambda": 10.0,
+      "alpha": 0.30000001192092896,
+      "name": "pressure",
+      "feature_dim": 124
+    }
+  },
+  "feature_dim": 124,
+  "weights": "v211/intensity_only/trackformer_1_2_11_intensity_weights.npz",
+  "metrics": {
+    "base_v210": {
+      "val": {
+        "windows": 6873,
+        "wind_mae_all_leads_kt": 17.6747,
+        "pressure_mae_all_leads_hpa": 13.4229,
+        "wind_mae_120h_kt": 22.2322,
+        "pressure_mae_120h_hpa": 16.1228,
+        "wind_mae_by_lead_kt": [
+          3.7174,
+          6.6455,
+          9.4354,
+          11.7926,
+          13.6997,
+          15.3243,
+          16.7609,
+          17.9799,
+          19.012,
+          19.9185,
+          20.6536,
+          21.2085,
+          21.6799,
+          22.0247,
+          22.2195,
+          22.3107,
+          22.3481,
+          22.2817,
+          22.2478,
+          22.2322
+        ],
+        "pressure_mae_by_lead_hpa": [
+          3.8304,
+          5.5638,
+          7.3797,
+          9.0573,
+          10.4761,
+          11.671,
+          12.7838,
+          13.7163,
+          14.5391,
+          15.1808,
+          15.7092,
+          16.1353,
+          16.4808,
+          16.7124,
+          16.8102,
+          16.7566,
+          16.6634,
+          16.5303,
+          16.3384,
+          16.1228
+        ]
+      },
+      "test": {
+        "windows": 9845,
+        "wind_mae_all_leads_kt": 17.0321,
+        "pressure_mae_all_leads_hpa": 13.0413,
+        "wind_mae_120h_kt": 21.1011,
+        "pressure_mae_120h_hpa": 15.6553,
+        "wind_mae_by_lead_kt": [
+          4.2746,
+          6.9883,
+          9.4486,
+          11.6853,
+          13.5869,
+          15.256,
+          16.6153,
+          17.8064,
+          18.7169,
+          19.477,
+          19.9299,
+          20.2421,
+          20.4982,
+          20.6803,
+          20.6752,
+          20.8015,
+          20.8936,
+          20.9268,
+          21.0373,
+          21.1011
+        ],
+        "pressure_mae_by_lead_hpa": [
+          4.3719,
+          6.1519,
+          7.7895,
+          9.3119,
+          10.615,
+          11.7561,
+          12.6738,
+          13.509,
+          14.1858,
+          14.6935,
+          15.0749,
+          15.3389,
+          15.5532,
+          15.6635,
+          15.7,
+          15.7153,
+          15.6967,
+          15.6846,
+          15.6856,
+          15.6553
+        ]
+      }
+    },
+    "candidate_v211": {
+      "validation_train_only": {
+        "windows": 6873,
+        "wind_mae_all_leads_kt": 17.5467,
+        "pressure_mae_all_leads_hpa": 13.2331,
+        "wind_mae_120h_kt": 22.1325,
+        "pressure_mae_120h_hpa": 16.2609,
+        "wind_mae_by_lead_kt": [
+          3.4826,
+          6.4567,
+          9.2508,
+          11.5375,
+          13.501,
+          15.0527,
+          16.5289,
+          17.7954,
+          18.9132,
+          19.7796,
+          20.6119,
+          21.1811,
+          21.6057,
+          22.0199,
+          22.2118,
+          22.2707,
+          22.2671,
+          22.1868,
+          22.1481,
+          22.1325
+        ],
+        "pressure_mae_by_lead_hpa": [
+          3.217,
+          5.1577,
+          7.0364,
+          8.6649,
+          10.168,
+          11.2994,
+          12.4381,
+          13.3802,
+          14.2507,
+          14.9342,
+          15.5253,
+          16.0363,
+          16.3014,
+          16.6786,
+          16.782,
+          16.7806,
+          16.7752,
+          16.5615,
+          16.4146,
+          16.2609
+        ]
+      },
+      "test_train_only": {
+        "windows": 9845,
+        "wind_mae_all_leads_kt": 16.8931,
+        "pressure_mae_all_leads_hpa": 12.6824,
+        "wind_mae_120h_kt": 20.9072,
+        "pressure_mae_120h_hpa": 15.3039,
+        "wind_mae_by_lead_kt": [
+          3.9689,
+          6.8102,
+          9.3055,
+          11.5493,
+          13.4675,
+          15.1092,
+          16.4548,
+          17.6377,
+          18.5627,
+          19.2828,
+          19.8228,
+          20.1242,
+          20.369,
+          20.5573,
+          20.5796,
+          20.7303,
+          20.8287,
+          20.8608,
+          20.9333,
+          20.9072
+        ],
+        "pressure_mae_by_lead_hpa": [
+          3.6878,
+          5.6004,
+          7.2973,
+          8.8333,
+          10.2579,
+          11.3906,
+          12.3197,
+          13.1622,
+          13.8153,
+          14.3522,
+          14.7396,
+          15.0092,
+          15.1438,
+          15.3574,
+          15.4551,
+          15.4495,
+          15.5509,
+          15.4318,
+          15.4908,
+          15.3039
+        ]
+      },
+      "test_train_plus_validation": {
+        "windows": 9845,
+        "wind_mae_all_leads_kt": 16.8365,
+        "pressure_mae_all_leads_hpa": 12.5541,
+        "wind_mae_120h_kt": 20.8456,
+        "pressure_mae_120h_hpa": 15.1704,
+        "wind_mae_by_lead_kt": [
+          3.9824,
+          6.8074,
+          9.2955,
+          11.5307,
+          13.4218,
+          15.0639,
+          16.3683,
+          17.594,
+          18.514,
+          19.2434,
+          19.7685,
+          20.032,
+          20.3417,
+          20.4656,
+          20.5137,
+          20.6389,
+          20.7324,
+          20.7506,
+          20.8191,
+          20.8456
+        ],
+        "pressure_mae_by_lead_hpa": [
+          3.6961,
+          5.6106,
+          7.3129,
+          8.8388,
+          10.2002,
+          11.3219,
+          12.2134,
+          13.057,
+          13.6947,
+          14.2001,
+          14.6032,
+          14.836,
+          15.0534,
+          15.1463,
+          15.2082,
+          15.2093,
+          15.2467,
+          15.2247,
+          15.2376,
+          15.1704
+        ]
+      }
+    }
+  },
+  "selection": {
+    "wind": [
+      {
+        "variant": "phase",
+        "lambda": 10.0,
+        "alpha": 0.25,
+        "score": 21.973200000000002,
+        "metrics": {
+          "wind_mae_all_leads_kt": 17.5467,
+          "pressure_mae_all_leads_hpa": 13.4229,
+          "wind_mae_120h_kt": 22.1325,
+          "pressure_mae_120h_hpa": 16.1228
+        }
+      },
+      {
+        "variant": "phase",
+        "lambda": 30.0,
+        "alpha": 0.25,
+        "score": 21.974380000000004,
+        "metrics": {
+          "wind_mae_all_leads_kt": 17.5481,
+          "pressure_mae_all_leads_hpa": 13.4229,
+          "wind_mae_120h_kt": 22.1314,
+          "pressure_mae_120h_hpa": 16.1228
+        }
+      },
+      {
+        "variant": "phase",
+        "lambda": 10.0,
+        "alpha": 0.30000001192092896,
+        "score": 21.97728,
+        "metrics": {
+          "wind_mae_all_leads_kt": 17.5474,
+          "pressure_mae_all_leads_hpa": 13.4229,
+          "wind_mae_120h_kt": 22.1494,
+          "pressure_mae_120h_hpa": 16.1228
+        }
+      },
+      {
+        "variant": "phase",
+        "lambda": 100.0,
+        "alpha": 0.25,
+        "score": 21.97814,
+        "metrics": {
+          "wind_mae_all_leads_kt": 17.5517,
+          "pressure_mae_all_leads_hpa": 13.4229,
+          "wind_mae_120h_kt": 22.1322,
+          "pressure_mae_120h_hpa": 16.1228
+        }
+      },
+      {
+        "variant": "phase",
+        "lambda": 30.0,
+        "alpha": 0.30000001192092896,
+        "score": 21.97824,
+        "metrics": {
+          "wind_mae_all_leads_kt": 17.5487,
+          "pressure_mae_all_leads_hpa": 13.4229,
+          "wind_mae_120h_kt": 22.1477,
+          "pressure_mae_120h_hpa": 16.1228
+        }
+      },
+      {
+        "variant": "phase",
+        "lambda": 10.0,
+        "alpha": 0.20000000298023224,
+        "score": 21.979060000000004,
+        "metrics": {
+          "wind_mae_all_leads_kt": 17.5542,
+          "pressure_mae_all_leads_hpa": 13.4229,
+          "wind_mae_120h_kt": 22.1243,
+          "pressure_mae_120h_hpa": 16.1228
+        }
+      },
+      {
+        "variant": "phase",
+        "lambda": 30.0,
+        "alpha": 0.20000000298023224,
+        "score": 21.9804,
+        "metrics": {
+          "wind_mae_all_leads_kt": 17.5556,
+          "pressure_mae_all_leads_hpa": 13.4229,
+          "wind_mae_120h_kt": 22.124,
+          "pressure_mae_120h_hpa": 16.1228
+        }
+      },
+      {
+        "variant": "phase",
+        "lambda": 100.0,
+        "alpha": 0.30000001192092896,
+        "score": 21.98202,
+        "metrics": {
+          "wind_mae_all_leads_kt": 17.5524,
+          "pressure_mae_all_leads_hpa": 13.4229,
+          "wind_mae_120h_kt": 22.1481,
+          "pressure_mae_120h_hpa": 16.1228
+        }
+      }
+    ],
+    "pressure": [
+      {
+        "variant": "phase",
+        "lambda": 10.0,
+        "alpha": 0.30000001192092896,
+        "score": 16.48528,
+        "metrics": {
+          "wind_mae_all_leads_kt": 17.6747,
+          "pressure_mae_all_leads_hpa": 13.2331,
+          "wind_mae_120h_kt": 22.2322,
+          "pressure_mae_120h_hpa": 16.2609
+        }
+      },
+      {
+        "variant": "phase",
+        "lambda": 10.0,
+        "alpha": 0.3499999940395355,
+        "score": 16.48778,
+        "metrics": {
+          "wind_mae_all_leads_kt": 17.6747,
+          "pressure_mae_all_leads_hpa": 13.2256,
+          "wind_mae_120h_kt": 22.2322,
+          "pressure_mae_120h_hpa": 16.3109
+        }
+      },
+      {
+        "variant": "phase",
+        "lambda": 10.0,
+        "alpha": 0.25,
+        "score": 16.49208,
+        "metrics": {
+          "wind_mae_all_leads_kt": 17.6747,
+          "pressure_mae_all_leads_hpa": 13.2482,
+          "wind_mae_120h_kt": 22.2322,
+          "pressure_mae_120h_hpa": 16.2194
+        }
+      },
+      {
+        "variant": "phase",
+        "lambda": 30.0,
+        "alpha": 0.30000001192092896,
+        "score": 16.49368,
+        "metrics": {
+          "wind_mae_all_leads_kt": 17.6747,
+          "pressure_mae_all_leads_hpa": 13.2405,
+          "wind_mae_120h_kt": 22.2322,
+          "pressure_mae_120h_hpa": 16.2659
+        }
+      },
+      {
+        "variant": "phase",
+        "lambda": 30.0,
+        "alpha": 0.3499999940395355,
+        "score": 16.4975,
+        "metrics": {
+          "wind_mae_all_leads_kt": 17.6747,
+          "pressure_mae_all_leads_hpa": 13.234,
+          "wind_mae_120h_kt": 22.2322,
+          "pressure_mae_120h_hpa": 16.3175
+        }
+      },
+      {
+        "variant": "phase",
+        "lambda": 10.0,
+        "alpha": 0.4000000059604645,
+        "score": 16.4987,
+        "metrics": {
+          "wind_mae_all_leads_kt": 17.6747,
+          "pressure_mae_all_leads_hpa": 13.2252,
+          "wind_mae_120h_kt": 22.2322,
+          "pressure_mae_120h_hpa": 16.3675
+        }
+      },
+      {
+        "variant": "phase",
+        "lambda": 30.0,
+        "alpha": 0.25,
+        "score": 16.49914,
+        "metrics": {
+          "wind_mae_all_leads_kt": 17.6747,
+          "pressure_mae_all_leads_hpa": 13.2544,
+          "wind_mae_120h_kt": 22.2322,
+          "pressure_mae_120h_hpa": 16.2237
+        }
+      },
+      {
+        "variant": "phase",
+        "lambda": 10.0,
+        "alpha": 0.20000000298023224,
+        "score": 16.50678,
+        "metrics": {
+          "wind_mae_all_leads_kt": 17.6747,
+          "pressure_mae_all_leads_hpa": 13.2701,
+          "wind_mae_120h_kt": 22.2322,
+          "pressure_mae_120h_hpa": 16.1834
+        }
+      }
+    ]
+  },
+  "promoted": true,
+  "quality_gate": "both wind and pressure must improve over frozen 1.2.10 on train-only chronological validation and untouched post-2019 test",
+  "data_policy": {
+    "future_weather_as_inputs": false,
+    "future_weather_as_labels_only": true,
+    "official_forecasts_as_inputs": false,
+    "forecast_products_used": [],
+    "tip_used_for_training": false,
+    "current_and_past_weather_only_at_inference": true,
+    "environment_forecast_frozen_from": "Trackformer 1.2.10 corrected causal environment head"
+  },
+  "artifacts": {
+    "validation_train_only": "v211/intensity_only/trackformer_1_2_11_val_predictions.npz",
+    "test_train_only": "v211/intensity_only/trackformer_1_2_11_test_train_only_predictions.npz",
+    "test_train_plus_validation": "v211/intensity_only/trackformer_1_2_11_test_train_plus_validation_predictions.npz"
+  }
+}
