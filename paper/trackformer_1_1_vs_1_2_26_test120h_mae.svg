@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Trackformer 1.1 versus Trackformer 1.2.26 held-out plus 120 hour mean absolute error</title>
+  <desc id="desc">Six horizontal paired bar charts. Trackformer 1.2.26 has lower maximum wind, pressure, RMW, R34, R50, and R64 error than Trackformer 1.1 on the reported test splits.</desc>
+  <rect width="1200" height="720" fill="#ffffff"/>
+  <text x="600" y="34" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#172033">Held-out +120 h MAE comparison</text>
+  <text x="600" y="58" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#536174">Lower is better. Trackformer 1.1 public calibration versus Trackformer 1.2.26 causal baseline.</text>
+  <rect x="420" y="78" width="16" height="16" rx="2" fill="#1769aa"/>
+  <text x="444" y="91" font-family="Arial, sans-serif" font-size="13" fill="#172033">Trackformer 1.1</text>
+  <rect x="590" y="78" width="16" height="16" rx="2" fill="#d97732"/>
+  <text x="614" y="91" font-family="Arial, sans-serif" font-size="13" fill="#172033">Trackformer 1.2.26</text>
+
+  <g font-family="Arial, sans-serif">
+    <rect x="20" y="112" width="360" height="240" rx="8" fill="#f7f9fc" stroke="#d8e0ea"/>
+    <text x="40" y="142" font-size="17" font-weight="700" fill="#172033">Maximum wind MAE</text>
+    <text x="40" y="163" font-size="12" fill="#536174">kt, 1-minute estimate</text>
+    <line x1="130" y1="184" x2="340" y2="184" stroke="#c7d0dc"/>
+    <line x1="130" y1="287" x2="340" y2="287" stroke="#c7d0dc"/>
+    <rect x="130" y="198" width="178.2" height="28" rx="3" fill="#1769aa"/>
+    <rect x="130" y="264" width="173.9" height="28" rx="3" fill="#d97732"/>
+    <text x="72" y="218" font-size="13" fill="#172033">1.1</text>
+    <text x="72" y="284" font-size="13" fill="#172033">1.2.26</text>
+    <text x="316" y="218" font-size="14" font-weight="700" fill="#1769aa">20.36</text>
+    <text x="312" y="284" font-size="14" font-weight="700" fill="#b85c1e">19.88</text>
+    <text x="130" y="318" font-size="11" fill="#536174">0</text><text x="333" y="318" font-size="11" fill="#536174">24 kt</text>
+
+    <rect x="420" y="112" width="360" height="240" rx="8" fill="#f7f9fc" stroke="#d8e0ea"/>
+    <text x="440" y="142" font-size="17" font-weight="700" fill="#172033">Central pressure MAE</text>
+    <text x="440" y="163" font-size="12" fill="#536174">hPa</text>
+    <line x1="530" y1="184" x2="740" y2="184" stroke="#c7d0dc"/>
+    <line x1="530" y1="287" x2="740" y2="287" stroke="#c7d0dc"/>
+    <rect x="530" y="198" width="168.5" height="28" rx="3" fill="#1769aa"/>
+    <rect x="530" y="264" width="158.9" height="28" rx="3" fill="#d97732"/>
+    <text x="472" y="218" font-size="13" fill="#172033">1.1</text>
+    <text x="472" y="284" font-size="13" fill="#172033">1.2.26</text>
+    <text x="706" y="218" font-size="14" font-weight="700" fill="#1769aa">14.44</text>
+    <text x="696" y="284" font-size="14" font-weight="700" fill="#b85c1e">13.63</text>
+    <text x="530" y="318" font-size="11" fill="#536174">0</text><text x="733" y="318" font-size="11" fill="#536174">18 hPa</text>
+
+    <rect x="820" y="112" width="360" height="240" rx="8" fill="#f7f9fc" stroke="#d8e0ea"/>
+    <text x="840" y="142" font-size="17" font-weight="700" fill="#172033">RMW MAE</text>
+    <text x="840" y="163" font-size="12" fill="#536174">km</text>
+    <line x1="930" y1="184" x2="1140" y2="184" stroke="#c7d0dc"/>
+    <line x1="930" y1="287" x2="1140" y2="287" stroke="#c7d0dc"/>
+    <rect x="930" y="198" width="176.5" height="28" rx="3" fill="#1769aa"/>
+    <rect x="930" y="264" width="129.7" height="28" rx="3" fill="#d97732"/>
+    <text x="872" y="218" font-size="13" fill="#172033">1.1</text>
+    <text x="872" y="284" font-size="13" fill="#172033">1.2.26</text>
+    <text x="1114" y="218" font-size="14" font-weight="700" fill="#1769aa">25.22</text>
+    <text x="1067" y="284" font-size="14" font-weight="700" fill="#b85c1e">18.53</text>
+    <text x="930" y="318" font-size="11" fill="#536174">0</text><text x="1133" y="318" font-size="11" fill="#536174">30 km</text>
+
+    <rect x="20" y="382" width="360" height="240" rx="8" fill="#f7f9fc" stroke="#d8e0ea"/>
+    <text x="40" y="412" font-size="17" font-weight="700" fill="#172033">R34 MAE</text>
+    <text x="40" y="433" font-size="12" fill="#536174">four-quadrant mean, km</text>
+    <line x1="130" y1="454" x2="340" y2="454" stroke="#c7d0dc"/>
+    <line x1="130" y1="557" x2="340" y2="557" stroke="#c7d0dc"/>
+    <rect x="130" y="468" width="185.8" height="28" rx="3" fill="#1769aa"/>
+    <rect x="130" y="534" width="140.0" height="28" rx="3" fill="#d97732"/>
+    <text x="72" y="488" font-size="13" fill="#172033">1.1</text>
+    <text x="72" y="554" font-size="13" fill="#172033">1.2.26</text>
+    <text x="323" y="488" font-size="14" font-weight="700" fill="#1769aa">61.92</text>
+    <text x="278" y="554" font-size="14" font-weight="700" fill="#b85c1e">46.67</text>
+    <text x="130" y="588" font-size="11" fill="#536174">0</text><text x="333" y="588" font-size="11" fill="#536174">70 km</text>
+
+    <rect x="420" y="382" width="360" height="240" rx="8" fill="#f7f9fc" stroke="#d8e0ea"/>
+    <text x="440" y="412" font-size="17" font-weight="700" fill="#172033">R50 MAE</text>
+    <text x="440" y="433" font-size="12" fill="#536174">four-quadrant mean, km</text>
+    <line x1="530" y1="454" x2="740" y2="454" stroke="#c7d0dc"/>
+    <line x1="530" y1="557" x2="740" y2="557" stroke="#c7d0dc"/>
+    <rect x="530" y="468" width="179.8" height="28" rx="3" fill="#1769aa"/>
+    <rect x="530" y="534" width="133.5" height="28" rx="3" fill="#d97732"/>
+    <text x="472" y="488" font-size="13" fill="#172033">1.1</text>
+    <text x="472" y="554" font-size="13" fill="#172033">1.2.26</text>
+    <text x="717" y="488" font-size="14" font-weight="700" fill="#1769aa">34.24</text>
+    <text x="671" y="554" font-size="14" font-weight="700" fill="#b85c1e">25.42</text>
+    <text x="530" y="588" font-size="11" fill="#536174">0</text><text x="733" y="588" font-size="11" fill="#536174">40 km</text>
+
+    <rect x="820" y="382" width="360" height="240" rx="8" fill="#f7f9fc" stroke="#d8e0ea"/>
+    <text x="840" y="412" font-size="17" font-weight="700" fill="#172033">R64 MAE</text>
+    <text x="840" y="433" font-size="12" fill="#536174">four-quadrant mean, km</text>
+    <line x1="930" y1="454" x2="1140" y2="454" stroke="#c7d0dc"/>
+    <line x1="930" y1="557" x2="1140" y2="557" stroke="#c7d0dc"/>
+    <rect x="930" y="468" width="172.1" height="28" rx="3" fill="#1769aa"/>
+    <rect x="930" y="534" width="124.1" height="28" rx="3" fill="#d97732"/>
+    <text x="872" y="488" font-size="13" fill="#172033">1.1</text>
+    <text x="872" y="554" font-size="13" fill="#172033">1.2.26</text>
+    <text x="1110" y="488" font-size="14" font-weight="700" fill="#1769aa">20.49</text>
+    <text x="1062" y="554" font-size="14" font-weight="700" fill="#b85c1e">14.77</text>
+    <text x="930" y="588" font-size="11" fill="#536174">0</text><text x="1133" y="588" font-size="11" fill="#536174">25 km</text>
+  </g>
+  <text x="600" y="688" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#536174">Reported chronological storm-held-out test values; 1.1 structure values converted from nautical miles.</text>
+</svg>

@@ -1,0 +1,32 @@
+{
+  "lead_hours": 120,
+  "metric": "mean absolute error at the final six-hour lead",
+  "direction": "lower_is_better",
+  "trackformer_1_1": {
+    "test_split": "chronological storm-held-out test split from the release calibration manifest",
+    "maximum_wind_mae_kt": 20.3616676336,
+    "central_pressure_mae_hpa": 14.4352010891,
+    "rmw_mae_km": 25.215,
+    "r34_mae_km": 61.915,
+    "r50_mae_km": 34.235,
+    "r64_mae_km": 20.491,
+    "structure_source_unit": "nautical miles",
+    "structure_conversion": "1 nautical mile = 1.852 kilometres",
+    "source": "Trackformer1.1-calibration trackformer_1_1_calibration.json"
+  },
+  "trackformer_1_2_26": {
+    "test_split": "first storm year >=2020, 9994 untouched windows",
+    "maximum_wind_mae_kt": 19.876,
+    "central_pressure_mae_hpa": 13.634,
+    "rmw_mae_km": 18.532,
+    "r34_mae_km": 46.672,
+    "r50_mae_km": 25.417,
+    "r64_mae_km": 14.767,
+    "source": "Trackformer1.2.26-causal-intensity-physics-v4 manifest and baseline prediction archive"
+  },
+  "notes": [
+    "Trackformer 1.1 values are the released calibrated public path.",
+    "Trackformer 1.2.26 is an internal causal comparison baseline, not a public release.",
+    "Official forecast products and future weather fields are excluded from both model input policies."
+  ]
+}
