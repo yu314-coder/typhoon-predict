@@ -28,6 +28,7 @@ is intentionally not used as the public product name.
 
 - [GitHub Release: Trackformer 1.2](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.2)
 - [Hugging Face model repository](https://huggingface.co/euler314/typhoon-predict)
+- [Live interactive demo](https://yu314-coder.github.io/typhoon-tracks.html)
 
 The main branch contains source and documentation. The model weights are
 distributed as the release archive rather than committed into the Git history.
