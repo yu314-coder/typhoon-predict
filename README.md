@@ -1,6 +1,6 @@
-# Trackformer 1.2.28
+# Trackformer 1.2
 
-Trackformer 1.2.28 is an experimental, causal western-Pacific tropical-cyclone
+Trackformer 1.2 is an experimental, causal western-Pacific tropical-cyclone
 forecasting model. It forecasts storm motion, maximum sustained wind, central
 pressure, radius of maximum wind, and R34/R50/R64 wind radii over six-hour
 leads through +120 h.
@@ -21,14 +21,29 @@ safety-critical decisions.
 - Native PyTorch and joblib artifacts in a GitHub Release and the Hugging Face
   model repository.
 
-The public release name is **Trackformer 1.2.28**. The internal experiment history
+The public release name is **Trackformer 1.2**. The internal experiment history
 is intentionally not used as the public product name.
 
 ## Availability
 
-- [GitHub Release: Trackformer 1.2.28](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.2.28)
+- [GitHub Release: Trackformer 1.2](https://github.com/yu314-coder/typhoon-predict/releases/latest)
 - [Hugging Face model repository](https://huggingface.co/euler314/typhoon-predict)
 - [Live interactive demo](https://yu314-coder.github.io/typhoon-tracks.html)
+
+## Model Showcase
+
+Use the live demo for the interactive route and intensity presentation. Use
+the reproducible benchmark chart for model comparison:
+
+- [Interactive live demo](https://yu314-coder.github.io/typhoon-tracks.html)
+- [Matched-100 benchmark chart](paper/trackformer_1_2_vs_1_1_matched100_mae.png)
+- [Exact benchmark JSON](paper/trackformer_1_2_vs_1_1_matched100_metrics.json)
+
+The chart has separate panels for track error, +120 h intensity/structure
+error, all-lead intensity/structure error, and relative +120 h change. Values
+are printed to three decimals and use the same 100 storms, issue times, and
+causal input boundary. It is a benchmark showcase, not a selected best-case
+storm display.
 
 The public package contains only the Trackformer route/intensity model. No
 gridded weather-field generator or official forecast product is included as
@@ -37,7 +52,7 @@ archive rather than committed into the Git history.
 
 ## What Changed
 
-Trackformer 1.2.28 keeps the causal route design and adds a promoted
+Trackformer 1.2 keeps the causal route design and adds a promoted
 land/ocean-context intensity candidate. The structure head uses pooled
 log-radius groups, lead-wise residual calibration, non-negative radius
 constraints, and a validation-selected ocean-availability gate. The route and
@@ -66,7 +81,7 @@ best-track labels are used only after the forecast is frozen for verification.
 
 ## Inputs
 
-Trackformer 1.2.28 keeps the public causal input families used by Trackformer 1.1;
+Trackformer 1.2 keeps the public causal input families used by Trackformer 1.1;
 the route context is expanded across the western Pacific and includes the
 static land/ocean features needed near coastlines. The public tensor contract
 is:
@@ -173,26 +188,26 @@ this matched-storm benchmark. The chart below is the canonical comparison;
 lower error is better and every value comes from the same matched 100-storm
 evaluation. Official forecast products are excluded from model inputs.
 
-![Trackformer 1.2.28 and 1.1 matched 100-storm error comparison](paper/trackformer_1_2_28_vs_1_1_matched100_mae.png)
+![Trackformer 1.2 and 1.1 matched 100-storm error comparison](paper/trackformer_1_2_vs_1_1_matched100_mae.png)
 
 The source values and input policy are recorded in
-[paper/trackformer_1_2_28_vs_1_1_matched100_metrics.json](paper/trackformer_1_2_28_vs_1_1_matched100_metrics.json).
+[paper/trackformer_1_2_vs_1_1_matched100_metrics.json](paper/trackformer_1_2_vs_1_1_matched100_metrics.json).
 
-| Metric | Trackformer 1.1 | Trackformer 1.2.28 | Better in this benchmark |
+| Metric | Trackformer 1.1 | Trackformer 1.2 | Better in this benchmark |
 |---|---:|---:|---|
-| Mean track error, all leads (km) | 802.406 | 398.419 | Trackformer 1.2.28 |
-| Mean track error, +120 h (km) | 1,604.259 | 808.607 | Trackformer 1.2.28 |
-| Wind MAE, +120 h (kt) | 20.657 | 18.509 | Trackformer 1.2.28 |
-| Pressure MAE, +120 h (hPa) | 14.932 | 13.637 | Trackformer 1.2.28 |
+| Mean track error, all leads (km) | 802.406 | 398.419 | Trackformer 1.2 |
+| Mean track error, +120 h (km) | 1,604.259 | 808.607 | Trackformer 1.2 |
+| Wind MAE, +120 h (kt) | 20.657 | 18.509 | Trackformer 1.2 |
+| Pressure MAE, +120 h (hPa) | 14.932 | 13.637 | Trackformer 1.2 |
 | RMW MAE, +120 h (km) | 33.016 | 33.035 | Trackformer 1.1, marginally |
 | R34 MAE, +120 h (km) | 69.357 | 76.112 | Trackformer 1.1 |
-| Wind MAE, all leads (kt) | 18.121 | 17.638 | Trackformer 1.2.28 |
-| Pressure MAE, all leads (hPa) | 13.044 | 12.755 | Trackformer 1.2.28 |
+| Wind MAE, all leads (kt) | 18.121 | 17.638 | Trackformer 1.2 |
+| Pressure MAE, all leads (hPa) | 13.044 | 12.755 | Trackformer 1.2 |
 | RMW MAE, all leads (km) | 26.396 | 26.996 | Trackformer 1.1 |
-| R34 MAE, all leads (km) | 57.253 | 57.079 | Trackformer 1.2.28 |
+| R34 MAE, all leads (km) | 57.253 | 57.079 | Trackformer 1.2 |
 
 This benchmark supports a strong track improvement and lower wind/pressure
-error. It does **not** support the claim that Trackformer 1.2.28 is better on
+error. It does **not** support the claim that Trackformer 1.2 is better on
 every radius metric; RMW remains slightly worse and +120 h R34 is worse. Those
 limitations are kept visible instead of selecting a more favorable cohort.
 
@@ -202,7 +217,7 @@ For completeness, the released land/ocean-context head was also compared with
 its frozen causal baseline on 9,994 untouched test windows at +120 h. Lower is
 better.
 
-| Metric at +120 h | Frozen baseline | Trackformer 1.2.28 candidate |
+| Metric at +120 h | Frozen baseline | Trackformer 1.2 candidate |
 |---|---:|---:|
 | Maximum wind MAE (kt) | 19.876 | 19.618 |
 | Central pressure MAE (hPa) | 13.634 | 13.519 |
@@ -238,7 +253,7 @@ The bundle uses native PyTorch checkpoints, NumPy statistics, and a joblib
 calibration artifact. GGUF is not an appropriate interchange format for this
 CNN/Transformer weather model.
 
-Download the archive from the [Trackformer 1.2.28 release](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.2.28),
+Download the archive from the [Trackformer 1.2 release](https://github.com/yu314-coder/typhoon-predict/releases/latest),
 verify its SHA-256 value shown in the release notes, and extract it outside the
 Git checkout.
 
@@ -246,7 +261,7 @@ Git checkout.
 
 The repository includes a checkpoint-compatible inference module in
 [`trackformer_1_2.py`](trackformer_1_2.py). It loads both released neural
-seeds and averages them as one Trackformer 1.2.28 model. The same module now
+seeds and averages them as one Trackformer 1.2 model. The same module now
 publishes the feature constructors used to build the tensor contracts, rather
 than requiring callers to reverse-engineer the training code. Install the
 runtime dependencies with:
@@ -254,6 +269,58 @@ runtime dependencies with:
 ```bash
 python -m pip install -r requirements.txt
 ```
+
+### Forecasting Workflow
+
+The released model is a route/intensity forecaster for a storm that already
+has an issue-time candidate location and observed or analyzed history. It can
+forecast an existing tropical cyclone from the latest issue time. It does not
+contain a separate genesis detector, so it cannot discover a cyclone from an
+empty basin by itself. For a pre-genesis candidate, provide a candidate
+location, a causal pseudo-history, and a clearly labeled fallback structure
+anchor; treat that result as research output, not an autonomous genesis
+alert.
+
+1. Download the release archive or let `from_pretrained()` fetch the Hugging
+   Face bundle. The archive includes the current `models/trackformer_1_2/`
+   weights and train-only normalization statistics.
+2. Choose an issue time `t0`. Every input must be available at `t0` or earlier.
+   Do not put JMA, JTWC, ECMWF, GFS, GEFS, DeepMind, or any other positive-lead
+   forecast into the packet.
+3. Build the route group. It requires `field [B,6,25,61]`, raw `context
+   [B,647]`, and `base_position [B,20,2]`. Build `field` with
+   `prepare_route_field` from physical SLP/H500 analyses at `t0`, `t-6 h`,
+   and `t-12 h`. Build `context` from the published constructors and use the
+   causal incumbent route or the explicitly labeled kinematic fallback.
+4. Build the intensity group when structure output is needed. It requires
+   `causal_features [B,1020]` and `anchor_structure [B,20,15]`. Construct the
+   feature vector from the 9x54 observed track window, decoded DLM4 analysis
+   patches at `t0`, `t-12 h`, `t-24 h`, SST patches at those same times, six
+   static terrain samples, nearby-storm/basin/global analysis context, and
+   issue-time geography. Use `build_causal_anchor_structure` only as a labeled
+   fallback when the frozen incumbent anchor is unavailable.
+5. Optionally add `ocean_features [B,66]` from `build_ocean_features` using
+   `[B,3,22]` current, `-12 h`, and `-24 h` ocean summaries plus
+   `ocean_available [B]`. This applies the separately validated ocean
+   calibration; it is not silently stacked onto the neural intensity output.
+6. Save the groups as one `.npz` packet and run the example command below.
+   The script writes route positions, converted latitude/longitude when an
+   issue location is supplied, intensity structure, lead hours, and optional
+   ocean-calibration results to a compressed `.npz` forecast file.
+
+The minimum packet keys are:
+
+| Forecast part | Required keys | Output |
+|---|---|---|
+| Route | `field`, `context`, `base_position` | 20 positions at +6 h to +120 h |
+| Intensity/structure | `causal_features`, `anchor_structure` | wind, pressure, RMW, R34/R50/R64 |
+| Optional ocean calibration | `ocean_features`, `ocean_available` | calibrated structure beside the neural result |
+
+The public wrapper intentionally does not download raw weather data. Source
+preprocessing must preserve issue-time timestamps, units, missing-data masks,
+and the tensor contracts above. A valid packet for a historical hindcast must
+also exclude all observations after its chosen issue time; later IBTrACS rows
+are verification targets only.
 
 Load from an extracted GitHub Release bundle:
 
@@ -415,7 +482,7 @@ prevents future or official forecast fields from entering by accident.
 
 [Trackformer 1.1](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.1)
 remains available as a historical baseline. It is not mixed into the
-Trackformer 1.2.28 weights or ensemble.
+Trackformer 1.2 weights or ensemble.
 
 ## Limitations
 

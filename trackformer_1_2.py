@@ -1,4 +1,4 @@
-"""Public Trackformer 1.2.28 inference API.
+"""Public Trackformer 1.2 inference API.
 
 The release checkpoints are trained on causal issue-time inputs.  This module
 does not download or accept JMA/JTWC/ECMWF/GFS/GEFS forecast products.  It
@@ -32,7 +32,7 @@ from scipy.ndimage import maximum_filter, minimum_filter
 LEADS = 20
 LEAD_HOURS = tuple(range(6, 121, 6))
 STRUCTURE_DIM = 15
-MODEL_VERSION = "1.2.28"
+MODEL_VERSION = "1.2"
 ROUTE_CONTEXT_DIM = 647
 INTENSITY_FEATURE_DIM = 1020
 INTENSITY_INPUT_DIM = 1320
@@ -997,7 +997,7 @@ class _ResidualCurveModel(nn.Module):
 
 
 class Trackformer12:
-    """Load and run the released Trackformer 1.2.28 causal members."""
+    """Load and run the released Trackformer 1.2 causal members."""
 
     def __init__(self, model_root: str | Path, device: str | torch.device | None = None):
         self.model_root = self._resolve_root(Path(model_root))
@@ -1222,7 +1222,7 @@ class Trackformer12:
 __all__ = [
     "FIELD_HEIGHT", "FIELD_WIDTH", "INTENSITY_FEATURE_DIM", "INTENSITY_INPUT_DIM", "LEADS", "LEAD_HOURS",
     "OCEAN_FEATURE_DIM", "ROUTE_CONTEXT_DIM", "ROUTE_LATITUDES", "ROUTE_LONGITUDES",
-    "ROUTE_SYSTEM_CHANNELS", "STRUCTURE_DIM", "Trackformer12",
+    "MODEL_VERSION", "ROUTE_SYSTEM_CHANNELS", "STRUCTURE_DIM", "Trackformer12",
     "build_base_position", "build_causal_anchor_structure", "build_causal_structure_features",
     "build_intensity_context_features", "build_kinematic_base_position", "build_ocean_features",
     "build_nearby_interaction_features", "build_patch_summary", "build_route_context",
