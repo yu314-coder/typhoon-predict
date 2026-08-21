@@ -160,9 +160,9 @@ def inject_initial_state(template, initial_state_path: Path, task, xr, np, pd):
     for name in input_variables:
         source = state[name]
         target = output[name]
-        if "batch" in source.dims:
-            source = source.isel(batch=0, drop=True)
         if "time" in target.dims:
+            if "batch" in source.dims:
+                source = source.isel(batch=0, drop=True)
             source = source.transpose(*[dim for dim in target.dims if dim != "batch"])
             values = np.full(target.shape, np.nan, dtype="float32")
             values[:, :2] = source.values[None]
@@ -172,6 +172,10 @@ def inject_initial_state(template, initial_state_path: Path, task, xr, np, pd):
                 coords={dim: target.coords[dim] for dim in target.dims if dim in target.coords},
             )
         else:
+            if "batch" in source.dims and "batch" not in target.dims:
+                source = source.isel(batch=0, drop=True)
+            elif "batch" in target.dims and "batch" not in source.dims:
+                source = source.expand_dims(batch=target.coords["batch"])
             source = source.transpose(*target.dims)
             output[name] = xr.DataArray(
                 source.values.astype("float32"),
