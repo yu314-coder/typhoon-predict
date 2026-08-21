@@ -192,6 +192,77 @@ Download the archive from the [Trackformer 1.2 release](https://github.com/yu314
 verify its SHA-256 value shown in the release notes, and extract it outside the
 Git checkout.
 
+## Python Inference
+
+The repository now includes a checkpoint-compatible inference module in
+[`trackformer_1_2.py`](trackformer_1_2.py). It loads both released neural
+seeds and averages them as one Trackformer 1.2 model. Install the runtime
+dependencies with:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+Load from an extracted GitHub Release bundle:
+
+```python
+import numpy as np
+from trackformer_1_2 import Trackformer12, local_position_to_latlon, prepare_route_field
+
+model = Trackformer12.from_pretrained(
+    "/path/to/trackformer_1_2/models/trackformer_1_2",
+    device="cpu",  # use "mps" on Apple Silicon or "cuda" on NVIDIA
+)
+
+# These arrays must be constructed from issue-time/current and earlier data.
+route = model.predict_route(field, context, base_position)
+intensity = model.predict_intensity(causal_features, anchor_structure)
+
+latitude, longitude = local_position_to_latlon(
+    route["position_100km"], issue_latitude, issue_longitude
+)
+```
+
+`Trackformer12.from_pretrained()` can also download the same files from the
+[Hugging Face model repository](https://huggingface.co/euler314/typhoon-predict)
+when `model_root` is omitted:
+
+```python
+from trackformer_1_2 import Trackformer12
+model = Trackformer12.from_pretrained(device="cuda")
+```
+
+The exact public tensor contract is:
+
+| API input | Shape | Meaning |
+|---|---:|---|
+| `field` | `[B, 6, 25, 61]` | normalized SLP/H500 grids ordered as current, -12 h, -24 h pairs |
+| `context` | `[B, 647]` | causal whole-Pacific context used by the released route checkpoint |
+| `base_position` | `[B, 20, 2]` | cumulative local 100-km displacement before route correction |
+| `causal_features` | `[B, 1020]` | exact pre-residual causal structure features |
+| `anchor_structure` | `[B, 20, 15]` | frozen causal anchor: vmax, pressure, RMW, R34/R50/R64 quadrants |
+| `ocean_features` | `[B, 66]` | current/-12 h/-24 h OHC/D26/D20 summary for the optional calibration |
+
+Use `prepare_route_field(slp, hgt500, ...)` when the three SLP and 500-hPa
+height grids are still in physical units. Use
+`examples/predict_trackformer_1_2.py` to run an `.npz` issue packet:
+
+```bash
+python examples/predict_trackformer_1_2.py \
+  --input issue_packet.npz \
+  --output forecast.npz \
+  --model-root /path/to/models/trackformer_1_2
+```
+
+The optional `predict_ocean_structure(...)` method returns the separately
+validated causal OHC/D26/D20 calibration around the frozen 1.2.26 anchor. It
+is intentionally returned as a separate result and is not silently stacked
+on the neural intensity residual head; stacking them would be a new,
+unvalidated model. The wrapper does not include a raw-data downloader because
+the released feature tensors require source-specific preprocessing and
+quality/availability masks. This keeps the issue-time boundary auditable and
+prevents future or official forecast fields from entering by accident.
+
 ## Historical Releases
 
 [Trackformer 1.1](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.1)
