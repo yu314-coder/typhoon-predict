@@ -99,6 +99,35 @@ The data families are observations, analyses, reanalysis summaries, and static
 geography. They are not agency forecast products. Missing radius labels are
 masked rather than converted to zero.
 
+## Raw Data Checklist
+
+The public Python wrapper consumes a prepared issue packet; it is intentionally
+not a raw-data downloader. To build that packet for an existing storm, prepare
+the following data using an observation or analysis timestamp no later than
+`t0`:
+
+| Data family | Required content | Used for |
+|---|---|---|
+| Target and nearby storms | target position/intensity history, nearby observed storm positions and maximum winds, timestamps, and optional radius labels | track window, motion, interaction, and structure anchor |
+| Atmospheric analysis | physical SLP/PRMSL and 500-hPa geopotential at `t0`, `t-6 h`, `t-12 h` on the `90–240E`, `0–60N`, 2.5-degree route grid | route field and synoptic context |
+| Steering analysis | `[H500, U850, V850, U500, V500, U200, V200]` current and previous analysis fields with latitude/longitude grids | Pacific-High, ridge, shear, and steering context |
+| Storm-centred analysis | the four-channel decoded DLM4 patches at `t0`, `t-12 h`, `t-24 h` | causal wind, pressure, and structure features |
+| Sea surface temperature | one-channel storm-centred SST patches at `t0`, `t-12 h`, `t-24 h` plus availability masks | intensity and radius features |
+| Ocean calibration (optional) | 22-value summaries for current, `t-12 h`, and `t-24 h` OHC/D26/D20 conditions | separate optional structure calibration |
+| Static geography | land-sea mask, coast distance, terrain/land-cover samples, and the released geographic grids | landfall and coastal behavior |
+
+Use the same variable units and channel order used during training. Preserve a
+validity mask for every missing analysis, SST, ocean, or context block. Do not
+fill a missing future frame with a later analysis, and do not substitute an
+agency forecast for an unavailable analysis. IBTrACS best-track rows after
+`t0` belong in the verification file, never in the input packet.
+
+For a pre-genesis experiment, use the same atmospheric, ocean, nearby-system,
+and geography inputs, but provide a candidate location and a clearly labeled
+persistence/trend history. This is a candidate forecast only: Trackformer 1.2
+does not autonomously search the whole basin for genesis without a candidate
+seed or a separately trained genesis head.
+
 ## Causal Input Contract
 
 This section is the authoritative timing and coordinate contract. The names
