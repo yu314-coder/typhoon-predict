@@ -1,0 +1,2 @@
+weathernext @ git+https://github.com/google-deepmind/weathernext.git@v0.3.0
+h5netcdf>=1.3
