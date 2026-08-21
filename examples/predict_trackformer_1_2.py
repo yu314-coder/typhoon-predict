@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the public Trackformer 1.2 API on a causal issue packet.
+"""Run the public Trackformer 1.2.28 API on a causal issue packet.
 
 The NPZ must contain either the route group:
     field [B,6,25,61], context [B,647], base_position [B,20,2]

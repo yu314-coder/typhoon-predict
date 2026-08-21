@@ -1,8 +1,29 @@
 {
-  "comparison": "Trackformer 1.1 vs Trackformer 1.2, matched 100-storm held-out test",
+  "comparison": "Trackformer 1.1 vs Trackformer 1.2.28, matched 100-storm held-out test",
   "storm_count": 100,
   "issue_rule": "sorted common storms with current, t-12 h, and t-24 h causal analysis snapshots; earliest available test initialization per storm",
-  "leads_hours": [6, 12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84, 90, 96, 102, 108, 114, 120],
+  "leads_hours": [
+    6,
+    12,
+    18,
+    24,
+    30,
+    36,
+    42,
+    48,
+    54,
+    60,
+    66,
+    72,
+    78,
+    84,
+    90,
+    96,
+    102,
+    108,
+    114,
+    120
+  ],
   "input_policy": {
     "weather": "current, t-12 h, and t-24 h analysis fields only",
     "track_history": "observed history at or before each issue time",
@@ -24,11 +45,11 @@
       "rmw_mae_all_leads_km": 26.396,
       "r34_mae_all_leads_km": 57.253
     },
-    "trackformer_1_2": {
+    "trackformer_1_2_28": {
       "mean_track_error_km_all_leads": 398.419,
       "mean_track_error_km_120h": 808.607,
       "median_track_error_km_all_leads": 305.711,
-      "p90_track_error_km_all_leads": 874.770,
+      "p90_track_error_km_all_leads": 874.77,
       "wind_mae_120h_kt": 18.509,
       "pressure_mae_120h_hpa": 13.637,
       "rmw_mae_120h_km": 33.035,
@@ -40,9 +61,20 @@
     }
   },
   "interpretation": {
-    "better_at_120h": ["trackformer_1_2 wind", "trackformer_1_2 pressure"],
-    "better_all_leads": ["trackformer_1_2 track", "trackformer_1_2 wind", "trackformer_1_2 pressure", "trackformer_1_2 R34"],
-    "not_better_at_120h": ["trackformer_1_2 RMW", "trackformer_1_2 R34"],
-    "claim_boundary": "This matched benchmark does not support a claim that Trackformer 1.2 wins every output."
+    "better_at_120h": [
+      "trackformer_1_2_28 wind",
+      "trackformer_1_2_28 pressure"
+    ],
+    "better_all_leads": [
+      "trackformer_1_2_28 track",
+      "trackformer_1_2_28 wind",
+      "trackformer_1_2_28 pressure",
+      "trackformer_1_2_28 R34"
+    ],
+    "not_better_at_120h": [
+      "trackformer_1_2_28 RMW",
+      "trackformer_1_2_28 R34"
+    ],
+    "claim_boundary": "This matched benchmark does not support a claim that Trackformer 1.2.28 wins every output."
   }
 }

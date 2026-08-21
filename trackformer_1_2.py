@@ -1,4 +1,4 @@
-"""Public Trackformer 1.2 inference API.
+"""Public Trackformer 1.2.28 inference API.
 
 The release checkpoints are trained on causal issue-time inputs.  This module
 does not download or accept JMA/JTWC/ECMWF/GFS/GEFS forecast products.  It
@@ -32,6 +32,7 @@ from scipy.ndimage import maximum_filter, minimum_filter
 LEADS = 20
 LEAD_HOURS = tuple(range(6, 121, 6))
 STRUCTURE_DIM = 15
+MODEL_VERSION = "1.2.28"
 ROUTE_CONTEXT_DIM = 647
 INTENSITY_FEATURE_DIM = 1020
 INTENSITY_INPUT_DIM = 1320
@@ -868,8 +869,8 @@ def build_causal_structure_features(
 def build_causal_anchor_structure(observed_structure: np.ndarray) -> np.ndarray:
     """Build a causal persistence/trend anchor when no incumbent is supplied.
 
-    This is a documented fallback, not the private frozen Trackformer 1.2.26
-    anchor used to train the released residual head.  Supply the real anchor
+    This is a documented fallback, not the private frozen incumbent anchor
+    used to train the released residual head. Supply the real anchor
     to ``predict_intensity`` when reproducing the trained residual pipeline.
     ``observed_structure`` is physical ``[B, 3, 15]`` history ordered oldest to
     newest, with columns ``vmax, pressure, RMW, R34/R50/R64``.
@@ -996,7 +997,7 @@ class _ResidualCurveModel(nn.Module):
 
 
 class Trackformer12:
-    """Load and run the released Trackformer 1.2 causal members."""
+    """Load and run the released Trackformer 1.2.28 causal members."""
 
     def __init__(self, model_root: str | Path, device: str | torch.device | None = None):
         self.model_root = self._resolve_root(Path(model_root))
@@ -1050,7 +1051,7 @@ class Trackformer12:
             return path
         if nested.exists():
             return nested.parent
-        raise FileNotFoundError(f"could not find Trackformer 1.2 manifest below {path}")
+        raise FileNotFoundError(f"could not find Trackformer {MODEL_VERSION} manifest below {path}")
 
     @classmethod
     def from_pretrained(cls, model_root: str | Path | None = None, repo_id: str = "euler314/typhoon-predict", device: str | torch.device | None = None) -> "Trackformer12":
@@ -1132,7 +1133,7 @@ class Trackformer12:
         ``causal_features`` is the exact pre-residual 1,020-dimensional vector
         built from current/past observations and analysis summaries.  The
         ``anchor_structure`` is a physical ``[B, 20, 15]`` frozen causal
-        Trackformer 1.2.26 curve ordered as ``vmax, pressure, RMW, R34[4],
+        frozen causal curve ordered as ``vmax, pressure, RMW, R34[4],
         R50[4], R64[4]``.
         """
         causal_features = _batch(causal_features, (INTENSITY_FEATURE_DIM,), "causal_features")
@@ -1155,7 +1156,7 @@ class Trackformer12:
         """Apply the released causal OHC/D26/D20 calibration to the anchor.
 
         This is a separately validated calibration head trained around the
-        frozen 1.2.26 structure anchor.  It is intentionally returned as its
+        frozen incumbent structure anchor. It is intentionally returned as its
         own forecast rather than silently stacking it on the neural residual
         head, which would be an unvalidated model change.
         """
