@@ -180,13 +180,14 @@ models/trackformer_1_2/
   trackformer_1_2_intensity_seed1.pt
   trackformer_1_2_ocean_structure.joblib
   trackformer_1_2_feature_stats.npz
+  trackformer_1_2_route_context_stats.npz
+  trackformer_1_2_track_stats.npz
+  trackformer_1_2_system_context_stats.npz
 ```
 
 The bundle uses native PyTorch checkpoints, NumPy statistics, and a joblib
 calibration artifact. GGUF is not an appropriate interchange format for this
-CNN/Transformer weather model. The public source branch does not yet provide a
-stable one-line Trackformer 1.2 inference wrapper; use the manifest and the
-feature contract when integrating the native artifacts.
+CNN/Transformer weather model.
 
 Download the archive from the [Trackformer 1.2 release](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.2),
 verify its SHA-256 value shown in the release notes, and extract it outside the
@@ -194,10 +195,12 @@ Git checkout.
 
 ## Python Inference
 
-The repository now includes a checkpoint-compatible inference module in
+The repository includes a checkpoint-compatible inference module in
 [`trackformer_1_2.py`](trackformer_1_2.py). It loads both released neural
-seeds and averages them as one Trackformer 1.2 model. Install the runtime
-dependencies with:
+seeds and averages them as one Trackformer 1.2 model. The same module now
+publishes the feature constructors used to build the tensor contracts, rather
+than requiring callers to reverse-engineer the training code. Install the
+runtime dependencies with:
 
 ```bash
 python -m pip install -r requirements.txt
@@ -207,7 +210,12 @@ Load from an extracted GitHub Release bundle:
 
 ```python
 import numpy as np
-from trackformer_1_2 import Trackformer12, local_position_to_latlon, prepare_route_field
+from trackformer_1_2 import (
+    Trackformer12, build_base_position, build_route_context,
+    build_nearby_interaction_features, build_route_geography_features,
+    build_route_kinematic_features, build_route_system_features,
+    build_synoptic_features, local_position_to_latlon, prepare_route_field,
+)
 
 model = Trackformer12.from_pretrained(
     "/path/to/trackformer_1_2/models/trackformer_1_2",
@@ -215,6 +223,13 @@ model = Trackformer12.from_pretrained(
 )
 
 # These arrays must be constructed from issue-time/current and earlier data.
+# build_route_context returns the raw 647-feature vector; the loader applies
+# the released train-only route normalization automatically.
+context = build_route_context(
+    synoptic_features, system_features, interaction_features,
+    geography_features, kinematic_features, base_route_100km,
+)
+base_position = build_base_position(base_route_100km)
 route = model.predict_route(field, context, base_position)
 intensity = model.predict_intensity(causal_features, anchor_structure)
 
@@ -242,6 +257,85 @@ The exact public tensor contract is:
 | `causal_features` | `[B, 1020]` | exact pre-residual causal structure features |
 | `anchor_structure` | `[B, 20, 15]` | frozen causal anchor: vmax, pressure, RMW, R34/R50/R64 quadrants |
 | `ocean_features` | `[B, 66]` | current/-12 h/-24 h OHC/D26/D20 summary for the optional calibration |
+
+### Published Feature Constructors
+
+The constructors below are the supported bridge from causal source arrays to
+the tensor contract. Every time axis is explicitly retrospective: route
+analysis frames are `t0, t-6 h, t-12 h`; structure patches are `t0, t-12 h,
+t-24 h`; and labels after the issue time are never accepted as inputs.
+
+| Constructor | Output | Purpose |
+|---|---:|---|
+| `prepare_route_field(slp, hgt500)` | `[B,6,25,61]` | normalize physical PRMSL/H500 analysis grids |
+| `build_synoptic_features(...)` | `[B,270]` | causal low-center and 500-hPa ridge descriptors |
+| `build_route_system_features(...)` | `[B,46]` | causal Pacific-High, steering, and local analysis context |
+| `build_nearby_interaction_features(...)` | `[B,16]` | causal nearby observed-storm interaction context |
+| `build_route_geography_features(...)` | `[B,224]` | land, coast, buffer, and terrain values along a route |
+| `build_route_kinematic_features(...)` | `[B,11]` | issue-time position, heading, speed, turn, and acceleration |
+| `build_route_context(...)` | `[B,647]` | concatenate the exact route context |
+| `build_causal_structure_features(...)` | `[B,1020]` | construct the full wind/pressure/RMW/radius feature vector |
+| `build_intensity_context_features(...)` | `[B,183]` | concatenate basin, nearby-system, and global context |
+| `build_ocean_features(summary)` | `[B,66]` | flatten current/-12 h/-24 h 22-value ocean summaries |
+| `build_terrain_samples(...)` | `[B,168]` | six causal land/sea samples used by structure |
+
+The model bundle also contains `trackformer_1_2_route_context_stats.npz`,
+`trackformer_1_2_track_stats.npz`, and
+`trackformer_1_2_system_context_stats.npz`. `Trackformer12.predict_route`
+applies the route normalization automatically when passed the raw output of
+`build_route_context`.
+
+For example, the route-side construction is:
+
+```python
+stats = model.system_context_stats
+system = build_route_system_features(
+    ncep_current_7ch, ncep_previous_7ch, ncep_lat, ncep_lon,
+    issue_latitude, issue_longitude, feature_mean=stats["system_mean"],
+    feature_std=stats["system_std"],
+)
+interaction = build_nearby_interaction_features(
+    nearby_latitude, nearby_longitude, nearby_vmax, nearby_age_hours,
+    issue_latitude, issue_longitude,
+    feature_mean=stats["interaction_mean"],
+    feature_std=stats["interaction_std"],
+)
+base_position = build_base_position(base_route_100km)
+synoptic = build_synoptic_features(
+    slp_t0_tminus6_tminus12, h500_t0_tminus6_tminus12,
+    pressure_lat, pressure_lon, issue_latitude, issue_longitude,
+)
+geography = build_route_geography_features(
+    base_position, issue_latitude, issue_longitude,
+    terrain_lat, terrain_lon, terrain_features, terrain_feature_names,
+)
+kinematic = build_route_kinematic_features(
+    current_motion_100km, previous_motion_100km,
+    issue_latitude, issue_longitude,
+)
+context = build_route_context(
+    synoptic, system, interaction, geography, kinematic, base_route_100km,
+)
+route = model.predict_route(field, context, base_position)
+```
+
+For intensity, call `build_causal_structure_features(...)` with the three
+decoded DLM4 analysis patches, three SST patches, the six-point terrain sample,
+and the 183-feature result of `build_intensity_context_features(...)`. Pass
+`model.track_mean` and `model.track_std` so the physical observed track is
+encoded exactly. Then call `model.predict_intensity(features, anchor)`. The
+`build_causal_anchor_structure(observed_structure)` helper is a causal
+persistence/trend fallback only; it is not the frozen incumbent anchor and
+must be labeled as such in a benchmark.
+
+Two trained inputs are frozen upstream members rather than standalone public
+neural heads: the route model's incumbent route and the intensity model's
+20-lead structure anchor. If those exact causal arrays are available, pass
+them directly. For a fully causal smoke run without them,
+`build_kinematic_base_position` and `build_causal_anchor_structure` provide
+explicit persistence/trend fallbacks. They are not presented as reproducing
+the hidden incumbent members and should be labeled as fallback inputs in any
+benchmark.
 
 Use `prepare_route_field(slp, hgt500, ...)` when the three SLP and 500-hPa
 height grids are still in physical units. Use
