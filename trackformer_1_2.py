@@ -4,9 +4,9 @@ The release checkpoints are trained on causal issue-time inputs.  This module
 does not download or accept JMA/JTWC/ECMWF/GFS/GEFS forecast products.  It
 expects the same preprocessed arrays used by the released checkpoints:
 
-* route: a six-channel [SLP, 500-hPa height] analysis field for three times,
-  a 647-dimensional causal context vector, and a 20-step base route in 100-km
-  local displacement units;
+* route: a six-channel [SLP, 500-hPa height] analysis field at t0, t-6 h, and
+  t-12 h, a 647-dimensional causal context vector, and a 20-step base route
+  in 100-km local displacement units;
 * intensity: the 1,020-dimensional causal feature vector and the frozen
   20-lead physical anchor structure;
 * ocean structure calibration: the 66-dimensional three-time ocean summary,
@@ -38,6 +38,11 @@ INTENSITY_INPUT_DIM = 1320
 OCEAN_FEATURE_DIM = 66
 FIELD_HEIGHT = 25
 FIELD_WIDTH = 61
+ROUTE_LATITUDES = np.arange(60.0, -0.1, -2.5, dtype="float32")
+ROUTE_LONGITUDES = np.arange(90.0, 240.1, 2.5, dtype="float32")
+ROUTE_SYSTEM_CHANNELS = (
+    "hgt500", "uwnd850", "vwnd850", "uwnd500", "vwnd500", "uwnd200", "vwnd200",
+)
 ROUTE_SYNOPTIC_DIM = 270
 ROUTE_SYSTEM_DIM = 46
 ROUTE_INTERACTION_DIM = 16
@@ -88,10 +93,13 @@ def prepare_route_field(
     """Encode physical three-time SLP/H500 analysis grids for the route head.
 
     ``slp`` and ``hgt500`` are physical arrays with shape ``[B, 3, H, W]``.
-    The channel order is ``SLP_t0, H500_t0, SLP_t1, H500_t1, SLP_t2,
-    H500_t2``.  Missing-frame masks are 0/1 arrays with shape ``[B, 3]`` or
-    ``[B, 3, 1, 1]``.  The route checkpoint was trained with SLP in hPa and
-    H500 in geopotential metres.
+    The three frames are ordered ``t0, t-6 h, t-12 h``. The output channel
+    order is ``SLP_t0, H500_t0, SLP_t-6, H500_t-6, SLP_t-12, H500_t-12``.
+    The trained route grid is ``ROUTE_LATITUDES`` x ``ROUTE_LONGITUDES``:
+    25 descending latitudes from 60N to 0N and 61 longitudes from 90E to
+    240E, both at 2.5 degrees. Missing-frame masks are 0/1 arrays with shape
+    ``[B, 3]`` or ``[B, 3, 1, 1]``. The route checkpoint was trained with SLP
+    in hPa and H500 in geopotential metres.
     """
 
     slp = _batch(slp, (3, slp.shape[-2], slp.shape[-1]) if np.asarray(slp).ndim == 4 else (3, FIELD_HEIGHT, FIELD_WIDTH), "slp")
@@ -491,8 +499,22 @@ def build_route_system_features(
     valid: np.ndarray | float = 1.0,
     feature_mean: np.ndarray | None = None,
     feature_std: np.ndarray | None = None,
+    channel_names: Iterable[str] | None = None,
 ) -> np.ndarray:
-    """Build the 46-feature causal Pacific-High/system context block."""
+    """Build the 46-feature causal Pacific-High/system context block.
+
+    The seven input channels must be ordered as
+    ``[H500, U850, V850, U500, V500, U200, V200]``. Pass ``channel_names``
+    when loading named arrays to validate that order explicitly.
+    """
+
+    if channel_names is not None:
+        supplied = tuple(str(name) for name in channel_names)
+        if supplied != ROUTE_SYSTEM_CHANNELS:
+            raise ValueError(
+                "analysis channels must be ordered as "
+                f"{ROUTE_SYSTEM_CHANNELS}, got {supplied}"
+            )
 
     current = np.asarray(analysis_field, dtype="float32")
     previous = np.asarray(previous_analysis_field, dtype="float32")
@@ -1198,7 +1220,8 @@ class Trackformer12:
 
 __all__ = [
     "FIELD_HEIGHT", "FIELD_WIDTH", "INTENSITY_FEATURE_DIM", "INTENSITY_INPUT_DIM", "LEADS", "LEAD_HOURS",
-    "OCEAN_FEATURE_DIM", "ROUTE_CONTEXT_DIM", "STRUCTURE_DIM", "Trackformer12",
+    "OCEAN_FEATURE_DIM", "ROUTE_CONTEXT_DIM", "ROUTE_LATITUDES", "ROUTE_LONGITUDES",
+    "ROUTE_SYSTEM_CHANNELS", "STRUCTURE_DIM", "Trackformer12",
     "build_base_position", "build_causal_anchor_structure", "build_causal_structure_features",
     "build_intensity_context_features", "build_kinematic_base_position", "build_ocean_features",
     "build_nearby_interaction_features", "build_patch_summary", "build_route_context",

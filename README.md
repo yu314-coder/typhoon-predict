@@ -52,7 +52,8 @@ The model input at forecast issue time is limited to information available at
 that time or earlier:
 
 - observed IBTrACS history;
-- current, -12 h, and -24 h atmospheric analysis summaries;
+- route atmospheric analysis at t0, -6 h, and -12 h;
+- storm-centred atmospheric patches at t0, -12 h, and -24 h;
 - current and lagged sea-surface-temperature summaries;
 - causal nearby-storm and basin/global pressure context;
 - static land/sea, coastline, terrain, land-cover, and location features.
@@ -73,13 +74,71 @@ is:
 | Observed track and intensity history | `9 x 54` track window | issue time and earlier |
 | Current storm-centred analysis | `4 x 17 x 17` | issue-time analysis |
 | Older analysis context | `8 x 17 x 17` | -12 h and -24 h analysis |
-| Whole-Pacific route state | `3 snapshots x 7 channels x latitude x longitude` | current and lagged analysis |
+| Whole-Pacific route state | `3 x 7 x 25 x 61` | route analysis at `t0`, `t-6 h`, `t-12 h` |
 | SST, nearby systems, and pressure context | causal summaries and spatial features | issue time and earlier |
 | Geography | land/sea, coastline, terrain, land-cover, and location features | static |
 
 The data families are observations, analyses, reanalysis summaries, and static
 geography. They are not agency forecast products. Missing radius labels are
 masked rather than converted to zero.
+
+## Causal Input Contract
+
+This section is the authoritative timing and coordinate contract. The names
+`t1` and `t2` are not used in the public API because they hid the actual lag.
+
+### Route Field
+
+`prepare_route_field(slp, hgt500)` expects three analysis frames in exactly
+this order: **t0, t-6 h, t-12 h**. It returns six channels in paired order:
+
+```text
+[SLP_t0, H500_t0, SLP_t-6, H500_t-6, SLP_t-12, H500_t-12]
+```
+
+The trained `[25, 61]` grid is not `100–190E` at 1.5 degrees. It is:
+
+```text
+latitude:  60.0, 57.5, ..., 0.0 N       (25 points, descending)
+longitude: 90.0, 92.5, ..., 240.0 E      (61 points, ascending)
+```
+
+The exported constants `ROUTE_LATITUDES` and `ROUTE_LONGITUDES` contain these
+vectors. The route field is an analysis-only input: use the latest analysis
+available at the issue time and its two six-hour predecessors, never a
+positive-lead forecast field.
+
+### System Features
+
+`build_route_system_features` expects the seven channels in this exact order:
+
+```text
+[H500, U850, V850, U500, V500, U200, V200]
+```
+
+The same order is available as `ROUTE_SYSTEM_CHANNELS`. If named arrays are
+used, pass `channel_names=ROUTE_SYSTEM_CHANNELS`; the constructor raises an
+error for a permutation instead of silently assigning the wrong Pacific-High
+or steering descriptors.
+
+### Structure and Intensity History
+
+The storm-centred structure patches and ocean summaries use a separate timing
+contract: **t0, t-12 h, t-24 h**. This is why the route field and structure
+patches have different lag spacing. The `causal_features` vector combines
+those patches with the issue-time-or-earlier track, nearby systems, basin and
+global analysis context, SST/ocean summaries, and static geography.
+
+### Static Geography Source
+
+The eight published geography channels are derived from the packaged static
+land/sea map, not downloaded as a forecast. The source is **Natural Earth 50m
+land plus ESA WorldCover 10m 2021 v200**. The route-query map is sampled on a
+global **0.25-degree grid** (`-60..70N`, `0..360E`, shape `521 x 1441`), with
+WorldCover sampled remotely at `48 x 48` per 3 x 3 degree tile before the
+derived coastline, multiscale land-fraction, land-buffer, and local-variance
+features are computed. `land_fraction_75/150/300km` are derived features from
+this same static map; they are not future weather fields.
 
 ## Outputs
 
@@ -251,7 +310,7 @@ The exact public tensor contract is:
 
 | API input | Shape | Meaning |
 |---|---:|---|
-| `field` | `[B, 6, 25, 61]` | normalized SLP/H500 grids ordered as current, -12 h, -24 h pairs |
+| `field` | `[B, 6, 25, 61]` | normalized SLP/H500 grids ordered as `t0,-6 h,-12 h` pairs |
 | `context` | `[B, 647]` | causal whole-Pacific context used by the released route checkpoint |
 | `base_position` | `[B, 20, 2]` | cumulative local 100-km displacement before route correction |
 | `causal_features` | `[B, 1020]` | exact pre-residual causal structure features |
@@ -261,9 +320,9 @@ The exact public tensor contract is:
 ### Published Feature Constructors
 
 The constructors below are the supported bridge from causal source arrays to
-the tensor contract. Every time axis is explicitly retrospective: route
-analysis frames are `t0, t-6 h, t-12 h`; structure patches are `t0, t-12 h,
-t-24 h`; and labels after the issue time are never accepted as inputs.
+the tensor contract. Route analysis frames are `t0, t-6 h, t-12 h`; structure
+patches and ocean summaries are `t0, t-12 h, t-24 h`; and labels after the
+issue time are never accepted as inputs.
 
 | Constructor | Output | Purpose |
 |---|---:|---|
@@ -293,6 +352,7 @@ system = build_route_system_features(
     ncep_current_7ch, ncep_previous_7ch, ncep_lat, ncep_lon,
     issue_latitude, issue_longitude, feature_mean=stats["system_mean"],
     feature_std=stats["system_std"],
+    channel_names=("hgt500", "uwnd850", "vwnd850", "uwnd500", "vwnd500", "uwnd200", "vwnd200"),
 )
 interaction = build_nearby_interaction_features(
     nearby_latitude, nearby_longitude, nearby_vmax, nearby_age_hours,
@@ -328,14 +388,18 @@ encoded exactly. Then call `model.predict_intensity(features, anchor)`. The
 persistence/trend fallback only; it is not the frozen incumbent anchor and
 must be labeled as such in a benchmark.
 
-Two trained inputs are frozen upstream members rather than standalone public
-neural heads: the route model's incumbent route and the intensity model's
-20-lead structure anchor. If those exact causal arrays are available, pass
-them directly. For a fully causal smoke run without them,
+### Frozen Upstream Inputs
+
+Two inputs are frozen upstream members rather than standalone public neural
+heads: the route model's incumbent route and the intensity model's 20-lead
+structure anchor. The exact incumbent `base_position` arrays are row-aligned
+to the private training/evaluation issue-window archive, so there is no
+universal public dump that can be safely applied to an arbitrary storm. If an
+issue packet contains the exact causal array, pass it directly. Otherwise,
 `build_kinematic_base_position` and `build_causal_anchor_structure` provide
-explicit persistence/trend fallbacks. They are not presented as reproducing
-the hidden incumbent members and should be labeled as fallback inputs in any
-benchmark.
+explicit persistence/trend fallbacks. These fallbacks do not reproduce the
+incumbent members and must be labeled as fallback inputs in any benchmark;
+they are not a way to select a favorable result.
 
 Use `prepare_route_field(slp, hgt500, ...)` when the three SLP and 500-hPa
 height grids are still in physical units. Use
