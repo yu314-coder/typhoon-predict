@@ -17,8 +17,15 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import sys
 
 import numpy as np
+
+# Keep ``python examples/predict_trackformer_1_2.py`` runnable from an
+# extracted release directory without requiring a package installation.
+PACKAGE_ROOT = Path(__file__).resolve().parents[1]
+if str(PACKAGE_ROOT) not in sys.path:
+    sys.path.insert(0, str(PACKAGE_ROOT))
 
 from trackformer_1_2 import MODEL_VERSION, Trackformer12, local_position_to_latlon
 
