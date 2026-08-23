@@ -14,7 +14,6 @@ aviation, maritime, emergency-management, or other safety-critical decisions.
 - [Live interactive demo](https://yu314-coder.github.io/typhoon-tracks.html)
 
 The public repository intentionally contains the stable 1.1 release only.
-Experimental 1.2 artifacts were withdrawn and are not part of this package.
 
 ## Causal Input Boundary
 
@@ -51,7 +50,7 @@ ordering when the structure head is enabled.
 The model repository keeps the 1.1 files under `models/trackformer_1_1/` and
 includes the matching Python modules, calibration, normalization statistics,
 and seed checkpoints. The released archive is the authoritative weight
-package; benchmark or exploratory 1.2 files are not included.
+package.
 
 ## Running It
 
