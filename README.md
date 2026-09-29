@@ -58,15 +58,17 @@ The 1.2 mean has better aggregate direction, shape and position scores on this p
 
 A new **1,473-case / 270-storm** benchmark is in progress; it is not the completed 270-case result above. Each storm contributes at most one forecast per UTC day, through +120 h. Daily errors are averaged within each storm, then the 270 storm scores receive equal weight. Selection was frozen before new inference, without filtering on forecast quality. See the [protocol](docs/daily_storm_benchmark.md) and [frozen cohort](evaluation/release_data/daily_storm_cohort.json). Results are pending; no improvement is claimed from the partial run.
 
-## Yagi pressure forecast — MP4
+## Fung-wong pressure forecast — MP4
 
-[![Play the Trackformer 1.2 Yagi pressure forecast MP4](evaluation/trackformer_1_2_yagi_video_poster.png)](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_yagi.mp4)
+[![Play the Trackformer 1.2 Fung-wong pressure forecast MP4](evaluation/trackformer_1_2_fung_wong_video_poster.png)](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_fung_wong.mp4)
 
-**[Play or download the Yagi MP4](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_yagi.mp4)** · 23 seconds · +6 to +120 h · **50-member mean**. Click the preview above to play it; inline video playback depends on the Markdown host.
+**[Play or download the Fung-wong MP4](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_fung_wong.mp4)** · 23 seconds · +6 to +120 h · **50-member mean**. Click the preview above to play it; inline video playback depends on the Markdown host.
 
-The forecast starts **3 September 2024 at 00 UTC**. Actual saved model-generated pressure with **4 hPa isobars** is shown alongside the mean forecast route and observed best track, at matching valid times and on the same geographic map. Neither route nor field is shifted or rescaled to improve alignment. The central-pressure timeline compares the forecast to **JMA best-track pressure from IBTrACS TOKYO_PRES**, not a JMA forecast.
+The forecast starts **7 November 2025 at 00 UTC**. Actual saved model-generated pressure with **4 hPa isobars** is shown alongside the mean forecast route and observed best track, at matching valid times and on the same geographic map. Neither route nor field is shifted or rescaled to improve alignment. The central-pressure timeline compares the forecast to **JMA best-track pressure from IBTrACS TOKYO_PRES**, not a JMA forecast.
 
-This deliberately selected good-route example has **114.1 km mean geographic error**, **57.2 km at +120 h**, and all 20 leads within 200 km. **Intensity is too weak: central-pressure MAE is 42.0 hPa.** Good route alignment does not imply good pressure prediction or typical performance. These geographic scores use exact observed coordinates and great-circle distances, separately from the saved local-coordinate benchmark scores above. Native-detail input history was unavailable; the regional pressure reconstruction uses 0.25° output sampling, not native resolution. Outside its dotted boundary only the saved coarse basin field is shown. [Data, source hashes and video provenance](evaluation/release_data/yagi_video.json).
+This is the user-selected **Fung-wong route-and-pressure example**, not a claim of typical or untouched-test performance. The curves follow a similar broad path but do not perfectly overlap; timing and position differences remain. Central-pressure MAE is **7.36 hPa** across 20 valid labels, with an imperfect intensification and weakening cycle. For context, mean geographic position error is 130.9 km and +120 h error is 142.3 km; those distances alone do not establish route overlap. These scores use exact observed coordinates and great-circle distances, separately from the saved local-coordinate benchmark scores above.
+
+Native-detail input history was unavailable; the regional pressure reconstruction uses 0.25° output sampling, not native resolution. **From +66 h the forecast centre is outside the fixed regional patch**, so only the saved coarse basin field is displayed there. The video labels this coverage limit; it does not invent an extended detailed core. Member-mean central pressure still comes from each model member's moving-core readout, not the minimum of the displayed mean map. [Data, source hashes and video provenance](evaluation/release_data/fung_wong_video.json).
 
 ### Architecture-only paper
 
