@@ -8,9 +8,7 @@ On the 270-case development cohort, 1.1 versus 1.2 mean-of-50 scores are: direct
 
 The route gallery now shows six explicitly selected best-performing examples from distinct storms, with the selection rule and all case scores supplied. It is not representative evidence; the aggregate bars retain all 270 cases. A separate larger benchmark has frozen **270 distinct storms / 1,473 daily issues**, with daily scores averaged per storm and storms weighted equally. Its forecasts are being computed; results are pending.
 
-The README preview now links to an interactive PRAPIROON pressure/route showcase with playback, lead selection, hover details and observed-track overlays. It uses actual saved 50-member mean pressure fields and a disclosed selected-best rule. The main paper describes only the Trackformer 1.2 architecture; the 1.1 paper remains recoverable from Git history.
-
-A separate Bavi MP4 now shows the saved 50-member mean pressure and forecast route against observations through +120 h. The clickable README poster opens the video directly. Regional coverage, the coarse-field fallback and the observed pressure source are explicitly labelled; the paper is unchanged.
+The README now shows a **Yagi MP4** in place of Bavi; the interactive PRAPIROON showcase has been removed. The Yagi forecast starts 3 September 2024 at 00 UTC and uses actual saved 50-member mean pressure fields and routes through +120 h. Geographic mean error is 114.1 km and +120 h error is 57.2 km, but central-pressure MAE is 42.0 hPa against JMA best track from IBTrACS. The video explicitly shows the intensity weakness. It is a selected good-route example, not typical skill. Regional coverage, missing native-detail history and observed pressure provenance are disclosed. The architecture-only paper and model weights are unchanged.
 
 The Surigae illustration is a single forecast issued 2026-09-27 12 UTC, with 4 hPa isobars at +6/+24/+36 h. It is separate from the 50-member historical benchmark. Reproduction data and metric definitions are included. The model weights are unchanged in this documentation revision.
 

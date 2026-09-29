@@ -58,21 +58,15 @@ The 1.2 mean has better aggregate direction, shape and position scores on this p
 
 A new **1,473-case / 270-storm** benchmark is in progress; it is not the completed 270-case result above. Each storm contributes at most one forecast per UTC day, through +120 h. Daily errors are averaged within each storm, then the 270 storm scores receive equal weight. Selection was frozen before new inference, without filtering on forecast quality. See the [protocol](docs/daily_storm_benchmark.md) and [frozen cohort](evaluation/release_data/daily_storm_cohort.json). Results are pending; no improvement is claimed from the partial run.
 
-## Bavi pressure forecast — MP4
+## Yagi pressure forecast — MP4
 
-[![Play the Trackformer 1.2 Bavi pressure forecast MP4](evaluation/trackformer_1_2_bavi_video_poster.png)](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_bavi.mp4)
+[![Play the Trackformer 1.2 Yagi pressure forecast MP4](evaluation/trackformer_1_2_yagi_video_poster.png)](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_yagi.mp4)
 
-**[Play or download the Bavi MP4](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_bavi.mp4)** · 23 seconds · +6 to +120 h · **50-member mean**. This is a video, not an interactive map. Click the preview above to play it; inline video playback depends on the Markdown host.
+**[Play or download the Yagi MP4](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_yagi.mp4)** · 23 seconds · +6 to +120 h · **50-member mean**. Click the preview above to play it; inline video playback depends on the Markdown host.
 
-The forecast starts **3 July 2026 at 06 UTC**. It shows actual saved model-generated pressure with 4 hPa isobars, the mean forecast track, the observed route, and a central-pressure timeline. Observed pressure is the local IBTrACS **USA** series, not JMA. The dotted map boundary marks the fixed regional reconstruction: after the centre leaves it, only the coarser basin field is available at that location. No detailed pressure core is invented outside coverage. This requested Bavi example is not evidence of typical skill. [Data, source hashes and video provenance](evaluation/release_data/bavi_video.json).
+The forecast starts **3 September 2024 at 00 UTC**. Actual saved model-generated pressure with **4 hPa isobars** is shown alongside the mean forecast route and observed best track, at matching valid times and on the same geographic map. Neither route nor field is shifted or rescaled to improve alignment. The central-pressure timeline compares the forecast to **JMA best-track pressure from IBTrACS TOKYO_PRES**, not a JMA forecast.
 
-## Interactive forecast pressure and observed route
-
-**[Open the interactive 1.2 pressure map](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_pressure.html)** — play or scrub from +6 to +120 h, toggle forecast/observed routes, and hover or tap to inspect pressure and position. Click the preview below to open it. GitHub and Hugging Face Markdown cannot execute the interactive controls inside the README itself.
-
-[![Open the interactive Trackformer 1.2 pressure map against the observed Prapiroon route](evaluation/trackformer_1_2_interactive_pressure_preview.png)](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_pressure.html)
-
-This **PRAPIROON forecast issued 19 July 2024 at 00 UTC** uses the actual saved **50-member mean physical pressure field**, member-mean route and central pressure. The observed route uses exact six-hour best-track coordinates from the verification archive. It is the lowest-track-error case among the declared full-map-coverage and pressure-quality candidates: 133.2 km saved-benchmark mean track error and 2.91 hPa central-pressure MAE. This is a deliberately selected showcase, not typical performance or an unbiased evaluation. The [data and selection manifest](evaluation/release_data/pressure_showcase.json) explains the choice. The mean map has not been moved to match the observed track.
+This deliberately selected good-route example has **114.1 km mean geographic error**, **57.2 km at +120 h**, and all 20 leads within 200 km. **Intensity is too weak: central-pressure MAE is 42.0 hPa.** Good route alignment does not imply good pressure prediction or typical performance. These geographic scores use exact observed coordinates and great-circle distances, separately from the saved local-coordinate benchmark scores above. Native-detail input history was unavailable; the regional pressure reconstruction uses 0.25° output sampling, not native resolution. Outside its dotted boundary only the saved coarse basin field is shown. [Data, source hashes and video provenance](evaluation/release_data/yagi_video.json).
 
 ### Architecture-only paper
 
