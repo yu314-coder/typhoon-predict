@@ -1,65 +1,113 @@
-\documentclass[10pt]{article}
-\usepackage[margin=0.9in]{geometry}
-\usepackage{amsmath,amssymb,booktabs,array,microtype,xcolor}
-\usepackage{tikz,caption,fancyhdr}
+\documentclass[10pt,letterpaper]{article}
+\usepackage[left=0.82in,right=0.82in,top=0.78in,bottom=0.78in,headsep=0.22in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,amsmath,amssymb,booktabs,array,tabularx,microtype,xcolor}
+\usepackage{tikz,caption,fancyhdr,float}
 \usetikzlibrary{arrows.meta,positioning,calc}
-\definecolor{modelteal}{HTML}{00857D}
+\definecolor{modelteal}{HTML}{007D78}
 \definecolor{baselinegray}{HTML}{65758B}
 \definecolor{ink}{HTML}{182C42}
 \definecolor{routepink}{HTML}{B31565}
-\captionsetup{font=small,labelfont=bf}
+\usepackage[colorlinks=true,linkcolor=modelteal,urlcolor=modelteal]{hyperref}
+\hypersetup{pdftitle={Trackformer 1.2: Coupled Pressure-Field Forecasting},pdfauthor={Yu Yao-Hsing},pdfsubject={Architecture, forecast dynamics and development evaluation}}
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{\small\textsc{Trackformer 1.2}}
-\fancyhead[R]{\small Architecture and development evaluation}
-\fancyfoot[C]{\small\thepage}
+\fancyhead[L]{\sffamily\footnotesize\color{ink}TRACKFORMER / 1.2}
+\fancyhead[R]{\sffamily\footnotesize\color{baselinegray}RESEARCH TECHNICAL REPORT}
+\fancyfoot[L]{\sffamily\scriptsize\color{baselinegray}Architecture and development evaluation}
+\fancyfoot[R]{\sffamily\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
 \setlength{\headheight}{14pt}
-\usepackage[colorlinks=true,linkcolor=teal,urlcolor=teal]{hyperref}
-\hypersetup{pdftitle={Trackformer 1.2: Coupled Pressure-Field Evolution for Tropical-Cyclone Forecasting},pdfauthor={Yu Yao-Hsing},pdfsubject={Architecture and development evaluation}}
-\setlength{\parskip}{4pt}
+\captionsetup{font={small},labelfont={bf,sf,color=ink},labelsep=period,justification=justified,singlelinecheck=false,skip=7pt}
 \setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt plus 1pt}
+\setlength{\intextsep}{10pt}
+\setlength{\abovedisplayskip}{7pt}
+\setlength{\belowdisplayskip}{7pt}
+\setlength{\emergencystretch}{1.5em}
+\renewcommand{\arraystretch}{1.18}
+\widowpenalty=10000
+\clubpenalty=10000
+\raggedbottom
+\makeatletter
+\renewcommand\section{\@startsection{section}{1}{0pt}{12pt}{7pt}{\sffamily\bfseries\color{ink}\fontsize{14}{17}\selectfont}}
+\renewcommand\subsection{\@startsection{subsection}{2}{0pt}{9pt}{4pt}{\sffamily\bfseries\color{ink}\fontsize{10.5}{13}\selectfont}}
+\makeatother
 \newcommand{\sample}{\mathcal{S}}
-\title{\textbf{Trackformer 1.2: Coupled Pressure-Field\\Evolution for Tropical-Cyclone Forecasting}\\[5pt]\large Architecture, Forecast Dynamics and Development Evaluation}
-\author{Yu Yao-Hsing\\\small\url{https://github.com/yu314-coder/typhoon-predict}}
-\date{Research technical report --- 29 September 2026}
+\newcommand{\reportpage}{\clearpage}
+\newcommand{\keyline}[2]{\textbf{#1}\quad #2\par}
 \begin{document}
-\maketitle
-\begin{abstract}
-Trackformer 1.2 advances an atmospheric basin state and a translating pressure
-core to forecast tropical-cyclone motion and central pressure. Recurrent
-convolutional networks evolve the fields; multiscale attention supplies
-environmental context. The reported centre is associated with a depression in
-the predicted core, and central pressure is sampled from that same field.
-Twenty six-hour transitions produce a five-day forecast. We describe the
-released architecture, input contract, update equations, objectives and
-50-member input-perturbation ensemble, illustrated by a module diagram.
-On a previously inspected development cohort of 270 forecast cases from
-90 storms, mean track error is 714.4 km for the 1.2 ensemble versus 902.3 km
-for the archived 1.1 route pipeline. These are output comparisons, not a
-controlled architecture ablation or evidence of untouched generalization.
-A selected Fung-wong example illustrates geographic route and pressure
-comparisons while retaining visible position, timing and intensity differences. All figures retain the saved
-predictions and explicitly separate aggregate evidence from selected examples.
-\end{abstract}
+\fontsize{10.3}{13}\selectfont
+\thispagestyle{empty}
+{\sffamily\small\color{modelteal}RESEARCH TECHNICAL REPORT\hfill 29 SEPTEMBER 2026\par}
+\vspace{13pt}
+{\sffamily\bfseries\color{ink}\fontsize{26}{29}\selectfont Trackformer 1.2\par}
+\vspace{4pt}
+{\sffamily\color{ink}\fontsize{17}{21}\selectfont Coupled pressure-field forecasting\par}
+\vspace{6pt}
+{\large Architecture, forecast dynamics and development evaluation\par}
+\vspace{10pt}
+{\sffamily\small Yu Yao-Hsing\hfill\href{https://github.com/yu314-coder/typhoon-predict}{Code, data and model release}\par}
+\vspace{8pt}
+{\color{modelteal}\hrule height 1pt}
+\vspace{10pt}
+{\sffamily\bfseries\color{ink}Abstract\par}
+Trackformer 1.2 forecasts tropical-cyclone motion and central pressure by
+jointly advancing a basin-scale atmospheric state and a translating pressure
+core. Recurrent convolutional networks evolve the fields, while multiscale
+attention supplies environmental context. A pressure-associated centre and
+central-pressure sample are read from the evolving core at each six-hour
+step. Twenty autoregressive transitions produce a five-day forecast.
+This report specifies the released architecture, state updates, learning
+objectives and 50-member input-perturbation policy. Across 1,473 daily forecasts
+from 270 storms, equal-storm mean track error is 471.2 km for the 1.2 ensemble
+and 798.4 km for the causal 1.1 route pipeline.
+The pipelines differ; this is not an architecture ablation or an untouched-test
+result. A selected Fung-wong case illustrates actual geographic alignment,
+intensity evolution and model-generated pressure contours, including their
+remaining errors and coverage limits.
 
-\section{Design and forecast state}
-The system is not a route predictor followed by an independently drawn pressure
-image. It evolves pressure and atmospheric states, proposes a translation of a
-storm-following frame, then associates a centre with the predicted pressure
-within that frame. Translation is learned and steering-conditioned: this is
-neither a pressure-only tracker nor a complete atmospheric numerical solver.
+\vspace{5pt}
+\begin{tabularx}{\linewidth}{@{}XXX@{}}
+\toprule
+\sffamily\bfseries Forecast horizon & \sffamily\bfseries Representation & \sffamily\bfseries Evaluation policy\\
++6 to +120 h & Basin + moving pressure core & 50 input realizations\\
+20 six-hour transitions & 21.45 million parameters & One shared set of weights\\
+\bottomrule
+\end{tabularx}
+
+\section{Overview and forecast state}
+The defining constraint is a coupled readout: the route and central pressure
+must follow the pressure core generated by the model. A learned,
+steering-conditioned proposal moves the core's reference frame; a local
+pressure association then determines the reported centre. The method is
+therefore neither a pressure-only tracker nor a complete numerical atmospheric
+solver. Its displayed pressure is a forecast field, not an independently drawn
+vortex placed along a predicted route.
 
 At step $k$, the recurrent state is
 \[
 s_k=(g_k,h^g_k,c_k,h^c_k,a_k,o_k,z_k,m_k,v_k;G,R,I,M).
 \]
-Here $g$ is the normalized eight-channel basin field; $h^g$ its memory;
-$c$ the core pressure; $h^c$ core memory; $a$ its anomaly relative to the basin;
-$o$ the core-grid origin; $z$ the associated storm centre; $m$ displacement per
-six hours; and $v$ auxiliary maximum wind. Static geography $G$, regional
-coordinates $R$, issue intensity $I$ and masks $M$ stay fixed.
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+\textbf{State} & \textbf{Meaning}\\
+$g,h^g$ & Eight normalized basin fields and basin memory.\\
+$c,h^c,a$ & Core pressure, core memory and pressure anomaly relative to the basin.\\
+$o,z,m,v$ & Core-grid origin, associated centre, six-hour motion and auxiliary wind.\\
+$G,R,I,M$ & Fixed geography, regional coordinates, issue intensity and validity masks.\\
+\bottomrule
+\end{tabularx}
 
-\begin{figure}[htbp]
+\vspace{7pt}
+\keyline{Scope.}{A research model for the Western Pacific, not an operational
+warning system. Selected examples do not establish generalization or safety.}
+\reportpage
+\section{Architecture and input contract}
+The basin and moving core share a recurrent forecast cycle, but retain separate
+spatial representations and memories. Figure~\ref{fig:architecture} shows the
+dependency structure; the operator definitions follow in Section~\ref{sec:operators}.
+\begin{figure}[H]
 \centering
 \begin{tikzpicture}[font=\small,>=Latex,
  box/.style={draw=ink!50,rounded corners=3pt,align=center,text width=4.6cm,minimum height=1.15cm,inner sep=6pt,fill=ink!3},
@@ -87,47 +135,36 @@ basin + regional pressure fields, coverage masks and auxiliary wind};
 \node[below=0.25cm of readout,align=center,font=\scriptsize,text=ink] {Shared transition repeated 20 times: +6, +12, $\ldots$, +120 h.\\
 50 perturbed input histories $\rightarrow$ 50 rollouts $\rightarrow$ separate route, pressure and common-grid field means.};
 \end{tikzpicture}
-\caption{Released model structure. The basin branch supplies environmental
-information to the moving core; motion is proposed before the pressure core determines the reported
-centre. Boxes show functional groups, not independent models. Future observations
-are excluded from inference. The ensemble contains 50 input realizations of one
-network, not 50 trained networks.}
+\caption{Coupled forecast architecture. Basin evolution supplies environmental
+fields to the moving core; the pressure-associated readout follows the motion
+proposal. All leads and ensemble members use the same trained network.}
 \label{fig:architecture}
 \end{figure}
 
-\section{Inputs, geometry and outputs}
-Nine past analyses at $-48,-42,\ldots,0$ h form a tensor of shape
-$B\times9\times8\times25\times33$. The basin spans $60$ to $0^\circ$N and
-$100$ to $180^\circ$E at $2.5^\circ$ spacing. Channels are
-\[
-[\mathrm{MSLP},Z_{500},u_{850},v_{850},u_{500},v_{500},u_{200},v_{200}],
-\]
-in hPa, metres and metres per second. Channel normalization is
-$\widetilde x_j=(x_j-\mu_j)/\sigma_j$, with the released training-only constants.
-Statistics are not refitted for each forecast.
+\subsection{Causal inputs and spatial representations}
+\begin{tabularx}{\linewidth}{@{}p{3.1cm}p{3.6cm}X@{}}
+\toprule
+\textbf{Input / state} & \textbf{Shape / sampling} & \textbf{Role and boundary}\\
+\midrule
+Basin history & $B\times9\times8\times25\times33$ & Nine analyses at $-48,-42,\ldots,0$ h; $0$--$60^\circ$N, $100$--$180^\circ$E, $2.5^\circ$ spacing.\\
+Regional history & $B\times9\times1\times121\times121$ & Issue-anchored MSLP patch, $\pm15^\circ$, sampled every $0.25^\circ$; availability mask selects native or coarse initialization.\\
+Moving core & $65\times65$; 20-km spacing & Learned pressure reconstruction over $\pm640$ km; grid spacing does not establish effective resolution.\\
+Issue state & Centre, motion, intensity, masks & Latitude/longitude, six-hour east/north displacement, wind in knots, pressure in hPa.\\
+Static channels & Four channels per grid & Latitude/90, longitude/180$-1$, land fraction and elevation/8000 m.\\
+\bottomrule
+\end{tabularx}
 
-Optional regional pressure history has shape $B\times9\times1\times121\times121$
-on an issue-anchored patch sampled every $0.25^\circ$, with offsets of
-$\pm15^\circ$. A detail-availability flag chooses native regional history or
-coarse basin pressure during initialization. The regional coordinate grid is
-still supplied when native observations are unavailable.
-
-Four static channels encode latitude/$90$, longitude/$180-1$, land fraction
-and elevation/$8000$ m. The issue state supplies latitude/longitude, east/north
-motion in km per six hours, maximum wind in knots, central pressure in hPa and
-two intensity-availability masks. Only observations and analyses at or before
-issue time may enter inference; retrospective data availability is a separate
-operational question.
-
-The internal core is a $65\times65$ grid at 20-km sampling over $\pm640$ km.
-Its field is a learned reconstruction, not native 20-km observations.
-For each of twenty leads ($6,12,\ldots,120$ h), outputs include basin fields,
-regional pressure, core pressure/coordinates, storm centre, central pressure,
-domain masks and auxiliary maximum wind. This implementation does not output
-quadrant wind radii or a resolved surface-wind map.
-
-\section{Neural modules}
-The released non-tiny architecture has 21,452,595 trainable parameters.
+Basin channels are $[\mathrm{MSLP},Z_{500},u_{850},v_{850},u_{500},v_{500},u_{200},v_{200}]$
+in hPa, metres and metres per second. Normalization uses fixed training-only
+statistics, $\widetilde x_j=(x_j-\mu_j)/\sigma_j$. Regional coordinates remain
+available when native history is missing. Only information available at or
+before issue time may enter inference; retrospective archive coverage does
+not establish operational availability. Outputs include basin and regional
+pressure, core coordinates, centre, central pressure, masks and auxiliary wind;
+there are no quadrant wind radii or resolved surface-wind maps.
+\reportpage
+\section{Neural operators}\label{sec:operators}
+The released model has 21,452,595 trainable parameters.
 \subsection{Multiresolution evolution networks}
 The basin network receives 44 channels: eight fields, 32 memory features and
 four static channels. Encoder widths are $72,144,288,432$; residual-block depths
@@ -169,7 +206,7 @@ retrieves context; a zero-initialized $64\to32$ projection adds it to basin
 memory before the transition. No separate positional embedding is added:
 geographic coordinates are already among the token inputs.
 
-\section{Observation-conditioned initialization}
+\subsection{Observation-conditioned initialization}
 Write $\sample(F,\xi)$ for bilinear field sampling. Sampling uses FP32 geometry,
 aligned corners and border padding for the basin; transported core anomalies
 use zero padding. All nine pressure histories are sampled onto the core grid
@@ -188,77 +225,73 @@ $T=\operatorname{clip}((640-\sqrt{x^2+y^2})/160,0,1)$.
 The anomaly is $a_0=c_0-\sample(g_{0,\mathrm{MSLP}},\xi_0)$.
 This compact prior is applied only at initialization. Future scalar pressure
 is not repeatedly inserted into the field.
+\reportpage
+\section{One six-hour forecast transition}
+Each step advances the basin first, proposes core motion, transports the core
+relative to that motion, and reads out position and pressure. All twenty leads
+share the same operators. Sampling $\sample(F,\xi)$ is bilinear; coordinates
+and units are explicit below.
 
-\section{One six-hour transition}
-\subsection{Basin transport}
-Learned softmax weights blend physical winds at 850, 500 and 200 hPa.
-Their initialization is $(0.4,0.4,0.2)$, not a fixed inference constraint.
-For network output $d$,
-\[
-U_k=\sum_\ell\alpha_\ell(u_\ell,v_\ell)_k+15\tanh(d_{8:10})
-\quad\mathrm{m\,s^{-1}}.
-\]
-Backtracing constructs departure coordinates $D(U_k)$ and
-\[
-g_{k+1}=\sample(g_k,D(U_k))+0.2\tanh(d_{0:8}).
-\]
-Six hours convert 1 m/s to 21.6 km. A latitude degree is treated as 111.2 km.
-A longitude degree is treated as $111.2\max(\cos\phi,0.2)$ km.
-The attention-conditioned memory is advected by the same departure grid and
-updated with new features. Tendencies are in normalized channel units.
-This semi-Lagrangian-style update is not a complete or exactly conservative
-atmospheric equation solver.
+\subsection{Environmental transport}
+Learned softmax weights blend 850-, 500- and 200-hPa winds; their initial values
+are $(0.4,0.4,0.2)$. For basin-network output $d$, the corrected flow and next
+normalized basin field are
+\begin{align}
+U_k &= \sum_\ell\alpha_\ell(u_\ell,v_\ell)_k+15\tanh(d_{8:10}),\label{eq:flow}\\
+g_{k+1} &= \sample(g_k,D(U_k))+0.2\tanh(d_{0:8}).\label{eq:basin}
+\end{align}
+$U_k$ is in m\,s$^{-1}$ and $D$ is the backtraced departure grid. Six hours
+convert 1 m\,s$^{-1}$ to 21.6 km. Coordinate conversion uses 111.2 km per
+latitude degree and $111.2\max(\cos\phi,0.2)$ km per longitude degree.
+The attention-conditioned memory follows the same advection and then a gated
+update. This transport is not an exactly conservative atmospheric solver.
 
 \subsection{Moving-frame proposal}
-A $44\to64\to3$ GELU MLP reads sampled 32-channel memory, eight basin fields,
+A $44\to64\to3$ GELU MLP reads 32 sampled memory channels, eight basin fields,
 previous motion divided by 100, and two issue-intensity masks. For output $b$,
-\[
+\begin{equation}
 m_{k+1}=0.7(21.6)U_k(z_k)+0.3m_k+100\tanh(b_{0:2}).
-\]
-This displacement, in km per six hours, defines a new origin relative to
-$z_k$. It proposes where the pressure core moves, but is not the final reported
-centre. The third output updates auxiliary wind:
+\end{equation}
+This km-per-six-hour displacement defines the proposed origin relative to
+$z_k$, not the final reported centre. Auxiliary wind becomes
 $v_{k+1}=\max(0,v_k+5b_2)$.
 
-\subsection{Relative core transport}
-The core network reads the previous pressure core, its old sampled environment,
-core memory and geography at the proposed origin. Local velocity is
+\subsection{Core transport in the moving frame}
+The core network reads previous core pressure, the old sampled environment,
+memory and geography at the proposed origin. Its local velocity is
 $U^{\rm local}=\sample(U_k)+5\tanh(d^c_{1:3})$.
-Subtracting $m_{k+1}/21.6$ removes bulk frame translation. Backward coordinates
-also account for the offset between the previous associated centre and its
-previous grid origin. On this relative departure grid $D_c$,
-\begin{align*}
+Subtracting $m_{k+1}/21.6$ removes bulk frame motion. The relative departure
+grid $D_c$ also accounts for the previous centre--origin offset:
+\begin{align}
 a_{k+1}&=\sample(a_k,D_c)+0.1d^c_0,\\
 c_{k+1}&=\sample(g_{k+1,\mathrm{MSLP}},\xi_{k+1})+Ta_{k+1}.
-\end{align*}
-Unlike the basin tendency, $d^c_0$ is not bounded by $\tanh$.
-Core memory uses the same relative sampling followed by its gated update.
+\end{align}
+The anomaly tendency $d^c_0$ is unbounded by $\tanh$. Core memory uses the same
+relative sampling followed by its gated update.
 
-\subsection{Centre association and central pressure}
-Convert core pressure to hPa: $P=\sigma_p c_{k+1}+\mu_p$.
-For cells within 300 km of the proposed origin,
-\[
-w_i=\operatorname{softmax}_i\left(-P_i/2-r_i^2/(2\,180^2)\right).
-\]
-Cells beyond 300 km are excluded. The weighted mean of cell latitude/longitude
-is $z_{k+1}$. Central pressure is the bilinear sample $\sample(P,z_{k+1})$,
-not necessarily the grid minimum. The spatial prior associates the forecast
-with this storm rather than an unrelated remote depression.
+\subsection{Pressure-associated readout}
+Convert core pressure to hPa, $P=\sigma_p c_{k+1}+\mu_p$. For cells no more
+than 300 km from the proposed origin, define
+\begin{equation}
+w_i=\operatorname{softmax}_i\!\left(-P_i/2-r_i^2/(2\,180^2)\right).
+\end{equation}
+The weighted mean of cell latitude/longitude gives $z_{k+1}$; central pressure
+is $\sample(P,z_{k+1})$, not necessarily the grid minimum. Cells outside the
+radius are excluded, reducing association with unrelated depressions.
 
-\subsection{Geographic pressure output}
-The issue-anchored regional output is
-\[
+\subsection{Geographic pressure reconstruction}
+The issue-anchored regional field is
+\begin{equation}
 \widehat p_R=\sample(g_{k+1,\mathrm{MSLP}},R)
-             +\sample(Ta_{k+1},R;\mathrm{zero\ padding}),
-\]
-then de-normalized to hPa. This basin-plus-core reconstruction is generated by
-the model itself; future observed fields and display-only vortices are not
-substituted. Its $0.25^\circ$ sampling is not proof of native resolution.
-Masks indicate valid basin coverage. Resampling and localized association mean
-the reported centre, central pressure and regional map minimum need not coincide
-exactly. A display must preserve those distinctions rather than relocate fields.
-
-\section{Autoregression and learning objectives}
+ +\sample(Ta_{k+1},R;\mathrm{zero\ padding}),
+\end{equation}
+then de-normalized to hPa. This is the model's basin-plus-core field; future
+observations or display-only vortices are never substituted. Coverage masks
+must remain visible. Resampling and local centre association mean the route,
+central pressure and displayed field minimum need not coincide exactly.
+\reportpage
+\section{Training, ensembles and reproducibility}
+\subsection{Autoregression and learning objectives}
 Inference initializes once and repeats the transition twenty times, using only
 fixed issue context and its own predicted future state. The implemented
 single-step loss is
@@ -281,7 +314,7 @@ together, without adding an independent central-pressure output head.
 Training-only normalization, storm-level split boundaries and causal input
 selection remain essential implementation constraints.
 
-\section{Single forecasts and 50-member means}
+\subsection{Single forecasts and 50-member means}
 Evaluation-mode inference is deterministic for fixed inputs and weights.
 The documented ensemble perturbs only normalized historical weather: independent
 Gaussian fields are spatially smoothed with kernels five (basin) and nine
@@ -301,38 +334,37 @@ These are perturbed-input realizations of one model, not 50 trained networks or
 learned latent samples. Spread is not automatically calibrated uncertainty.
 Member counts, perturbation settings and seed policy must accompany the outputs.
 
-\section{Source identity and use boundary}
-The public name is \textbf{Trackformer 1.2}. Its manifest retains the internal
-checkpoint identity, 1.2.73 epoch 4, and exact weight/source hashes.
-\texttt{model.py} implements environmental attention and added temporal losses;
-\texttt{baseline\_model.py} implements moving-core evolution and readout;
-\texttt{v165\_base.py} supplies sampling, evolution blocks and memories.
-All are in \texttt{models/trackformer\_1\_2\_field/}.
-
-Learned reconstructions, limited domain, input-source differences and retrospective
-availability constrain interpretation. The model remains a research artifact,
-not an operational warning system.
-
-
+\subsection{Release identity and reproducibility}
+The public model is \textbf{Trackformer 1.2}; the manifest retains internal
+checkpoint identity 1.2.73 epoch 4 and exact source/weight hashes. The following
+artifacts are distributed in the
+\href{https://github.com/yu314-coder/typhoon-predict}{release repository}:
+\begin{tabularx}{\linewidth}{@{}p{4.2cm}X@{}}
+\toprule
+\textbf{Artifact} & \textbf{Purpose}\\
+\midrule
+\texttt{model.py} & Environmental attention and additional temporal losses.\\
+\texttt{baseline\_model.py} & Moving-core evolution and pressure-associated readout.\\
+\texttt{v165\_base.py} & Sampling, multiscale evolution blocks and recurrent memory.\\
+\texttt{manifest.json} & Released grids, normalization and checkpoint/source identity.\\
+Saved evaluation arrays & 270-storm final metrics; Fung-wong route, fields and member provenance.\\
+\bottomrule
+\end{tabularx}
+Model sources are in \path{models/trackformer_1_2_field/}; evaluation arrays
+are in \path{evaluation/}. This document embeds figure coordinates and needs
+no external images. The released plotting utility regenerates the figure
+data from saved arrays; it does not perform new inference.
+\reportpage
 \section{Development evaluation}
 \label{sec:evaluation}
-\subsection{Cohort and comparison boundary}
-The completed comparison comprises \textbf{270 issue cases from 90 storms},
-with three issues per storm and twenty six-hour leads per case. The 1.2 forecast
-is the mean of 50 causal historical-input perturbations; 1.1 uses its archived
-causal route pipeline. Cases, labels and forecast leads are matched, but the
-input pipelines differ. This is not a controlled architecture ablation.
-The cohort was repeatedly inspected and includes cases outside the intended
-Western Pacific domain. It is therefore development evidence, not an untouched
-or basin-specific validation claim.
-
-The original 1.1 archive stored absolute latitude/longitude under a local-km
-array name. The reproduced comparison converts those coordinates into the same
-issue-centred local projection used by 1.2 and checks a round trip to the
-original coordinates. Its corrected 902.3-km mean replaces the superseded
-1,036.3-km score; original forecasts are preserved.
-
-\begin{figure}[htbp]
+\subsection{Matched cases, different forecast pipelines}
+The completed comparison uses \textbf{1,473 daily issues from 270 storms},
+with 20 six-hour leads per issue. Scores average leads within daily issues,
+issues within storms, then storms equally. The cohort was frozen before inference.
+Trackformer 1.2 averages 50 causal input perturbations; 1.1 uses its causal
+route pipeline. Cases and targets match, but inputs differ. This is broader
+development evidence, not an untouched test or architecture ablation.
+\begin{figure}[H]
 \centering
 \begin{tikzpicture}[x=1cm,y=1cm,font=\scriptsize]
 \begin{scope}[shift={(0,0)}]
@@ -340,15 +372,15 @@ original coordinates. Its corrected 902.3-km mean replaces the superseded
 \node[rotate=90] at (-.75,1.75) {km; lower is better};
 \draw[black!10] (0,0.0000)--(5,0.0000);
 \node[left] at (0,0.0000) {0};
-\draw[black!10] (0,1.5909)--(5,1.5909);
-\node[left] at (0,1.5909) {500};
-\draw[black!10] (0,3.1818)--(5,3.1818);
-\node[left] at (0,3.1818) {1000};
-\fill[baselinegray] (1.02,0) rectangle (1.7799999999999998,2.8710);
-\node[above] at (1.4,2.8710) {902.3};
+\draw[black!10] (0,1.7500)--(5,1.7500);
+\node[left] at (0,1.7500) {500};
+\draw[black!10] (0,3.5000)--(5,3.5000);
+\node[left] at (0,3.5000) {1000};
+\fill[baselinegray] (1.02,0) rectangle (1.7799999999999998,2.7944);
+\node[above] at (1.4,2.7944) {798.4};
 \node[below=3pt] at (1.4,0) {1.1};
-\fill[modelteal] (3.22,0) rectangle (3.98,2.2731);
-\node[above] at (3.6,2.2731) {714.4};
+\fill[modelteal] (3.22,0) rectangle (3.98,1.6492);
+\node[above] at (3.6,1.6492) {471.2};
 \node[below=3pt] at (3.6,0) {1.2 mean of 50};
 \draw[black!55] (0,3.5)--(0,0)--(5,0);
 \end{scope}
@@ -363,11 +395,11 @@ original coordinates. Its corrected 902.3-km mean replaces the superseded
 \node[left] at (0,2.0000) {40};
 \draw[black!10] (0,3.0000)--(5,3.0000);
 \node[left] at (0,3.0000) {60};
-\fill[baselinegray] (1.02,0) rectangle (1.7799999999999998,2.8110);
-\node[above] at (1.4,2.8110) {56.22};
+\fill[baselinegray] (1.02,0) rectangle (1.7799999999999998,2.5790);
+\node[above] at (1.4,2.5790) {51.58};
 \node[below=3pt] at (1.4,0) {1.1};
-\fill[modelteal] (3.22,0) rectangle (3.98,2.2410);
-\node[above] at (3.6,2.2410) {44.82};
+\fill[modelteal] (3.22,0) rectangle (3.98,1.7480);
+\node[above] at (3.6,1.7480) {34.96};
 \node[below=3pt] at (3.6,0) {1.2 mean of 50};
 \draw[black!55] (0,3.5)--(0,0)--(5,0);
 \end{scope}
@@ -401,49 +433,45 @@ original coordinates. Its corrected 902.3-km mean replaces the superseded
 \node[font=\small,rotate=90] at (-1.05,1.850) {Mean position error (km)};
 \begin{scope}
 \clip (0,0) rectangle (12.2,3.7);
-\draw[baselinegray,dashed,thick] (0.0000,0.1347)--(0.6421,0.2659)--(1.2842,0.4048)--(1.9263,0.5515)--(2.5684,0.7090)--(3.2105,0.8669)--(3.8526,1.0296)--(4.4947,1.1938)--(5.1368,1.3637)--(5.7789,1.5348)--(6.4211,1.7135)--(7.0632,1.8929)--(7.7053,2.0728)--(8.3474,2.2493)--(8.9895,2.4266)--(9.6316,2.6085)--(10.2737,2.7982)--(10.9158,2.9886)--(11.5579,3.1884)--(12.2000,3.3915);
-\draw[modelteal,solid,thick] (0.0000,0.1373)--(0.6421,0.2516)--(1.2842,0.3709)--(1.9263,0.4892)--(2.5684,0.6140)--(3.2105,0.7368)--(3.8526,0.8550)--(4.4947,0.9752)--(5.1368,1.0968)--(5.7789,1.2152)--(6.4211,1.3405)--(7.0632,1.4703)--(7.7053,1.6031)--(8.3474,1.7378)--(8.9895,1.8779)--(9.6316,2.0217)--(10.2737,2.1710)--(10.9158,2.3276)--(11.5579,2.4906)--(12.2000,2.6518);
+\draw[baselinegray,dashed,thick] (0.0000,0.1223)--(0.6421,0.2469)--(1.2842,0.3744)--(1.9263,0.5056)--(2.5684,0.6418)--(3.2105,0.7768)--(3.8526,0.9131)--(4.4947,1.0510)--(5.1368,1.1916)--(5.7789,1.3369)--(6.4211,1.4867)--(7.0632,1.6402)--(7.7053,1.8006)--(8.3474,1.9621)--(8.9895,2.1304)--(9.6316,2.3032)--(10.2737,2.4856)--(10.9158,2.6699)--(11.5579,2.8565)--(12.2000,3.0458);
+\draw[modelteal,solid,thick] (0.0000,0.0893)--(0.6421,0.1686)--(1.2842,0.2389)--(1.9263,0.3043)--(2.5684,0.3683)--(3.2105,0.4346)--(3.8526,0.5041)--(4.4947,0.5762)--(5.1368,0.6539)--(5.7789,0.7389)--(6.4211,0.8312)--(7.0632,0.9296)--(7.7053,1.0329)--(8.3474,1.1399)--(8.9895,1.2537)--(9.6316,1.3707)--(10.2737,1.4963)--(10.9158,1.6281)--(11.5579,1.7666)--(12.2000,1.9085);
 \end{scope}
 \draw[baselinegray,dashed,thick] (0.250,-1.23)--(0.800,-1.23);
 \node[anchor=west] at (0.900,-1.23) {Trackformer 1.1};
 \draw[modelteal,solid,thick] (6.350,-1.23)--(6.900,-1.23);
 \node[anchor=west] at (7.000,-1.23) {Trackformer 1.2: mean of 50};
 \end{tikzpicture}
-\caption{Matched development comparison. Top: all-lead position and heading
-errors. Bottom: mean position error at each lead. Distances use the saved
-local-km projection. Heading uses 5,382 common valid steps where truth and
-both forecasts move more than 1 km. All 270 cases remain in the position
-scores, including poor and out-of-domain cases. No uncertainty intervals are
-available in these saved results.}
+\caption{Completed equal-storm development comparison, with every daily issue
+retained. Positions use a common issue-centred local-km projection. Heading
+uses common steps where truth and both models move more than 1 km.
+No uncertainty intervals are claimed.}
 \label{fig:benchmark}
 \end{figure}
+\subsection{Interpretation: alignment, not shape alone}
+Mean position error improves by 41.0\%, from 798.4 to 471.2 km; +120 h error
+falls from 1,646.4 to 1,031.6 km. At +6 h, error is 48.3 versus 66.1 km.
+Centred shape similarity is 0.8837 versus 0.7544 for 1.1; normalized
+Fr\'echet path similarity is 0.6560 versus 0.5345. These are separate
+measures, not accuracy percentages or evidence of a win on every storm.
 
-\subsection{Position, direction and shape are different quantities}
-Mean local-coordinate position error improves by 20.8\%, from 902.3 to
-714.4 km; +120 h error is 1,833.2 versus 1,433.4 km. The +6 h error is
-\emph{slightly worse} for 1.2 (74.2 versus 72.8 km), so the aggregate is not
-an improvement at every lead. Mean heading error is 56.22 versus 44.82 degrees.
-Centred route-shape similarity is 0.7273 versus 0.8249; normalized
-Fr\'echet path similarity is 0.4983 versus 0.5727. These metrics are not
-accuracy percentages and are not combined into a weighted rank.
+Actual alignment requires predicted and observed positions to coincide at the
+same valid times. Removing translation and scale can make displaced routes
+look similar; the shape score cannot replace geographic error or an unshifted
+overlay. Path similarity responds to displacement but is not a strict
+same-time distance.
 
-\textbf{Actual route alignment is the primary geographic criterion:}
-predicted and observed positions should coincide at the same valid times.
-The shape score removes translation and scale, so it can remain high for a
-geographically displaced forecast. It must not substitute for position error
-or an unshifted route overlay. The path score responds to displacement but
-is not a strict same-time distance.
-
-\clearpage
-\section{Selected Fung-wong case: alignment and intensity}
-The Fung-wong forecast is issued at 00 UTC on 7 November 2025, using the same
-saved 50-member policy. Figure~\ref{fig:fungwong} overlays predictions and exact
-six-hour observed coordinates without translating, rotating or scaling either
-route. Mean great-circle error is 130.9 km, +120 h error is 142.3 km and the
-maximum is 198.3 km: all twenty leads are within 200 km. These geographic
-errors are a separate diagnostic from the preceding local-coordinate scores.
-
-\begin{figure}[htbp]
+\keyline{Pressure coverage.}{The 1.2 central-pressure MAE is 12.62 hPa on
+40 storms with valid labels; basin MSLP MAE is 2.72 hPa on 270 storms.
+No matched 1.1 pressure comparison is available. All 1,473 saved forecast
+hashes were verified; the earlier 270-case/90-storm study remains separate.}
+\reportpage
+\section{Fung-wong: route alignment and intensity}
+The selected forecast begins at 00 UTC on 7 November 2025 and uses the saved
+50-member policy. Figure~\ref{fig:fungwong} compares exact six-hour positions
+without translating, rotating or scaling either route. Great-circle errors
+are 130.9 km on average, 142.3 km at +120 h and 198.3 km at maximum; all 20
+leads are within 200 km. These are separate from the benchmark's local-km scores.
+\begin{figure}[H]
 \centering
 \begin{tikzpicture}[x=1cm,y=1cm,font=\scriptsize]
 \node[font=\small\bfseries,align=center] at (6.100,7.800) {Fung-wong: geographic routes, +0 to +120 h};
@@ -569,10 +597,15 @@ The companion MP4 shows the actual common-grid model pressure fields and
 4-hPa isobars; none of the pressure fields is moved to match observations.}
 \label{fig:fungwong}
 \end{figure}
-
-\begin{figure}[htbp]
+The broad curves align, but position, timing and intensity differences remain.
+This user-selected development example is not representative performance.
+The \href{https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_fung_wong.mp4}{companion MP4}
+animates the saved fields; no additional inference or route adjustment is used.
+\reportpage
+\section{Pressure-field interpretation and limitations}
+\begin{figure}[H]
 \centering
-\begin{tikzpicture}[x=1cm,y=1cm,font=\scriptsize]
+\begin{tikzpicture}[scale=0.9,x=1cm,y=1cm,font=\scriptsize]
 \node[font=\small\bfseries,align=center] at (5.750,8.900) {Fung-wong: model-mean MSLP at +48 h};
 \draw[black!10] (0.676,0)--(0.676,8.5);
 \node[below=3pt] at (0.676,0) {124};
@@ -639,59 +672,36 @@ The companion MP4 shows the actual common-grid model pressure fields and
 \draw[routepink,solid,thick] (6.000,-1.23)--(6.550,-1.23);
 \node[anchor=west] at (6.650,-1.23) {Forecast route to +48 h};
 \end{tikzpicture}
-\caption{Unmodified saved physical ensemble-mean regional MSLP at +48 h
-(9 November 2025, 00 UTC), contoured every 4 hPa and labelled every 8 hPa.
-The source grid is sampled at $0.25^\circ$; this is not a claim of native
-resolution. Lines overlay the observed and forecast paths only through this
-valid time. The figure uses the portion inside the fixed regional patch;
-its western edge is $123^\circ$E. The map has not been shifted to match the
-observed centre, and its minimum need not equal member-mean central pressure.}
+\caption{Saved model-mean regional MSLP at +48 h (9 November 2025, 00 UTC), with 4-hPa isobars labelled every 8 hPa. Routes extend only to this valid time. The western boundary is $123^\circ$E. The field is not shifted to the observed centre; its minimum need not equal member-mean central pressure.}
 \label{fig:pressuremap}
 \end{figure}
+\subsection{Intensity labels and map coverage}
+Pressure truth is JMA best track from IBTrACS \texttt{TOKYO\_PRES}, not a JMA
+forecast. Native-detail history was unavailable; $0.25^\circ$ output sampling
+does not establish native resolution. From +66 h the centre leaves the fixed
+regional patch. The video then shows only the saved coarse basin field there,
+while the moving-core readout supplies central pressure. No detailed core is
+invented beyond coverage.
 
-\clearpage
-\subsection{Pressure and coverage limitations}
-Observed pressure is JMA best track as stored in IBTrACS \texttt{TOKYO\_PRES},
-not a JMA forecast. Native-detail input history was unavailable for this issue;
-the regional pressure field is a learned basin-plus-core reconstruction
-sampled every $0.25^\circ$, not a native-resolution forecast. Coverage masks
-and fixed regional boundaries must be retained. From +66 h the forecast
-centre leaves the fixed regional patch; the video then shows only the saved
-coarse basin field at that location. The moving-core readout still supplies
-central pressure; no detailed map core is invented outside coverage.
-The mean route and mean
-central pressure need not be the minimum of the common-grid mean field.
+There is no verified matched 1.1 pressure array for this benchmark. On the
+repeatedly inspected TIP ten-start diagnostic, 1.2 pressure MAE is worse
+(30.7 versus 20.1 hPa). Those overlapping starts are not independent tests;
+route gains do not establish an all-metric improvement.
 
-No verified same-270 1.1 pressure-prediction array is available in the route
-artifacts, so a pressure-comparison bar is not invented. On the separate,
-repeatedly inspected TIP ten-start diagnostic, central-pressure MAE is worse
-for 1.2 (30.7 versus 20.1 hPa). Overlapping issues of one storm are not ten
-independent tests. The route improvement cannot be read as an all-metric win.
+\subsection{What remains unverified}
+The completed cohort includes 40 recent and 230 historical storms (1980--1999),
+outside this checkpoint's fitting and validation years but not certified unused
+across prior experiments. Complete five-day truth excludes short remaining
+lifetimes. Historical hindcasts use a model trained on later years and
+retrospective analyses. Generalization still requires an unused whole-storm
+holdout, training-only preprocessing and whole-storm uncertainty resampling.
 
-\section{Reproducibility and limitations}
-The figures above embed numeric values from the published saved artifacts,
-so this source compiles without external images. Model code, checkpoint
-provenance, plot data, selection rules and reproduction utilities are available
-in the release repository\footnote{\url{https://github.com/yu314-coder/typhoon-predict}}.
-The 270-case scores are in \path{evaluation/trackformer_1_2_vs_1_1_270_metrics.json};
-Fung-wong coordinates, pressure, source hashes and member policy are in
-\path{evaluation/release_data/fung_wong_video.npz} and its JSON manifest.
-The \href{https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_fung_wong.mp4}{Fung-wong MP4}
-is an illustration of saved predictions, not a new inference experiment.
-
-A separate expanded protocol freezes 1,473 daily issues from 270 distinct
-storms: average leads within each issue, issues within each storm, then storms
-equally. It is not the completed 270-case comparison reported here; its
-partial results are not used in these figures. Stronger generalization claims
-require a genuinely unused whole-storm holdout, fitting-only preprocessing,
-matched data availability and lead masks, and uncertainty estimates based on
-resampling whole storms rather than overlapping issues.
-
-\section{Conclusion}
-Trackformer 1.2 couples recurrent environmental evolution with a translating
-pressure anomaly and pressure-associated readout. Development results improve
-aggregate route measures relative to the archived 1.1 pipeline, while leaving
-large absolute errors, short-lead regressions and intensity failures. The
-architecture is a research model, not a substitute for official warnings;
-selected visually aligned routes do not establish operational reliability.
+\subsection{Conclusion}
+Trackformer 1.2 links recurrent environmental evolution to a translating
+pressure anomaly and coupled geographic readout. Its development results
+improve aggregate route measures over the archived 1.1 pipeline, but leave
+large absolute errors and intensity failures; the older cohort also showed
+a short-lead regression. The
+released model is a reproducible research artifact, not a substitute for
+official warnings.
 \end{document}

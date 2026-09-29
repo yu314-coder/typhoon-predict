@@ -50,11 +50,11 @@ def curves(x,y1,y2,xlim,ylim,xticks,yticks,width,height,title,xlabel,ylabel,labe
     return '\n'.join(lines)
 
 def generate():
-    m=json.loads((ROOT/'evaluation/trackformer_1_2_vs_1_1_270_metrics.json').read_text())['metrics']
+    m=json.loads((ROOT/'evaluation/daily_storm_final.json').read_text())['aggregate_equal_storm']
     with np.load(ROOT/'evaluation/release_data/fung_wong_video.npz') as z:a={k:z[k] for k in z.files}
     lead=np.arange(6,121,6)
     bars=[r'\begin{tikzpicture}[x=1cm,y=1cm,font=\scriptsize]']
-    for offset,title,values,top,ticks,unit in [(0,'Mean position error',[902.3,714.4],1100,[0,500,1000],'km; lower is better'),(7.2,'Six-hour heading error',[56.22,44.82],70,[0,20,40,60],'degrees; lower is better')]:
+    for offset,title,values,top,ticks,unit in [(0,'Mean position error',[round(m[k]['mean_track_error_km'],1) for k in ['1.1','1.2']],1000,[0,500,1000],'km; lower is better'),(7.2,'Six-hour heading error',[round(m[k]['direction_error_deg'],2) for k in ['1.1','1.2']],70,[0,20,40,60],'degrees; lower is better')]:
         bars.append(rf'\begin{{scope}}[shift={{({offset},0)}}]')
         bars.append(rf'\node[font=\small\bfseries] at (2.5,4.05) {{{title}}};')
         bars.append(rf'\node[rotate=90] at (-.75,1.75) {{{unit}}};')
@@ -96,7 +96,10 @@ def main():
         text=match.group()
         for label,picture in figures.items():
             if '\\label{'+label+'}' in text:
-                return '\\begin{figure}[htbp]\n\\centering\n'+picture+'\n'+text[text.index('\\caption'):]
+                if label == 'fig:pressuremap':
+                    picture = picture.replace(r'\begin{tikzpicture}[x=1cm', r'\begin{tikzpicture}[scale=0.9,x=1cm')
+                opening = text[:text.index('\\begin{tikzpicture}')]
+                return opening+picture+'\n'+text[text.index('\\caption'):]
         return text
     new=re.sub(r'\\begin\{figure\}.*?\\end\{figure\}',replace,new,flags=re.S)
     print('*** Begin Patch\n*** Update File: '+str(path))

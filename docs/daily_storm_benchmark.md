@@ -1,6 +1,8 @@
 # Daily forecasts, equal-storm benchmark
 
-Status: inference in progress. This document specifies the frozen evaluation, not its final results.
+Status: **complete** at 2026-09-29T08:22:39Z. All **1,473 daily cases / 270 storms** finished; the SHA-256 of every saved forecast was verified. [Final equal-storm results and all 270 storm scores](../evaluation/daily_storm_final.json).
+
+Mean track error is 798.4 km for 1.1 and 471.2 km for 1.2 (50-member mean); +120 h error is 1,646.4 versus 1,031.6 km. Direction error is 51.58° versus 34.96°, centred shape similarity 0.7544 versus 0.8837, and geographic path similarity 0.5345 versus 0.6560. Central-pressure MAE for 1.2 is 12.62 hPa on 40 pressure-labelled storms; basin MSLP MAE is 2.72 hPa on 270 storms. No matched 1.1 pressure result or confidence interval is claimed.
 
 ## What counts as a case and a score
 

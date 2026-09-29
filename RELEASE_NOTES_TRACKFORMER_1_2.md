@@ -1,4 +1,4 @@
-# Trackformer 1.2 — research candidate
+# Trackformer 1.2 — research release
 
 **[Download weights + code](https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.2/trackformer_1_2_field_20260929.tar.gz)** · **[Download the illustrated PDF](https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.2/trackformer.pdf)** · **[Hugging Face model card](https://huggingface.co/euler314/typhoon-predict)**
 
@@ -8,7 +8,7 @@ The attached archive includes inference-only weights, exact source modules, an i
 
 On the 270-case development cohort, 1.1 versus 1.2 mean-of-50 scores are: direction error **56.22° vs 44.82°**, route-shape similarity **0.7273 vs 0.8249**, path similarity **0.4983 vs 0.5727**, and mean track error **902.3 vs 714.4 km**. Direction uses 5,382 common valid steps. The old 1.1 report had stored latitude/longitude under a local-kilometre key; the new comparison repairs that coordinate interpretation and records the correction. Original artifacts remain available. These results are development comparisons, and no matched 1.1 pressure-field bar is claimed.
 
-The route gallery shows six explicitly selected best-performing examples from distinct storms, with the selection rule and all case scores supplied. It is not representative evidence; the aggregate bars retain all 270 cases. A separate larger benchmark protocol freezes **270 distinct storms / 1,473 daily issues**, with daily scores averaged per storm and storms weighted equally. That expanded protocol is separate from the completed 270-case results in this paper.
+The route gallery shows six explicitly selected best-performing examples from distinct storms, with the selection rule and all case scores supplied. It is not representative evidence; the earlier aggregate bars retain all 270 cases. The new primary benchmark below uses **270 distinct storms / 1,473 daily issues**, with daily scores averaged per storm and storms weighted equally. The paper now presents this completed larger cohort, separately from the earlier 270-case results.
 
 The README shows the user-selected **Fung-wong MP4** in place of Yagi; the interactive PRAPIROON showcase remains removed. The forecast starts 7 November 2025 at 00 UTC and uses actual saved 50-member mean pressure fields and routes through +120 h. Central-pressure MAE is 7.36 hPa against JMA best track from IBTrACS. The broad route is similar but not perfectly overlapping: mean geographic error is 130.9 km and +120 h error is 142.3 km. This is a selected development example, not typical skill. From +66 h the forecast centre leaves the regional patch; the video explicitly labels that only the saved coarse basin field is shown there. No detailed core is invented outside coverage.
 
@@ -18,6 +18,18 @@ The Surigae illustration is a single forecast issued 2026-09-27 12 UTC, with 4 h
 
 This is not an operational warning service. Do not use for safety-critical decisions. A genuinely untouched storm-level holdout is still required before generalization claims.
 
-## Expanded benchmark progress (dated snapshot)
+## Completed daily benchmark and revised paper
 
-At 2026-09-29T06:09:06.508182+00:00, 808/1,473 daily forecasts and 159/270 storms were complete. This is an incomplete development snapshot, not final validation. The README includes separate preliminary direction, shape and position metrics and pressure-label coverage. The machine-readable snapshot is `evaluation/daily_storm_progress_20260929.json`. Model weights and published paper are unchanged in this documentation update.
+All **1,473 daily forecasts across 270 distinct storms** completed at 2026-09-29T08:22:39Z. Every saved forecast SHA-256 was verified. Each storm has equal weight after its daily issues are averaged; all leads +6 through +120 h are included.
+
+| Equal-storm measure | 1.1 | 1.2 mean of 50 |
+| --- | ---: | ---: |
+| Mean track error | 798.4 km | 471.2 km |
+| +120 h track error | 1,646.4 km | 1,031.6 km |
+| Direction error | 51.58° | 34.96° |
+| Centred shape similarity | 0.7544 | 0.8837 |
+| Geographic path similarity | 0.5345 | 0.6560 |
+
+This is a **41.0% reduction in mean track error** on a broader development cohort, not a certified untouched test. The 1.2-only central-pressure MAE is 12.62 hPa over 40 pressure-labelled storms; basin MSLP MAE is 2.72 hPa over 270 storms. There is no matched 1.1 pressure comparison. Retrospective analyses, different input pipelines, prior model selection and complete-five-day eligibility limit interpretation.
+
+The main README chart and redesigned eight-page paper now use these final equal-storm results. The earlier 270-case/90-storm comparison remains explicitly separate. `evaluation/daily_storm_final.json` includes all storm scores; `release_tools/plot_daily_storm_final.py` reproduces the new bars. The paper includes the architecture, equations, lead-error chart, selected route/pressure curves and model isobars. **Weights and inference implementation are unchanged.**

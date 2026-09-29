@@ -2,7 +2,7 @@
 
 **[Download 1.2: weights + code](https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.2/trackformer_1_2_field_20260929.tar.gz)** · **[Read the illustrated paper](paper/trackformer.pdf)** · **[Watch Fung-wong](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_fung_wong.mp4)** · **[Hugging Face model](https://huggingface.co/euler314/typhoon-predict)**
 
-Release status: **research prerelease**, not operational certification. The package contains the released 1.2 weights, inference code, input contract, saved evaluation data and illustrated paper. The original 1.1 release remains separate.
+Release status: **1.2 research release**, not operational certification. The package contains the released 1.2 weights, inference code, input contract, completed 270-storm evaluation and illustrated paper. The original 1.1 release remains separate.
 
 Trackformer 1.2 is a **research-only Western Pacific tropical-cyclone forecast model**. It evolves a sea-level-pressure (MSLP) field and a moving storm-centred pressure core every six hours through +120 h. A track and central-pressure estimate are extracted from the evolving core, not independently drawn on top of a pressure image. The prior [Trackformer 1.1 release](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.1) remains available and unchanged.
 
@@ -45,7 +45,30 @@ The implementation is in [`models/trackformer_1_2_field/`](models/trackformer_1_
 
 Grid spacing describes the representation, not independently demonstrated effective resolution. A mean of member centres is not necessarily the minimum of the displayed mean pressure field.
 
-## 270-case comparison: direction, route shape and position
+## Completed benchmark: 270 storms · 1,473 daily forecasts
+
+One typhoon on one UTC day is one case. Each issue forecasts **+6 to +120 h**. We average lead errors within each issue, daily scores within each storm, then the **270 storm scores equally**. This prevents long-lived storms dominating the benchmark. All 1,473 cases finished on **29 September 2026, 08:22 UTC**, with every saved forecast SHA-256 verified.
+
+| Equal-storm metric | 1.1 | 1.2 · mean of 50 | Preferred |
+| --- | ---: | ---: | --- |
+| Mean track error, +6 to +120 h | 798.4 km | **471.2 km** | Lower |
+| Track error at +120 h | 1,646.4 km | **1,031.6 km** | Lower |
+| Six-hour direction error | 51.58° | **34.96°** | Lower |
+| Centred route-shape similarity | 0.7544 | **0.8837** | Higher |
+| Geographic path similarity | 0.5345 | **0.6560** | Higher |
+| Fréchet distance | 1,658.1 km | **1,045.8 km** | Lower |
+
+![Complete equal-storm benchmark: direction, route alignment, shape and position](evaluation/trackformer_1_2_vs_1_1_270_storms_bars.png)
+
+Mean track error is **41.0% lower** for 1.2 on this cohort. Direction, shape and geographic alignment remain separate measures, not a combined score. A shape score near one does not guarantee overlapping routes at matching times. The 1.2 forecasts are means of **50 distinct causal input perturbations**, not 50 independently trained networks. Forecast pipelines differ, so this is not an architecture ablation.
+
+**Pressure coverage:** 1.2 central-pressure MAE is **12.62 hPa over 40 storms with valid labels**; basin-area-weighted MSLP MAE is **2.72 hPa over 270 storms**. There is no matched 1.1 pressure output in this run. Basin-wide error does not establish core-field accuracy.
+
+**Limits:** the frozen cohort includes 40 recent storms and 230 historical storms from 1980–1999. It excludes this checkpoint's fitting/validation years, but has not been certified untouched across prior experiments. Historical hindcasts use retrospective analyses and a model trained on later years. Complete five-day labels are required, excluding short remaining lifetimes. No operational or no-overfitting claim follows.
+
+[Final report and all storm scores](evaluation/daily_storm_final.json) · [Protocol](docs/daily_storm_benchmark.md) · [Frozen issues](evaluation/release_data/daily_storm_cohort.json) · [Reproduce chart](release_tools/plot_daily_storm_final.py)
+
+## Earlier 270-case comparison: 90 storms
 
 This comparison uses **270 forecast cases from 90 storms**, with the same issue rows, observed routes and 20 six-hour leads through +120 h. The number 270 counts forecast cases. The 1.2 prediction for each case is a **mean of 50 causal input-perturbation members**; 1.1 uses its archived causal route pipeline.
 
@@ -73,23 +96,7 @@ These are **six selected best-performing examples from six distinct storms**, no
 
 The 1.2 mean has better aggregate direction, shape and position scores on this previously inspected development cohort. That does not establish an overall win on every storm or pressure metric. A same-270 1.1 central-pressure prediction array was not verified in these route artifacts, so it is not assigned a pressure-error bar. The separate 1.2 report gives 15.73 hPa central-pressure MAE and 2.54 hPa area-weighted regional MSLP MAE. TIP remains a separate diagnostic: its pressure error was worse for 1.2 (30.7 vs 20.1 hPa). See [metric definitions and limitations](docs/trackformer_1_2_evaluation.md).
 
-### Expanded daily-issue benchmark: 270 distinct typhoons
-
-A **1,473-case / 270-storm** benchmark is in progress; it is separate from the completed 270-case comparison above. Each storm contributes at most one forecast per UTC day, through +120 h. Daily errors are averaged within each storm, then storm scores receive equal weight. Selection was frozen before inference without filtering on forecast quality. See the [protocol](docs/daily_storm_benchmark.md) and [frozen cohort](evaluation/release_data/daily_storm_cohort.json).
-
-**Dated snapshot — 2026-09-29T06:09:06.508182+00:00 (UTC), not a live counter:** 808/1,473 daily forecasts saved; **159/270 storms fully completed**. The 1.2 forecasts use 50 causal input-perturbation members. [Machine-readable snapshot](evaluation/daily_storm_progress_20260929.json).
-
-| Preliminary equal-storm metric | 1.1 | 1.2 · mean of 50 |
-| --- | ---: | ---: |
-| Mean track error, +6 to +120 h ↓ | 843.9 km | 487.1 km |
-| Track error at +120 h ↓ | 1733.3 km | 1068.8 km |
-| Six-hour direction error ↓ | 51.81° | 35.33° |
-| Centred route-shape similarity ↑ | 0.7497 | 0.8842 |
-| Geographic path similarity ↑ | 0.5310 | 0.6611 |
-
-**Incomplete development evidence:** only the 159 fully completed storms enter this table. Execution order is not random, and the remaining storms can change the result. These are not the final 270-storm scores or an untouched-test claim. Do not compare this subset directly with the differently sampled 270-case table above.
-
-1.2-only pressure diagnostics: central-pressure MAE **12.62 hPa** over 40 storms with valid pressure labels; basin MSLP MAE **2.70 hPa** over 159 storms. There is no matched 1.1 pressure result in this run, and basin-wide error does not establish core-pressure-map accuracy.
+The earlier dated partial snapshot is retained for provenance only. The completed 270-storm result at the top of this document supersedes it; the earlier 270-case comparison remains a different cohort.
 
 ## Fung-wong pressure forecast — MP4
 
