@@ -1,0 +1,1391 @@
+{
+  "case_count": 270,
+  "storm_count": 90,
+  "cases": [
+    {
+      "storm_id": "2022096N03150",
+      "issue_time_utc": "2022-04-08T06:00:00Z",
+      "source_row": 178540
+    },
+    {
+      "storm_id": "2022096N03150",
+      "issue_time_utc": "2022-04-11T00:00:00Z",
+      "source_row": 178562
+    },
+    {
+      "storm_id": "2022096N03150",
+      "issue_time_utc": "2022-04-13T00:00:00Z",
+      "source_row": 178578
+    },
+    {
+      "storm_id": "2022167N11269",
+      "issue_time_utc": "2022-06-18T00:00:00Z",
+      "source_row": 178867
+    },
+    {
+      "storm_id": "2022167N11269",
+      "issue_time_utc": "2022-06-22T00:00:00Z",
+      "source_row": 178899
+    },
+    {
+      "storm_id": "2022167N11269",
+      "issue_time_utc": "2022-06-25T00:00:00Z",
+      "source_row": 178923
+    },
+    {
+      "storm_id": "2022179N08310",
+      "issue_time_utc": "2022-06-29T18:00:00Z",
+      "source_row": 178960
+    },
+    {
+      "storm_id": "2022179N08310",
+      "issue_time_utc": "2022-07-03T00:00:00Z",
+      "source_row": 178986
+    },
+    {
+      "storm_id": "2022179N08310",
+      "issue_time_utc": "2022-07-06T00:00:00Z",
+      "source_row": 179010
+    },
+    {
+      "storm_id": "2022180N15117",
+      "issue_time_utc": "2022-06-30T18:00:00Z",
+      "source_row": 179043
+    },
+    {
+      "storm_id": "2022180N15117",
+      "issue_time_utc": "2022-07-01T00:00:00Z",
+      "source_row": 179045
+    },
+    {
+      "storm_id": "2022180N15117",
+      "issue_time_utc": "2022-07-02T00:00:00Z",
+      "source_row": 179055
+    },
+    {
+      "storm_id": "2022180N15130",
+      "issue_time_utc": "2022-07-01T00:00:00Z",
+      "source_row": 179096
+    },
+    {
+      "storm_id": "2022180N15130",
+      "issue_time_utc": "2022-07-04T00:00:00Z",
+      "source_row": 179121
+    },
+    {
+      "storm_id": "2022180N15130",
+      "issue_time_utc": "2022-07-06T00:00:00Z",
+      "source_row": 179138
+    },
+    {
+      "storm_id": "2022197N12260",
+      "issue_time_utc": "2022-07-17T12:00:00Z",
+      "source_row": 179208
+    },
+    {
+      "storm_id": "2022197N12260",
+      "issue_time_utc": "2022-07-18T00:00:00Z",
+      "source_row": 179212
+    },
+    {
+      "storm_id": "2022197N12260",
+      "issue_time_utc": "2022-07-19T00:00:00Z",
+      "source_row": 179220
+    },
+    {
+      "storm_id": "2022207N11262",
+      "issue_time_utc": "2022-07-27T12:00:00Z",
+      "source_row": 179253
+    },
+    {
+      "storm_id": "2022207N11262",
+      "issue_time_utc": "2022-07-29T00:00:00Z",
+      "source_row": 179265
+    },
+    {
+      "storm_id": "2022207N11262",
+      "issue_time_utc": "2022-07-30T00:00:00Z",
+      "source_row": 179273
+    },
+    {
+      "storm_id": "2022209N16246",
+      "issue_time_utc": "2022-07-29T12:00:00Z",
+      "source_row": 179354
+    },
+    {
+      "storm_id": "2022209N16246",
+      "issue_time_utc": "2022-07-30T00:00:00Z",
+      "source_row": 179358
+    },
+    {
+      "storm_id": "2022209N16246",
+      "issue_time_utc": "2022-07-31T00:00:00Z",
+      "source_row": 179366
+    },
+    {
+      "storm_id": "2022225N15253",
+      "issue_time_utc": "2022-08-14T12:00:00Z",
+      "source_row": 179481
+    },
+    {
+      "storm_id": "2022225N15253",
+      "issue_time_utc": "2022-08-16T00:00:00Z",
+      "source_row": 179493
+    },
+    {
+      "storm_id": "2022225N15253",
+      "issue_time_utc": "2022-08-17T00:00:00Z",
+      "source_row": 179501
+    },
+    {
+      "storm_id": "2022239N22150",
+      "issue_time_utc": "2022-08-29T00:00:00Z",
+      "source_row": 179613
+    },
+    {
+      "storm_id": "2022239N22150",
+      "issue_time_utc": "2022-09-01T00:00:00Z",
+      "source_row": 179637
+    },
+    {
+      "storm_id": "2022239N22150",
+      "issue_time_utc": "2022-09-04T00:00:00Z",
+      "source_row": 179661
+    },
+    {
+      "storm_id": "2022244N38313",
+      "issue_time_utc": "2022-09-02T12:00:00Z",
+      "source_row": 179723
+    },
+    {
+      "storm_id": "2022244N38313",
+      "issue_time_utc": "2022-09-06T00:00:00Z",
+      "source_row": 179751
+    },
+    {
+      "storm_id": "2022244N38313",
+      "issue_time_utc": "2022-09-10T00:00:00Z",
+      "source_row": 179783
+    },
+    {
+      "storm_id": "2022246N18301",
+      "issue_time_utc": "2022-09-04T18:00:00Z",
+      "source_row": 179822
+    },
+    {
+      "storm_id": "2022246N18301",
+      "issue_time_utc": "2022-09-07T00:00:00Z",
+      "source_row": 179840
+    },
+    {
+      "storm_id": "2022246N18301",
+      "issue_time_utc": "2022-09-10T00:00:00Z",
+      "source_row": 179864
+    },
+    {
+      "storm_id": "2022247N26147",
+      "issue_time_utc": "2022-09-05T18:00:00Z",
+      "source_row": 179901
+    },
+    {
+      "storm_id": "2022247N26147",
+      "issue_time_utc": "2022-09-09T00:00:00Z",
+      "source_row": 179927
+    },
+    {
+      "storm_id": "2022247N26147",
+      "issue_time_utc": "2022-09-12T00:00:00Z",
+      "source_row": 179951
+    },
+    {
+      "storm_id": "2022248N14259",
+      "issue_time_utc": "2022-09-06T12:00:00Z",
+      "source_row": 179984
+    },
+    {
+      "storm_id": "2022248N14259",
+      "issue_time_utc": "2022-09-07T00:00:00Z",
+      "source_row": 179988
+    },
+    {
+      "storm_id": "2022248N14259",
+      "issue_time_utc": "2022-09-08T00:00:00Z",
+      "source_row": 179996
+    },
+    {
+      "storm_id": "2022254N21158",
+      "issue_time_utc": "2022-09-12T12:00:00Z",
+      "source_row": 180030
+    },
+    {
+      "storm_id": "2022254N21158",
+      "issue_time_utc": "2022-09-13T00:00:00Z",
+      "source_row": 180034
+    },
+    {
+      "storm_id": "2022254N21158",
+      "issue_time_utc": "2022-09-14T00:00:00Z",
+      "source_row": 180042
+    },
+    {
+      "storm_id": "2022254N24143",
+      "issue_time_utc": "2022-09-13T06:00:00Z",
+      "source_row": 180081
+    },
+    {
+      "storm_id": "2022254N24143",
+      "issue_time_utc": "2022-09-14T00:00:00Z",
+      "source_row": 180087
+    },
+    {
+      "storm_id": "2022254N24143",
+      "issue_time_utc": "2022-09-15T00:00:00Z",
+      "source_row": 180095
+    },
+    {
+      "storm_id": "2022255N16256",
+      "issue_time_utc": "2022-09-13T12:00:00Z",
+      "source_row": 180133
+    },
+    {
+      "storm_id": "2022255N16256",
+      "issue_time_utc": "2022-09-17T00:00:00Z",
+      "source_row": 180161
+    },
+    {
+      "storm_id": "2022255N16256",
+      "issue_time_utc": "2022-09-20T00:00:00Z",
+      "source_row": 180185
+    },
+    {
+      "storm_id": "2022257N16312",
+      "issue_time_utc": "2022-09-16T06:00:00Z",
+      "source_row": 180218
+    },
+    {
+      "storm_id": "2022257N16312",
+      "issue_time_utc": "2022-09-19T00:00:00Z",
+      "source_row": 180242
+    },
+    {
+      "storm_id": "2022257N16312",
+      "issue_time_utc": "2022-09-22T00:00:00Z",
+      "source_row": 180268
+    },
+    {
+      "storm_id": "2022266N12294",
+      "issue_time_utc": "2022-09-24T18:00:00Z",
+      "source_row": 180471
+    },
+    {
+      "storm_id": "2022266N12294",
+      "issue_time_utc": "2022-09-25T00:00:00Z",
+      "source_row": 180473
+    },
+    {
+      "storm_id": "2022266N12294",
+      "issue_time_utc": "2022-09-26T00:00:00Z",
+      "source_row": 180481
+    },
+    {
+      "storm_id": "2022270N14136",
+      "issue_time_utc": "2022-09-28T12:00:00Z",
+      "source_row": 180574
+    },
+    {
+      "storm_id": "2022270N14136",
+      "issue_time_utc": "2022-09-29T00:00:00Z",
+      "source_row": 180578
+    },
+    {
+      "storm_id": "2022270N14136",
+      "issue_time_utc": "2022-09-30T00:00:00Z",
+      "source_row": 180586
+    },
+    {
+      "storm_id": "2022284N15152",
+      "issue_time_utc": "2022-10-13T06:00:00Z",
+      "source_row": 180720
+    },
+    {
+      "storm_id": "2022284N15152",
+      "issue_time_utc": "2022-10-14T00:00:00Z",
+      "source_row": 180726
+    },
+    {
+      "storm_id": "2022284N15152",
+      "issue_time_utc": "2022-10-15T00:00:00Z",
+      "source_row": 180734
+    },
+    {
+      "storm_id": "2023138N05151",
+      "issue_time_utc": "2023-05-20T00:00:00Z",
+      "source_row": 182572
+    },
+    {
+      "storm_id": "2023138N05151",
+      "issue_time_utc": "2023-05-25T00:00:00Z",
+      "source_row": 182612
+    },
+    {
+      "storm_id": "2023138N05151",
+      "issue_time_utc": "2023-05-29T00:00:00Z",
+      "source_row": 182644
+    },
+    {
+      "storm_id": "2023156N12135",
+      "issue_time_utc": "2023-06-06T18:00:00Z",
+      "source_row": 182775
+    },
+    {
+      "storm_id": "2023156N12135",
+      "issue_time_utc": "2023-06-09T00:00:00Z",
+      "source_row": 182793
+    },
+    {
+      "storm_id": "2023156N12135",
+      "issue_time_utc": "2023-06-12T00:00:00Z",
+      "source_row": 182817
+    },
+    {
+      "storm_id": "2023156N10067",
+      "issue_time_utc": "2023-06-07T00:00:00Z",
+      "source_row": 182686
+    },
+    {
+      "storm_id": "2023156N10067",
+      "issue_time_utc": "2023-06-11T00:00:00Z",
+      "source_row": 182718
+    },
+    {
+      "storm_id": "2023156N10067",
+      "issue_time_utc": "2023-06-14T00:00:00Z",
+      "source_row": 182742
+    },
+    {
+      "storm_id": "2023191N10262",
+      "issue_time_utc": "2023-07-12T06:00:00Z",
+      "source_row": 182916
+    },
+    {
+      "storm_id": "2023191N10262",
+      "issue_time_utc": "2023-07-13T00:00:00Z",
+      "source_row": 182922
+    },
+    {
+      "storm_id": "2023191N10262",
+      "issue_time_utc": "2023-07-14T00:00:00Z",
+      "source_row": 182930
+    },
+    {
+      "storm_id": "2023193N37305",
+      "issue_time_utc": "2023-07-13T12:00:00Z",
+      "source_row": 182969
+    },
+    {
+      "storm_id": "2023193N37305",
+      "issue_time_utc": "2023-07-17T00:00:00Z",
+      "source_row": 182997
+    },
+    {
+      "storm_id": "2023193N37305",
+      "issue_time_utc": "2023-07-20T00:00:00Z",
+      "source_row": 183021
+    },
+    {
+      "storm_id": "2023201N13134",
+      "issue_time_utc": "2023-07-22T06:00:00Z",
+      "source_row": 183101
+    },
+    {
+      "storm_id": "2023201N13134",
+      "issue_time_utc": "2023-07-24T00:00:00Z",
+      "source_row": 183115
+    },
+    {
+      "storm_id": "2023201N13134",
+      "issue_time_utc": "2023-07-26T00:00:00Z",
+      "source_row": 183131
+    },
+    {
+      "storm_id": "2023207N09141",
+      "issue_time_utc": "2023-07-28T06:00:00Z",
+      "source_row": 183164
+    },
+    {
+      "storm_id": "2023207N09141",
+      "issue_time_utc": "2023-08-02T00:00:00Z",
+      "source_row": 183202
+    },
+    {
+      "storm_id": "2023207N09141",
+      "issue_time_utc": "2023-08-06T00:00:00Z",
+      "source_row": 183234
+    },
+    {
+      "storm_id": "2023213N14257",
+      "issue_time_utc": "2023-08-02T12:00:00Z",
+      "source_row": 183280
+    },
+    {
+      "storm_id": "2023213N14257",
+      "issue_time_utc": "2023-08-10T00:00:00Z",
+      "source_row": 183340
+    },
+    {
+      "storm_id": "2023213N14257",
+      "issue_time_utc": "2023-08-17T00:00:00Z",
+      "source_row": 183396
+    },
+    {
+      "storm_id": "2023218N25145",
+      "issue_time_utc": "2023-08-08T00:00:00Z",
+      "source_row": 183452
+    },
+    {
+      "storm_id": "2023218N25145",
+      "issue_time_utc": "2023-08-11T00:00:00Z",
+      "source_row": 183476
+    },
+    {
+      "storm_id": "2023218N25145",
+      "issue_time_utc": "2023-08-13T00:00:00Z",
+      "source_row": 183492
+    },
+    {
+      "storm_id": "2023225N14248",
+      "issue_time_utc": "2023-08-14T12:00:00Z",
+      "source_row": 183531
+    },
+    {
+      "storm_id": "2023225N14248",
+      "issue_time_utc": "2023-08-17T00:00:00Z",
+      "source_row": 183551
+    },
+    {
+      "storm_id": "2023225N14248",
+      "issue_time_utc": "2023-08-19T00:00:00Z",
+      "source_row": 183567
+    },
+    {
+      "storm_id": "2023231N15313",
+      "issue_time_utc": "2023-08-21T00:00:00Z",
+      "source_row": 183633
+    },
+    {
+      "storm_id": "2023231N15313",
+      "issue_time_utc": "2023-08-26T00:00:00Z",
+      "source_row": 183673
+    },
+    {
+      "storm_id": "2023231N15313",
+      "issue_time_utc": "2023-08-30T00:00:00Z",
+      "source_row": 183705
+    },
+    {
+      "storm_id": "2023232N13300",
+      "issue_time_utc": "2023-08-21T18:00:00Z",
+      "source_row": 183773
+    },
+    {
+      "storm_id": "2023232N13300",
+      "issue_time_utc": "2023-08-28T00:00:00Z",
+      "source_row": 183824
+    },
+    {
+      "storm_id": "2023232N13300",
+      "issue_time_utc": "2023-09-04T00:00:00Z",
+      "source_row": 183880
+    },
+    {
+      "storm_id": "2023234N19154",
+      "issue_time_utc": "2023-08-23T12:00:00Z",
+      "source_row": 184026
+    },
+    {
+      "storm_id": "2023234N19154",
+      "issue_time_utc": "2023-08-24T00:00:00Z",
+      "source_row": 184030
+    },
+    {
+      "storm_id": "2023234N19154",
+      "issue_time_utc": "2023-08-25T00:00:00Z",
+      "source_row": 184038
+    },
+    {
+      "storm_id": "2023234N18128",
+      "issue_time_utc": "2023-08-24T00:00:00Z",
+      "source_row": 183919
+    },
+    {
+      "storm_id": "2023234N18128",
+      "issue_time_utc": "2023-08-27T00:00:00Z",
+      "source_row": 183943
+    },
+    {
+      "storm_id": "2023234N18128",
+      "issue_time_utc": "2023-08-30T00:00:00Z",
+      "source_row": 183967
+    },
+    {
+      "storm_id": "2023239N21274",
+      "issue_time_utc": "2023-08-28T12:00:00Z",
+      "source_row": 184203
+    },
+    {
+      "storm_id": "2023239N21274",
+      "issue_time_utc": "2023-08-31T00:00:00Z",
+      "source_row": 184224
+    },
+    {
+      "storm_id": "2023239N21274",
+      "issue_time_utc": "2023-09-03T00:00:00Z",
+      "source_row": 184248
+    },
+    {
+      "storm_id": "2023239N18144",
+      "issue_time_utc": "2023-08-29T00:00:00Z",
+      "source_row": 184110
+    },
+    {
+      "storm_id": "2023239N18144",
+      "issue_time_utc": "2023-09-02T00:00:00Z",
+      "source_row": 184142
+    },
+    {
+      "storm_id": "2023239N18144",
+      "issue_time_utc": "2023-09-05T00:00:00Z",
+      "source_row": 184166
+    },
+    {
+      "storm_id": "2023241N10158",
+      "issue_time_utc": "2023-08-31T00:00:00Z",
+      "source_row": 184283
+    },
+    {
+      "storm_id": "2023241N10158",
+      "issue_time_utc": "2023-09-01T00:00:00Z",
+      "source_row": 184291
+    },
+    {
+      "storm_id": "2023241N10158",
+      "issue_time_utc": "2023-09-02T00:00:00Z",
+      "source_row": 184299
+    },
+    {
+      "storm_id": "2023242N15339",
+      "issue_time_utc": "2023-09-01T00:00:00Z",
+      "source_row": 184343
+    },
+    {
+      "storm_id": "2023242N15339",
+      "issue_time_utc": "2023-09-06T00:00:00Z",
+      "source_row": 184383
+    },
+    {
+      "storm_id": "2023242N15339",
+      "issue_time_utc": "2023-09-10T00:00:00Z",
+      "source_row": 184415
+    },
+    {
+      "storm_id": "2023248N12257",
+      "issue_time_utc": "2023-09-06T12:00:00Z",
+      "source_row": 184471
+    },
+    {
+      "storm_id": "2023248N12257",
+      "issue_time_utc": "2023-09-08T00:00:00Z",
+      "source_row": 184483
+    },
+    {
+      "storm_id": "2023248N12257",
+      "issue_time_utc": "2023-09-09T00:00:00Z",
+      "source_row": 184491
+    },
+    {
+      "storm_id": "2023249N12320",
+      "issue_time_utc": "2023-09-07T12:00:00Z",
+      "source_row": 184524
+    },
+    {
+      "storm_id": "2023249N12320",
+      "issue_time_utc": "2023-09-10T00:00:00Z",
+      "source_row": 184544
+    },
+    {
+      "storm_id": "2023249N12320",
+      "issue_time_utc": "2023-09-13T00:00:00Z",
+      "source_row": 184568
+    },
+    {
+      "storm_id": "2023251N16334",
+      "issue_time_utc": "2023-09-09T12:00:00Z",
+      "source_row": 184608
+    },
+    {
+      "storm_id": "2023251N16334",
+      "issue_time_utc": "2023-09-11T00:00:00Z",
+      "source_row": 184620
+    },
+    {
+      "storm_id": "2023251N16334",
+      "issue_time_utc": "2023-09-13T00:00:00Z",
+      "source_row": 184636
+    },
+    {
+      "storm_id": "2023258N14318",
+      "issue_time_utc": "2023-09-17T06:00:00Z",
+      "source_row": 184675
+    },
+    {
+      "storm_id": "2023258N14318",
+      "issue_time_utc": "2023-09-19T00:00:00Z",
+      "source_row": 184689
+    },
+    {
+      "storm_id": "2023258N14318",
+      "issue_time_utc": "2023-09-21T00:00:00Z",
+      "source_row": 184705
+    },
+    {
+      "storm_id": "2023266N16323",
+      "issue_time_utc": "2023-09-25T06:00:00Z",
+      "source_row": 184784
+    },
+    {
+      "storm_id": "2023266N16323",
+      "issue_time_utc": "2023-09-28T00:00:00Z",
+      "source_row": 184806
+    },
+    {
+      "storm_id": "2023266N16323",
+      "issue_time_utc": "2023-10-01T00:00:00Z",
+      "source_row": 184830
+    },
+    {
+      "storm_id": "2023271N14144",
+      "issue_time_utc": "2023-09-29T12:00:00Z",
+      "source_row": 184875
+    },
+    {
+      "storm_id": "2023271N14144",
+      "issue_time_utc": "2023-10-02T00:00:00Z",
+      "source_row": 184895
+    },
+    {
+      "storm_id": "2023271N14144",
+      "issue_time_utc": "2023-10-05T00:00:00Z",
+      "source_row": 184919
+    },
+    {
+      "storm_id": "2023279N08157",
+      "issue_time_utc": "2023-10-08T00:00:00Z",
+      "source_row": 185020
+    },
+    {
+      "storm_id": "2023279N08157",
+      "issue_time_utc": "2023-10-10T00:00:00Z",
+      "source_row": 185036
+    },
+    {
+      "storm_id": "2023279N08157",
+      "issue_time_utc": "2023-10-11T00:00:00Z",
+      "source_row": 185044
+    },
+    {
+      "storm_id": "2023292N13309",
+      "issue_time_utc": "2023-10-20T18:00:00Z",
+      "source_row": 185172
+    },
+    {
+      "storm_id": "2023292N13309",
+      "issue_time_utc": "2023-10-23T00:00:00Z",
+      "source_row": 185191
+    },
+    {
+      "storm_id": "2023292N13309",
+      "issue_time_utc": "2023-10-26T00:00:00Z",
+      "source_row": 185215
+    },
+    {
+      "storm_id": "2023302N10267",
+      "issue_time_utc": "2023-10-30T12:00:00Z",
+      "source_row": 185325
+    },
+    {
+      "storm_id": "2023302N10267",
+      "issue_time_utc": "2023-11-01T00:00:00Z",
+      "source_row": 185337
+    },
+    {
+      "storm_id": "2023302N10267",
+      "issue_time_utc": "2023-11-02T00:00:00Z",
+      "source_row": 185345
+    },
+    {
+      "storm_id": "2024141N03142",
+      "issue_time_utc": "2024-05-22T00:00:00Z",
+      "source_row": 186747
+    },
+    {
+      "storm_id": "2024141N03142",
+      "issue_time_utc": "2024-05-25T00:00:00Z",
+      "source_row": 186771
+    },
+    {
+      "storm_id": "2024141N03142",
+      "issue_time_utc": "2024-05-28T00:00:00Z",
+      "source_row": 186795
+    },
+    {
+      "storm_id": "2024181N09320",
+      "issue_time_utc": "2024-06-30T12:00:00Z",
+      "source_row": 186875
+    },
+    {
+      "storm_id": "2024181N09320",
+      "issue_time_utc": "2024-07-03T00:00:00Z",
+      "source_row": 186897
+    },
+    {
+      "storm_id": "2024181N09320",
+      "issue_time_utc": "2024-07-06T00:00:00Z",
+      "source_row": 186922
+    },
+    {
+      "storm_id": "2024198N08130",
+      "issue_time_utc": "2024-07-17T12:00:00Z",
+      "source_row": 186961
+    },
+    {
+      "storm_id": "2024198N08130",
+      "issue_time_utc": "2024-07-19T00:00:00Z",
+      "source_row": 186973
+    },
+    {
+      "storm_id": "2024198N08130",
+      "issue_time_utc": "2024-07-20T00:00:00Z",
+      "source_row": 186981
+    },
+    {
+      "storm_id": "2024201N12133",
+      "issue_time_utc": "2024-07-21T00:00:00Z",
+      "source_row": 187016
+    },
+    {
+      "storm_id": "2024201N12133",
+      "issue_time_utc": "2024-07-22T00:00:00Z",
+      "source_row": 187024
+    },
+    {
+      "storm_id": "2024201N12133",
+      "issue_time_utc": "2024-07-23T00:00:00Z",
+      "source_row": 187032
+    },
+    {
+      "storm_id": "2024218N23143",
+      "issue_time_utc": "2024-08-07T00:00:00Z",
+      "source_row": 187195
+    },
+    {
+      "storm_id": "2024218N23143",
+      "issue_time_utc": "2024-08-08T00:00:00Z",
+      "source_row": 187203
+    },
+    {
+      "storm_id": "2024218N23143",
+      "issue_time_utc": "2024-08-09T00:00:00Z",
+      "source_row": 187211
+    },
+    {
+      "storm_id": "2024225N14313",
+      "issue_time_utc": "2024-08-13T18:00:00Z",
+      "source_row": 187290
+    },
+    {
+      "storm_id": "2024225N14313",
+      "issue_time_utc": "2024-08-14T00:00:00Z",
+      "source_row": 187293
+    },
+    {
+      "storm_id": "2024225N14313",
+      "issue_time_utc": "2024-08-15T00:00:00Z",
+      "source_row": 187301
+    },
+    {
+      "storm_id": "2024225N22135",
+      "issue_time_utc": "2024-08-13T12:00:00Z",
+      "source_row": 187341
+    },
+    {
+      "storm_id": "2024225N22135",
+      "issue_time_utc": "2024-08-15T00:00:00Z",
+      "source_row": 187353
+    },
+    {
+      "storm_id": "2024225N22135",
+      "issue_time_utc": "2024-08-16T00:00:00Z",
+      "source_row": 187361
+    },
+    {
+      "storm_id": "2024231N14251",
+      "issue_time_utc": "2024-08-20T06:00:00Z",
+      "source_row": 187435
+    },
+    {
+      "storm_id": "2024231N14251",
+      "issue_time_utc": "2024-08-22T00:00:00Z",
+      "source_row": 187449
+    },
+    {
+      "storm_id": "2024231N14251",
+      "issue_time_utc": "2024-08-24T00:00:00Z",
+      "source_row": 187465
+    },
+    {
+      "storm_id": "2024233N15148",
+      "issue_time_utc": "2024-08-22T06:00:00Z",
+      "source_row": 187517
+    },
+    {
+      "storm_id": "2024233N15148",
+      "issue_time_utc": "2024-08-25T00:00:00Z",
+      "source_row": 187539
+    },
+    {
+      "storm_id": "2024233N15148",
+      "issue_time_utc": "2024-08-27T00:00:00Z",
+      "source_row": 187555
+    },
+    {
+      "storm_id": "2024235N16223",
+      "issue_time_utc": "2024-08-24T00:00:00Z",
+      "source_row": 187595
+    },
+    {
+      "storm_id": "2024235N16223",
+      "issue_time_utc": "2024-08-26T00:00:00Z",
+      "source_row": 187611
+    },
+    {
+      "storm_id": "2024235N16223",
+      "issue_time_utc": "2024-08-27T00:00:00Z",
+      "source_row": 187619
+    },
+    {
+      "storm_id": "2024238N25077",
+      "issue_time_utc": "2024-08-27T00:00:00Z",
+      "source_row": 187681
+    },
+    {
+      "storm_id": "2024238N25077",
+      "issue_time_utc": "2024-08-28T00:00:00Z",
+      "source_row": 187689
+    },
+    {
+      "storm_id": "2024238N25077",
+      "issue_time_utc": "2024-08-29T00:00:00Z",
+      "source_row": 187697
+    },
+    {
+      "storm_id": "2024244N09137",
+      "issue_time_utc": "2024-09-01T12:00:00Z",
+      "source_row": 187732
+    },
+    {
+      "storm_id": "2024244N09137",
+      "issue_time_utc": "2024-09-03T00:00:00Z",
+      "source_row": 187744
+    },
+    {
+      "storm_id": "2024244N09137",
+      "issue_time_utc": "2024-09-04T00:00:00Z",
+      "source_row": 187752
+    },
+    {
+      "storm_id": "2024253N11148",
+      "issue_time_utc": "2024-09-10T18:00:00Z",
+      "source_row": 187826
+    },
+    {
+      "storm_id": "2024253N11148",
+      "issue_time_utc": "2024-09-12T00:00:00Z",
+      "source_row": 187836
+    },
+    {
+      "storm_id": "2024253N11148",
+      "issue_time_utc": "2024-09-13T00:00:00Z",
+      "source_row": 187844
+    },
+    {
+      "storm_id": "2024259N12145",
+      "issue_time_utc": "2024-09-17T00:00:00Z",
+      "source_row": 187954
+    },
+    {
+      "storm_id": "2024259N12145",
+      "issue_time_utc": "2024-09-18T00:00:00Z",
+      "source_row": 187962
+    },
+    {
+      "storm_id": "2024259N12145",
+      "issue_time_utc": "2024-09-19T00:00:00Z",
+      "source_row": 187970
+    },
+    {
+      "storm_id": "2024269N39302",
+      "issue_time_utc": "2024-09-26T12:00:00Z",
+      "source_row": 188145
+    },
+    {
+      "storm_id": "2024269N39302",
+      "issue_time_utc": "2024-09-27T00:00:00Z",
+      "source_row": 188149
+    },
+    {
+      "storm_id": "2024269N39302",
+      "issue_time_utc": "2024-09-28T00:00:00Z",
+      "source_row": 188157
+    },
+    {
+      "storm_id": "2024274N14328",
+      "issue_time_utc": "2024-10-01T18:00:00Z",
+      "source_row": 188234
+    },
+    {
+      "storm_id": "2024274N14328",
+      "issue_time_utc": "2024-10-03T00:00:00Z",
+      "source_row": 188244
+    },
+    {
+      "storm_id": "2024274N14328",
+      "issue_time_utc": "2024-10-05T00:00:00Z",
+      "source_row": 188260
+    },
+    {
+      "storm_id": "2024275N10336",
+      "issue_time_utc": "2024-10-03T00:00:00Z",
+      "source_row": 188330
+    },
+    {
+      "storm_id": "2024275N10336",
+      "issue_time_utc": "2024-10-05T00:00:00Z",
+      "source_row": 188346
+    },
+    {
+      "storm_id": "2024275N10336",
+      "issue_time_utc": "2024-10-07T00:00:00Z",
+      "source_row": 188362
+    },
+    {
+      "storm_id": "2024278N11150",
+      "issue_time_utc": "2024-10-06T06:00:00Z",
+      "source_row": 188397
+    },
+    {
+      "storm_id": "2024278N11150",
+      "issue_time_utc": "2024-10-08T00:00:00Z",
+      "source_row": 188411
+    },
+    {
+      "storm_id": "2024278N11150",
+      "issue_time_utc": "2024-10-10T00:00:00Z",
+      "source_row": 188427
+    },
+    {
+      "storm_id": "2024293N13141",
+      "issue_time_utc": "2024-10-20T12:00:00Z",
+      "source_row": 188502
+    },
+    {
+      "storm_id": "2024293N13141",
+      "issue_time_utc": "2024-10-22T00:00:00Z",
+      "source_row": 188514
+    },
+    {
+      "storm_id": "2024293N13141",
+      "issue_time_utc": "2024-10-24T00:00:00Z",
+      "source_row": 188530
+    },
+    {
+      "storm_id": "2024298N13150",
+      "issue_time_utc": "2024-10-26T00:00:00Z",
+      "source_row": 188624
+    },
+    {
+      "storm_id": "2024298N13150",
+      "issue_time_utc": "2024-10-27T00:00:00Z",
+      "source_row": 188632
+    },
+    {
+      "storm_id": "2024298N13150",
+      "issue_time_utc": "2024-10-28T00:00:00Z",
+      "source_row": 188640
+    },
+    {
+      "storm_id": "2024307N06143",
+      "issue_time_utc": "2024-11-04T06:00:00Z",
+      "source_row": 188682
+    },
+    {
+      "storm_id": "2024307N06143",
+      "issue_time_utc": "2024-11-06T00:00:00Z",
+      "source_row": 188696
+    },
+    {
+      "storm_id": "2024307N06143",
+      "issue_time_utc": "2024-11-08T00:00:00Z",
+      "source_row": 188712
+    },
+    {
+      "storm_id": "2024313N10169",
+      "issue_time_utc": "2024-11-09T18:00:00Z",
+      "source_row": 188862
+    },
+    {
+      "storm_id": "2024313N10169",
+      "issue_time_utc": "2024-11-12T00:00:00Z",
+      "source_row": 188880
+    },
+    {
+      "storm_id": "2024313N10169",
+      "issue_time_utc": "2024-11-15T00:00:00Z",
+      "source_row": 188904
+    },
+    {
+      "storm_id": "2024329N04089",
+      "issue_time_utc": "2024-11-25T18:00:00Z",
+      "source_row": 189139
+    },
+    {
+      "storm_id": "2024329N04089",
+      "issue_time_utc": "2024-11-27T00:00:00Z",
+      "source_row": 189149
+    },
+    {
+      "storm_id": "2024329N04089",
+      "issue_time_utc": "2024-11-29T00:00:00Z",
+      "source_row": 189165
+    },
+    {
+      "storm_id": "2025182N22149",
+      "issue_time_utc": "2025-07-03T00:00:00Z",
+      "source_row": 190688
+    },
+    {
+      "storm_id": "2025182N22149",
+      "issue_time_utc": "2025-07-05T00:00:00Z",
+      "source_row": 190704
+    },
+    {
+      "storm_id": "2025182N22149",
+      "issue_time_utc": "2025-07-06T00:00:00Z",
+      "source_row": 190712
+    },
+    {
+      "storm_id": "2025203N20124",
+      "issue_time_utc": "2025-07-24T00:00:00Z",
+      "source_row": 190874
+    },
+    {
+      "storm_id": "2025203N20124",
+      "issue_time_utc": "2025-07-27T00:00:00Z",
+      "source_row": 190898
+    },
+    {
+      "storm_id": "2025203N20124",
+      "issue_time_utc": "2025-07-29T00:00:00Z",
+      "source_row": 190914
+    },
+    {
+      "storm_id": "2025205N13145",
+      "issue_time_utc": "2025-07-25T12:00:00Z",
+      "source_row": 190949
+    },
+    {
+      "storm_id": "2025205N13145",
+      "issue_time_utc": "2025-07-28T00:00:00Z",
+      "source_row": 190969
+    },
+    {
+      "storm_id": "2025205N13145",
+      "issue_time_utc": "2025-07-31T00:00:00Z",
+      "source_row": 190993
+    },
+    {
+      "storm_id": "2025215N33284",
+      "issue_time_utc": "2025-08-04T18:00:00Z",
+      "source_row": 191117
+    },
+    {
+      "storm_id": "2025215N33284",
+      "issue_time_utc": "2025-08-06T00:00:00Z",
+      "source_row": 191127
+    },
+    {
+      "storm_id": "2025215N33284",
+      "issue_time_utc": "2025-08-08T00:00:00Z",
+      "source_row": 191143
+    },
+    {
+      "storm_id": "2025216N13243",
+      "issue_time_utc": "2025-08-06T06:00:00Z",
+      "source_row": 191178
+    },
+    {
+      "storm_id": "2025216N13243",
+      "issue_time_utc": "2025-08-08T00:00:00Z",
+      "source_row": 191192
+    },
+    {
+      "storm_id": "2025216N13243",
+      "issue_time_utc": "2025-08-09T00:00:00Z",
+      "source_row": 191200
+    },
+    {
+      "storm_id": "2025218N19149",
+      "issue_time_utc": "2025-08-07T18:00:00Z",
+      "source_row": 191235
+    },
+    {
+      "storm_id": "2025218N19149",
+      "issue_time_utc": "2025-08-09T00:00:00Z",
+      "source_row": 191245
+    },
+    {
+      "storm_id": "2025218N19149",
+      "issue_time_utc": "2025-08-10T00:00:00Z",
+      "source_row": 191253
+    },
+    {
+      "storm_id": "2025223N17337",
+      "issue_time_utc": "2025-08-13T00:00:00Z",
+      "source_row": 191307
+    },
+    {
+      "storm_id": "2025223N17337",
+      "issue_time_utc": "2025-08-18T00:00:00Z",
+      "source_row": 191347
+    },
+    {
+      "storm_id": "2025223N17337",
+      "issue_time_utc": "2025-08-22T00:00:00Z",
+      "source_row": 191379
+    },
+    {
+      "storm_id": "2025243N14239",
+      "issue_time_utc": "2025-09-02T00:00:00Z",
+      "source_row": 191506
+    },
+    {
+      "storm_id": "2025243N14239",
+      "issue_time_utc": "2025-09-04T00:00:00Z",
+      "source_row": 191522
+    },
+    {
+      "storm_id": "2025243N14239",
+      "issue_time_utc": "2025-09-06T00:00:00Z",
+      "source_row": 191538
+    },
+    {
+      "storm_id": "2025260N13138",
+      "issue_time_utc": "2025-09-18T18:00:00Z",
+      "source_row": 191710
+    },
+    {
+      "storm_id": "2025260N13138",
+      "issue_time_utc": "2025-09-19T00:00:00Z",
+      "source_row": 191712
+    },
+    {
+      "storm_id": "2025260N13138",
+      "issue_time_utc": "2025-09-20T00:00:00Z",
+      "source_row": 191720
+    },
+    {
+      "storm_id": "2025261N19312",
+      "issue_time_utc": "2025-09-19T18:00:00Z",
+      "source_row": 191757
+    },
+    {
+      "storm_id": "2025261N19312",
+      "issue_time_utc": "2025-09-21T00:00:00Z",
+      "source_row": 191767
+    },
+    {
+      "storm_id": "2025261N19312",
+      "issue_time_utc": "2025-09-23T00:00:00Z",
+      "source_row": 191783
+    },
+    {
+      "storm_id": "2025261N23166",
+      "issue_time_utc": "2025-09-19T12:00:00Z",
+      "source_row": 191822
+    },
+    {
+      "storm_id": "2025261N23166",
+      "issue_time_utc": "2025-09-23T00:00:00Z",
+      "source_row": 191850
+    },
+    {
+      "storm_id": "2025261N23166",
+      "issue_time_utc": "2025-09-26T00:00:00Z",
+      "source_row": 191874
+    },
+    {
+      "storm_id": "2025265N14261",
+      "issue_time_utc": "2025-09-23T18:00:00Z",
+      "source_row": 191907
+    },
+    {
+      "storm_id": "2025265N14261",
+      "issue_time_utc": "2025-09-25T00:00:00Z",
+      "source_row": 191917
+    },
+    {
+      "storm_id": "2025265N14261",
+      "issue_time_utc": "2025-09-26T00:00:00Z",
+      "source_row": 191925
+    },
+    {
+      "storm_id": "2025270N21285",
+      "issue_time_utc": "2025-09-28T18:00:00Z",
+      "source_row": 192030
+    },
+    {
+      "storm_id": "2025270N21285",
+      "issue_time_utc": "2025-09-30T00:00:00Z",
+      "source_row": 192040
+    },
+    {
+      "storm_id": "2025270N21285",
+      "issue_time_utc": "2025-10-01T00:00:00Z",
+      "source_row": 192048
+    },
+    {
+      "storm_id": "2025273N09248",
+      "issue_time_utc": "2025-10-01T18:00:00Z",
+      "source_row": 192081
+    },
+    {
+      "storm_id": "2025273N09248",
+      "issue_time_utc": "2025-10-03T00:00:00Z",
+      "source_row": 192091
+    },
+    {
+      "storm_id": "2025273N09248",
+      "issue_time_utc": "2025-10-04T00:00:00Z",
+      "source_row": 192099
+    },
+    {
+      "storm_id": "2025280N13147",
+      "issue_time_utc": "2025-10-08T12:00:00Z",
+      "source_row": 192259
+    },
+    {
+      "storm_id": "2025280N13147",
+      "issue_time_utc": "2025-10-10T00:00:00Z",
+      "source_row": 192271
+    },
+    {
+      "storm_id": "2025280N13147",
+      "issue_time_utc": "2025-10-11T00:00:00Z",
+      "source_row": 192279
+    },
+    {
+      "storm_id": "2025294N14290",
+      "issue_time_utc": "2025-10-23T06:00:00Z",
+      "source_row": 192400
+    },
+    {
+      "storm_id": "2025294N14290",
+      "issue_time_utc": "2025-10-25T00:00:00Z",
+      "source_row": 192414
+    },
+    {
+      "storm_id": "2025294N14290",
+      "issue_time_utc": "2025-10-27T00:00:00Z",
+      "source_row": 192430
+    },
+    {
+      "storm_id": "2025308N09144",
+      "issue_time_utc": "2025-11-06T06:00:00Z",
+      "source_row": 192525
+    },
+    {
+      "storm_id": "2025308N09144",
+      "issue_time_utc": "2025-11-07T00:00:00Z",
+      "source_row": 192531
+    },
+    {
+      "storm_id": "2025308N09144",
+      "issue_time_utc": "2025-11-08T00:00:00Z",
+      "source_row": 192539
+    },
+    {
+      "storm_id": "2025328N07132",
+      "issue_time_utc": "2025-11-25T12:00:00Z",
+      "source_row": 192611
+    },
+    {
+      "storm_id": "2025328N07132",
+      "issue_time_utc": "2025-11-27T00:00:00Z",
+      "source_row": 192623
+    },
+    {
+      "storm_id": "2025328N07132",
+      "issue_time_utc": "2025-11-28T00:00:00Z",
+      "source_row": 192631
+    },
+    {
+      "storm_id": "2026014N08133",
+      "issue_time_utc": "2026-01-15T18:00:00Z",
+      "source_row": 192940
+    },
+    {
+      "storm_id": "2026014N08133",
+      "issue_time_utc": "2026-01-16T00:00:00Z",
+      "source_row": 192942
+    },
+    {
+      "storm_id": "2026014N08133",
+      "issue_time_utc": "2026-01-17T00:00:00Z",
+      "source_row": 192950
+    }
+  ],
+  "leads_hours": [
+    6,
+    12,
+    18,
+    24,
+    30,
+    36,
+    42,
+    48,
+    54,
+    60,
+    66,
+    72,
+    78,
+    84,
+    90,
+    96,
+    102,
+    108,
+    114,
+    120
+  ],
+  "member_policy": {
+    "1.1": "saved released causal route pipeline",
+    "1.2": "50 causal historical-input perturbations"
+  },
+  "case_and_truth_alignment": "Exact source-row order and truth-array equality verified",
+  "v11_coordinate_correction": "Archived v11_local held absolute latitude/longitude from build_v11_routes; converted to issue-centred east/north km using the same projection as 1.2. Round-trip back to original coordinates verified. Original archives preserved.",
+  "coordinate_bug_evidence": "benchmark_100_storms_3_days_gpu.py build_v11_routes returns local_to_absolute; benchmark_strict_causal_post2021.py stores and scores that output as local",
+  "source_sha256": {
+    "routes_and_truth.npz": "0eeca56da8ddf0be05ea7f24f6391fa97b44abc6067a7d20e3ed2199948402cb",
+    "v173_e4_causal_ensemble50.npz": "4afc595af1c02096d2cb38563069a9b2fc37c8cff2b439b77eac2ed96e34223e"
+  },
+  "evaluation": "Previously inspected development cohort; not an untouched test",
+  "pressure_comparison": "No verified same-270 1.1 central-pressure predictions in these route artifacts"
+}

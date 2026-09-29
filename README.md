@@ -26,24 +26,39 @@ The two models use different input pipelines. A direct chart is therefore a *for
 
 The implementation is in [`models/trackformer_1_2_field/`](models/trackformer_1_2_field/); its [`manifest.json`](models/trackformer_1_2_field/manifest.json) records exact grids, normalization, architecture and SHA-256 provenance. Internally the selected checkpoint came from experiment version `1.2.73`, epoch 4. The public model is **Trackformer 1.2**; that internal identifier is retained only for reproducibility.
 
-## Saved comparison with 1.1
+## 270-case comparison: direction, route shape and position
 
-Both rows use the **same ten overlapping TIP issue times**, 1979-10-12 00 UTC through 1979-10-14 06 UTC, at six-hour leads through +120 h. Lower is better. The 1.2 row is the 50-input-member mean; 1.1 is its released prediction pipeline, so this is not a same-member-count experiment.
+This comparison uses **270 forecast cases from 90 storms**, with the same issue rows, observed routes and 20 six-hour leads through +120 h. The number 270 counts forecast cases. The 1.2 prediction for each case is a **mean of 50 causal input-perturbation members**; 1.1 uses its archived causal route pipeline.
 
-| TIP ten-start development diagnostic | 1.1 | 1.2, mean of 50 causal input members |
-| --- | ---: | ---: |
-| Mean track error | 383.9 km | **370.5 km** |
-| Central-pressure MAE | **20.1 hPa** | 30.7 hPa |
+| Metric | 1.1 | 1.2 · mean of 50 | Preferred |
+| --- | ---: | ---: | --- |
+| Mean six-hour direction error | 56.22° | **44.82°** | Lower |
+| Route-shape similarity | 0.7273 | **0.8249** | Higher |
+| Path similarity (Fréchet) | 0.4983 | **0.5727** | Higher |
+| Mean track error, +6 to +120 h | 902.3 km | **714.4 km** | Lower |
+| Track error at +120 h | 1,833.2 km | **1,433.4 km** | Lower |
 
-![TIP track and pressure benchmark bars](paper/trackformer_1_2_vs_1_1_tip_bars.png)
+![270-case direction, route-shape, path and position comparison](paper/trackformer_1_2_vs_1_1_270_bars.png)
 
-The track gain is small (about 3.5%); central-pressure error is substantially worse. TIP's ten starts are one storm with overlapping forecasts, not ten independent holdout storms. They do **not** establish that 1.2 is better overall or resistant to overfitting.
+**What “similarity” means:** direction error compares the heading of each six-hour step, on 5,382 common valid case-leads where truth and both models move more than 1 km. Shape similarity compares the centred route curves after removing overall scale, while preserving their orientation; a score of 1 means identical shape under that comparison. Path similarity uses Fréchet distance and the observed route length, so it also responds to geographic displacement. These scores measure different aspects of the forecast and are reported separately.
 
-The saved Dolphin example below uses 1.2's **forecast basin MSLP**, not a post-drawn or borrowed pressure map. It shows +24, +72 and +120 h fields with the extracted route. Trackformer 1.1 does not emit an equivalent evolving MSLP field, so no fake 1.1 field comparison is shown.
+The saved 1.1 archive had a coordinate-label bug: its `v11_local` array held absolute latitude/longitude, while the original scorer interpreted it as east/north kilometres. The new comparison converts those coordinates to the same local projection used by 1.2 and verifies a round trip back to the original coordinates. **The old 1,036.3 km score is superseded by 902.3 km.** Original forecast archives are preserved. The [published metrics](paper/trackformer_1_2_vs_1_1_270_metrics.json), small plot-data arrays and [reproduction script](release_tools/plot_release_270.py) record the correction.
 
-![Trackformer 1.2 forecast pressure-map example](paper/trackformer_1_2_pressure_map_example.png)
+### What the routes look like
 
-On a separate, repeatedly inspected 270-case development cohort (90 storms × three issues), the 1.2 mean-of-50 result was 714.4 km mean track error, 15.73 hPa central-pressure MAE and 2.54 hPa area-weighted regional MSLP MAE; **there is no directly matched 1.1 field score**. The TIP and 270-case results must not be mixed into a single ranking. See [evaluation notes](docs/trackformer_1_2_evaluation.md).
+These are cases 1, 136 and 270, selected by their row positions before inspecting their forecast quality. Every curve starts at the same issue-time origin. The examples show both useful motion and substantial remaining errors, including missed turns.
+
+![Observed, 1.1 and 1.2 routes on three fixed benchmark examples](paper/trackformer_1_2_vs_1_1_route_examples.png)
+
+The 1.2 mean has better aggregate direction, shape and position scores on this previously inspected development cohort. That does not establish an overall win on every storm or pressure metric. A same-270 1.1 central-pressure prediction array was not verified in these route artifacts, so it is not assigned a pressure-error bar. The separate 1.2 report gives 15.73 hPa central-pressure MAE and 2.54 hPa area-weighted regional MSLP MAE. TIP remains a separate diagnostic: its pressure error was worse for 1.2 (30.7 vs 20.1 hPa). See [metric definitions and limitations](docs/trackformer_1_2_evaluation.md).
+
+## Recent pressure forecast with isobars
+
+The archived **Surigae forecast issued 27 September 2026 at 12:00 UTC** shows the model's regional pressure field at +6, +24 and +36 h. Thin lines are isobars every **4 hPa**, with selected labels every 12 hPa; magenta shows the forecast track and centre. Coastlines provide geographic context. These panels use the actual saved model values.
+
+![Surigae model-generated pressure forecast with labelled isobars](paper/trackformer_1_2_surigae_isobars.png)
+
+This recent example is **one deterministic forecast**, separate from the benchmark's mean of 50. Its input uses nine GFS analyses ending at 06 UTC, six hours before issue time; issue-time JMA central pressure was provided, while wind, prior motion and native regional history were unavailable. This transfer from the training data contract is experimental. The fixed regional map ends at 144°E; the selected leads keep the forecast centre inside it. The [pressure-field provenance](paper/release_data/surigae_provenance.json) records the input limitations and checkpoint hash.
 
 ## Get the model and run it
 
