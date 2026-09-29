@@ -5,7 +5,7 @@ member, explicitly distinct from the existing 50-member development benchmark.
 The output Git branch is a resumable archive, never a source of model inputs.
 """
 from __future__ import annotations
-import argparse, hashlib, json, os, sys, time
+import argparse, gzip, hashlib, json, os, sys, time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from urllib.parse import urlencode
@@ -159,7 +159,10 @@ def infer(model,contract,geo,weather,times,row,out,kind,source):
          'generated_at_utc':utc(datetime.now(timezone.utc)),'run_url':os.environ.get('RUN_URL')}
     field={'model':'Trackformer 1.2','forecast_id':ident,'members':1,'checkpoint_sha256':CHECKPOINT,'latitude':contract['global_lat'],'longitude':contract['global_lon'],
            'valid_times_utc':valid,'units':'hPa','rounding_hpa':.01,'grid':'2.5 degree model basin','note':note,'pressure_hpa':fields}
-    write(out/'fields'/f'{ident}.json',field);write(out/'forecasts'/f'{ident}.json',doc)
+    # Lossless gzip keeps thousands of independent issue fields out of huge plain JSON blobs.
+    field_path=out/'fields'/f'{ident}.json.gz';field_path.parent.mkdir(parents=True,exist_ok=True)
+    temp=field_path.with_suffix('.tmp');temp.write_bytes(gzip.compress(json.dumps(field,separators=(',',':'),allow_nan=False).encode(),mtime=0));temp.replace(field_path)
+    write(out/'forecasts'/f'{ident}.json',doc)
     print(json.dumps({'complete':ident,'forecast_points':len(route),'fields':len(fields)}),flush=True)
     return doc
 
@@ -217,9 +220,13 @@ def main():
         f=json.loads(p.read_text());s=storms.setdefault(f['storm_id'],{'id':f['storm_id'],'name':f['name'],'season':f['season'],'issues':[]})
         s['issues'].append({k:f[k] for k in ['id','issue_time_utc','members','kind']})
     for s in storms.values():s['issues'].sort(key=lambda i:i['issue_time_utc'],reverse=True)
-    historical_done=sum(i['kind']=='automatic-historical-hindcast' for s in storms.values() for i in s['issues'])
+    planned={r['id'] for r in plan['queue']};ticks={r['id'] for r in plan['queue'] if r['id'].startswith('auto-tick-')}
+    done={i['id'] for s in storms.values() for i in s['issues'] if i['id'] in planned}
+    historical_done=len(done)
     status={'updated_at_utc':utc(datetime.now(timezone.utc)),'model':'Trackformer 1.2','members':1,'checkpoint_sha256':CHECKPOINT,'runner':'GitHub-hosted CPU; not the visitor or owner Mac',
             'historical_start_year':1970,'historical_total':len(plan['queue']),'historical_completed':historical_done,'errors':errors,
+            'historical_count_unit':'forecast issues','historical_storm_total':len({r['storm_id'] for r in plan['queue']}),
+            'tick_start_year':plan.get('ticks_from_year'),'tick_hours':6,'tick_total':len(ticks),'tick_completed':len(done&ticks),
             'live_issues':[{'id':r['id'],'storm_id':r['storm_id'],'issue_time_utc':r['issue_time_utc'],'available':(a.output/'forecasts'/f"{r['id']}.json").exists()} for r in live],
             'run_url':os.environ.get('RUN_URL'),'elapsed_seconds':round(time.monotonic()-started,1)}
     write(a.output/'catalog.json',{'schema_version':'1.0','model':'Trackformer 1.2','checkpoint_sha256':CHECKPOINT,'storms':list(storms.values()),'status':status})

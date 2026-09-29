@@ -6,7 +6,7 @@ on:
     inputs:
       historical_limit:
         description: Maximum historical storm issues in this resumable batch
-        default: '80'
+        default: '500'
         type: string
       only_id:
         description: Optional exact historical issue ID for a targeted retry
@@ -24,7 +24,7 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      HISTORICAL_LIMIT: ${{ inputs.historical_limit || '80' }}
+      HISTORICAL_LIMIT: ${{ inputs.historical_limit || '500' }}
       ONLY_ID: ${{ inputs.only_id }}
       PYTHONUNBUFFERED: '1'
       OMP_NUM_THREADS: '2'

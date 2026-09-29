@@ -7,9 +7,14 @@ JMA storms, then processes a bounded historical batch. GitHub may delay schedule
 public-repository schedules can be disabled after 60 days of inactivity.
 
 New outputs are **one deterministic member**, never labelled as 50-member means.
-The historical target starts in **1970**. Backfill selects the first supported
-issue of each previously uncovered Western Pacific storm without looking at
-forecast errors or requiring future truth. Out-of-domain global storms are not
+The historical target starts in **1970**. Recent playback takes priority:
+**4,015 independent six-hour issues from all 135 eligible Western Pacific storms
+in 2022–2026** in the current observed snapshot. Each tick initializes a new
++120-hour run, with that issue's centre, intensity, motion and nine causal analyses.
+Fung-wong's 39 consecutive ticks are first for playback verification. These
+are not shifted copies of an earlier route and are not selected by forecast error.
+Older backfill retains the first supported issue of each uncovered storm.
+Out-of-domain global storms are not
 silently extrapolated. A storm record is not a promise that usable weather exists.
 
 Nine consecutive six-hour weather analyses end no later than issue time. Live
@@ -32,8 +37,29 @@ Public files beneath that branch's `data/` directory:
 - `status.json`: completion counts, live-issue availability, errors and run URL.
 - `coverage.json`: 1970 boundary, domain and input-queue classifications.
 - `forecasts/{id}.json`: geographic route, central pressure, provenance.
-- `fields/{id}.json`: genuine model basin-pressure arrays in hPa.
+- `fields/{id}.json.gz`: losslessly compressed genuine model basin-pressure
+  arrays in hPa. Existing uncompressed files remain readable. The public API
+  transparently returns ordinary JSON for either format.
 
 The Weather Lab API merges these results with its existing verified archive.
 The GitHub Pages website can use the same public History API. A cache miss or
 source outage remains explicit; no future observation is substituted as forecast.
+
+## Playback and scale
+
+The History player defaults to Western Pacific and orders storms by formation
+time (first observed record), newest first. Its issue-time slider advances in
+six-hour ticks. Each tick requires an exact matching saved initialization; it
+pauses on an uncomputed tick rather than showing a previous issue as a new one.
+A separate preview-lead selector chooses the pressure field from that issue.
+The original one-issue animation remains available.
+
+The full 1970-onward snapshot contains approximately 65,146 eligible six-hour
+ticks across 1,919 WP storm records. Only the requested recent subset is queued
+at six-hour frequency; the older full-tick expansion is not launched. Runtime
+and compressed output size should be measured on the cloud pilot before
+estimating total storage and wall-clock completion. The queued combined plan
+contains 5,568 issues (4,015 recent ticks and 1,553 older first issues).
+Scheduled batches attempt up to 500 issues or 45 minutes, whichever comes first.
+Missing recent NOAA reanalysis may delay individual historical ticks; the
+source error is retained and retried after 24 hours, never filled with truth.
