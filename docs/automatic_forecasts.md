@@ -23,13 +23,22 @@ in 2022–2026** in the current observed snapshot. Each tick initializes a new
 +120-hour run, with that issue's centre, intensity, motion and nine causal analyses.
 Fung-wong's 39 consecutive ticks are first for playback verification. These
 are not shifted copies of an earlier route and are not selected by forecast error.
-Older backfill retains the first supported issue of each uncovered storm.
+The completed first phase is preserved. The next phase adds **26,575 six-hour
+issues for 1996–2021**; 2022 is already covered and is not rerun. The combined
+queue now contains **32,143 issues**, including **30,590 six-hour ticks** and
+1,553 preserved older first issues. All 5,568 original issue definitions and
+completed forecasts remain unchanged. Older backfill retains the first
+supported issue of each uncovered storm.
 Out-of-domain global storms are not
 silently extrapolated. A storm record is not a promise that usable weather exists.
 
 Nine consecutive six-hour weather analyses end no later than issue time. Live
 GFS is f000 only, with its final analysis at most twelve hours before the JMA
-issue. Live wind and motion are explicitly missing; native detail is masked.
+issue. Live sustained wind is read from JMA's analysis in knots when available;
+missing wind remains missing. Motion remains explicitly missing; native detail
+is masked. Initialization uses the analysis valid time, not bulletin publication
+time, and rejects future or stale analyses. JMA's future forecast points are
+comparison data only, never model inputs.
 The resulting GFS transfer is experimental. Historical NOAA NCEP reanalyses are
 retrospective, not operationally available inputs; fitting-year overlaps are
 labelled and these forecasts are not a fresh independent evaluation.
@@ -89,11 +98,11 @@ A separate preview-lead selector chooses the pressure field from that issue.
 The original one-issue animation remains available.
 
 The full 1970-onward snapshot contains approximately 65,146 eligible six-hour
-ticks across 1,919 WP storm records. Only the requested recent subset is queued
-at six-hour frequency; the older full-tick expansion is not launched. Runtime
+ticks across 1,919 WP storm records. The requested 1996-onward subset is queued
+at six-hour frequency; pre-1996 full-tick expansion is not launched. Runtime
 and compressed output size should be measured on the cloud pilot before
 estimating total storage and wall-clock completion. The queued combined plan
-contains 5,568 issues (4,015 recent ticks and 1,553 older first issues).
+contains 32,143 issues (30,590 ticks and 1,553 older first issues).
 Scheduled batches attempt up to 500 issues or 45 minutes, whichever comes first.
 An unavailable archived analysis may delay an individual historical tick; the
 source error is retained and retried after 24 hours, never filled with truth.

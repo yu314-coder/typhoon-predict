@@ -152,6 +152,30 @@ def remote_history(row,cache,contract):
             'Archived NOAA GFS f000 analyses at nine exact six-hour valid times. NCEP R1 ended March 17, 2026. Experimental GFS input transfer; retrospective reconstruction, not an operational-availability or independent-test claim.',
             {'provider':'NOAA GFS archive','experimental_transfer':True,'analyses':analyses})
 
+def jma_analysis_row(sid,parts,now):
+    """Only the current official analysis can initialize the neural forecast."""
+    title=next(p for p in parts if p.get('part')=='title')
+    analyses=[p for p in parts if isinstance(p.get('part'),dict) and p['part'].get('en')=='Analysis']
+    if len(analyses)!=1:raise ValueError('JMA requires exactly one current analysis')
+    p=analyses[0]
+    if p.get('advancedHours')!=0:raise ValueError('JMA analysis must be +0, not a forecast')
+    issue=p['validtime']['UTC'];valid=parse(issue);lat,lon=map(float,p['position']['deg'])
+    if valid>now+timedelta(minutes=5) or now-valid>timedelta(hours=18):raise ValueError('JMA analysis is stale or future-dated')
+    if not np.isfinite([lat,lon]).all() or not(-90<=lat<=90 and -180<=lon<=360):raise ValueError('Invalid JMA position')
+    if not(0<lat<60 and 100<lon<180):return None
+    def number(value,lo,hi):
+        try:value=float(value)
+        except (TypeError,ValueError):return None
+        return value if np.isfinite(value) and lo<value<hi else None
+    pressure=number(p.get('pressure'),800,1100)
+    wind=number(p.get('maximumWind',{}).get('sustained',{}).get('kt'),-1,250)
+    return {'id':'auto-live-'+sid+'-'+valid.strftime('%Y%m%dT%H%M'),'storm_id':sid,
+            'name':title.get('name',{}).get('en','Unnamed'),'season':valid.year,'issue_time_utc':issue,
+            'lat':lat,'lon':lon,'pressure_hpa':pressure,'wind_kt':wind,'motion':[0.,0.],'observed':[],
+            'jma_analysis':{'source_url':f'https://www.jma.go.jp/bosai/typhoon/data/{sid}/specifications.json',
+                            'bulletin_issue_utc':title.get('issue',{}).get('UTC'),
+                            'analysis_valid_utc':issue,'maximum_wind_unit':'kt','motion_missing':True}}
+
 def live_rows():
     root='https://www.jma.go.jp/bosai/typhoon/data'
     targets=get(root+'/targetTc.json').json();rows=[]
@@ -159,15 +183,8 @@ def live_rows():
         sid=target.get('tropicalCyclone','')
         if not sid.startswith('TC') or not sid[2:].isdigit():continue
         parts=get(f'{root}/{sid}/specifications.json').json()
-        title=next(p for p in parts if p.get('part')=='title')
-        p=next(p for p in parts if isinstance(p.get('part'),dict) and p['part'].get('en')=='Analysis')
-        issue=p['validtime']['UTC'];lat,lon=p['position']['deg'];pressure=p.get('pressure')
-        if not(0<float(lat)<60 and 100<float(lon)<180):continue
-        if datetime.now(timezone.utc)-parse(issue)>timedelta(hours=18):raise ValueError('JMA analysis is stale')
-        rows.append({'id':'auto-live-'+sid+'-'+parse(issue).strftime('%Y%m%dT%H%M'),'storm_id':sid,
-                     'name':title.get('name',{}).get('en','Unnamed'),'season':parse(issue).year,'issue_time_utc':issue,
-                     'lat':float(lat),'lon':float(lon),'pressure_hpa':float(pressure) if pressure is not None else None,'wind_kt':None,
-                     'motion':[0.,0.],'observed':[]})
+        row=jma_analysis_row(sid,parts,datetime.now(timezone.utc))
+        if row is not None:rows.append(row)
     return rows
 
 def infer(model,contract,geo,weather,times,row,out,kind,source,provenance=None):
@@ -189,6 +206,7 @@ def infer(model,contract,geo,weather,times,row,out,kind,source,provenance=None):
          'input_history_times_utc':[str(np.datetime64(int(t),'ns').astype('datetime64[s]'))+'Z' for t in times],
          'input_tensor_sha256':digest(b''.join(x[k].numpy().tobytes() for k in sorted(x))),
          'input_weather_source':provenance,
+         'issue_analysis_source':row.get('jma_analysis'),
          'generated_at_utc':utc(datetime.now(timezone.utc)),'run_url':os.environ.get('RUN_URL')}
     field={'model':'Trackformer 1.2','forecast_id':ident,'members':1,'checkpoint_sha256':CHECKPOINT,'latitude':contract['global_lat'],'longitude':contract['global_lon'],
            'valid_times_utc':valid,'units':'hPa','rounding_hpa':.01,'grid':'2.5 degree model basin','note':note,'pressure_hpa':fields}

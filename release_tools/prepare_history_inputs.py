@@ -17,7 +17,7 @@ def sha(p):
     return h.hexdigest()
 
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('project',type=Path);ap.add_argument('site',type=Path);ap.add_argument('output',type=Path);ap.add_argument('--ticks-from-year',type=int,default=9999);a=ap.parse_args()
+    ap=argparse.ArgumentParser();ap.add_argument('project',type=Path);ap.add_argument('site',type=Path);ap.add_argument('output',type=Path);ap.add_argument('--ticks-from-year',type=int,default=9999);ap.add_argument('--preserve-manifest',type=Path);a=ap.parse_args()
     a.output.mkdir(parents=True,exist_ok=True)
     atlas=np.load(a.project/'track_build/basin_all_int8.npz',allow_pickle=False)
     slp=np.load(a.project/'track_build/basin_slp_atlas_float16.npy',mmap_mode='r')
@@ -57,6 +57,14 @@ def main():
         else:coverage.append({'id':sid,'status':'no_matching_48h_weather_history'})
     # Recent storms first; no quality-based selection. Group weather by year for bounded downloads.
     queue.sort(key=lambda r:(0 if r['storm_id']=='2025308N09144' else 1 if r['season']>=a.ticks_from_year else 2,-r['season'],r['storm_id'],r['issue_time_utc']))
+    # Keep all previously published planned IDs, including the older first issues
+    # now superseded in playback by six-hour ticks. Existing predictions are immutable.
+    if a.preserve_manifest:
+        previous=json.loads(a.preserve_manifest.read_text())
+        originals={r['id']:r for r in previous['queue']}
+        queue=[originals.get(r['id'],r) for r in queue]
+        present={r['id'] for r in queue}
+        queue.extend(r for r in previous['queue'] if r['id'] not in present)
     bundles={}
     for year in sorted({r['season'] for r in queue if r['atlas'] is not None}):
         rows=[r for r in queue if r['season']==year and r['atlas'] is not None];indices=np.unique(np.concatenate([np.arange(r['atlas']-8,r['atlas']+1) for r in rows]))
@@ -65,11 +73,11 @@ def main():
         bundles[str(year)]={'file':file.name,'sha256':sha(file),'bytes':file.stat().st_size}
     geo=a.project/'data/v164_pressure_geography/geography.npz'
     (a.output/'geography.npz').write_bytes(geo.read_bytes())
-    manifest={'schema':'trackformer-1.2-input-queue-v1','selection':f'Every in-domain six-hour observation from {a.ticks_from_year} onward; first issue per uncovered older storm since 1970. No future truth requirement or error selection.','ticks_from_year':a.ticks_from_year,
+    manifest={'schema':'trackformer-1.2-input-queue-v1','selection':f'Every in-domain six-hour observation from {a.ticks_from_year} onward; first issue per uncovered older storm since 1970. Previously planned IDs preserved. No future truth requirement or error selection.','ticks_from_year':a.ticks_from_year,
         'weather_first':str(times[0].astype('datetime64[ns]')),'weather_last':str(times[-1].astype('datetime64[ns]')),
         'source_sha256':{name:sha(a.project/path) for name,path in [('basin','track_build/basin_all_int8.npz'),('slp','track_build/basin_slp_atlas_float16.npy')]},
         'geography':{'file':'geography.npz','sha256':sha(geo)},'bundles':bundles,'queue':queue,'coverage':coverage}
     (a.output/'manifest.json').write_text(json.dumps(manifest,separators=(',',':'),allow_nan=False))
-    print(json.dumps({'queued_storms':len({r['storm_id'] for r in queue}),'queued_issues':len(queue),'six_hour_issues':sum(r['season']>=a.ticks_from_year for r in queue),'weather_MiB':sum(b['bytes'] for b in bundles.values())/1048576,'coverage':{s:sum(r['status']==s for r in coverage) for s in sorted({r['status'] for r in coverage})}}))
+    print(json.dumps({'queued_storms':len({r['storm_id'] for r in queue}),'queued_issues':len(queue),'six_hour_issues':sum(r['id'].startswith('auto-tick-') for r in queue),'weather_MiB':sum(b['bytes'] for b in bundles.values())/1048576,'coverage':{s:sum(r['status']==s for r in coverage) for s in sorted({r['status'] for r in coverage})}}))
 
 if __name__=='__main__':main()
