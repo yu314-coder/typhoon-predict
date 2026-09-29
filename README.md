@@ -68,35 +68,7 @@ Mean track error is **41.0% lower** for 1.2 on this cohort. Direction, shape and
 
 [Final report and all storm scores](evaluation/daily_storm_final.json) · [Protocol](docs/daily_storm_benchmark.md) · [Frozen issues](evaluation/release_data/daily_storm_cohort.json) · [Reproduce chart](release_tools/plot_daily_storm_final.py)
 
-## Earlier 270-case comparison: 90 storms
-
-This comparison uses **270 forecast cases from 90 storms**, with the same issue rows, observed routes and 20 six-hour leads through +120 h. The number 270 counts forecast cases. The 1.2 prediction for each case is a **mean of 50 causal input-perturbation members**; 1.1 uses its archived causal route pipeline.
-
-| Metric | 1.1 | 1.2 · mean of 50 | Preferred |
-| --- | ---: | ---: | --- |
-| Mean six-hour direction error | 56.22° | **44.82°** | Lower |
-| Route-shape similarity | 0.7273 | **0.8249** | Higher |
-| Path similarity (Fréchet) | 0.4983 | **0.5727** | Higher |
-| Mean track error, +6 to +120 h | 902.3 km | **714.4 km** | Lower |
-| Track error at +120 h | 1,833.2 km | **1,433.4 km** | Lower |
-
-![270-case direction, route-shape, path and position comparison](evaluation/trackformer_1_2_vs_1_1_270_bars.png)
-
-**What “similarity” means:** direction error compares the heading of each six-hour step, on 5,382 common valid case-leads where truth and both models move more than 1 km. Shape similarity compares the centred route curves after removing overall scale, while preserving their orientation; a score of 1 means identical shape under that comparison. Path similarity uses Fréchet distance and the observed route length, so it also responds to geographic displacement. These scores measure different aspects of the forecast and are reported separately.
-
-**Actual route alignment is the goal:** predicted and observed positions should coincide geographically at the same valid times. A high centred-shape score alone does **not** demonstrate that alignment; a displaced forecast can have the right shape and still be wrong. Position error and the unshifted route overlay must therefore be read alongside the shape score.
-
-The saved 1.1 archive had a coordinate-label bug: its `v11_local` array held absolute latitude/longitude, while the original scorer interpreted it as east/north kilometres. The new comparison converts those coordinates to the same local projection used by 1.2 and verifies a round trip back to the original coordinates. **The old 1,036.3 km score is superseded by 902.3 km.** Original forecast archives are preserved. The [published metrics](evaluation/trackformer_1_2_vs_1_1_270_metrics.json), small plot-data arrays and [reproduction script](release_tools/plot_release_270.py) record the correction.
-
-### What the routes look like
-
-These are **six selected best-performing examples from six distinct storms**, not a representative sample. Among in-domain cases with at least 300 km of observed travel, shape similarity ≥0.90 and direction error ≤30° on at least 18 common valid leads, we select the lowest 1.2 mean track errors, with one case per storm. Every curve starts at the same issue-time origin. The [selection manifest and all 270 case scores](evaluation/trackformer_1_2_showcase_selection.json) make the choice auditable; the aggregate bars above still include every case, including poor forecasts.
-
-![Observed, 1.1 and 1.2 routes on six selected best-performing examples](evaluation/trackformer_1_2_vs_1_1_route_examples.png)
-
-The 1.2 mean has better aggregate direction, shape and position scores on this previously inspected development cohort. That does not establish an overall win on every storm or pressure metric. A same-270 1.1 central-pressure prediction array was not verified in these route artifacts, so it is not assigned a pressure-error bar. The separate 1.2 report gives 15.73 hPa central-pressure MAE and 2.54 hPa area-weighted regional MSLP MAE. TIP remains a separate diagnostic: its pressure error was worse for 1.2 (30.7 vs 20.1 hPa). See [metric definitions and limitations](docs/trackformer_1_2_evaluation.md).
-
-The earlier dated partial snapshot is retained for provenance only. The completed 270-storm result at the top of this document supersedes it; the earlier 270-case comparison remains a different cohort.
+**Reading route similarity:** direction error compares headings of common moving six-hour steps. Centred shape similarity removes translation and scale but preserves orientation; it does not establish geographic overlap. Path similarity also responds to displacement. Predicted and observed routes should align at the same valid times, so these metrics must be read alongside position error and unshifted route overlays.
 
 ## Fung-wong pressure forecast — MP4
 
