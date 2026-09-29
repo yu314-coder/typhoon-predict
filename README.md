@@ -1,5 +1,9 @@
 # Trackformer 1.2
 
+**[Download 1.2: weights + code](https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.2/trackformer_1_2_field_20260929.tar.gz)** · **[Read the illustrated paper](paper/trackformer.pdf)** · **[Watch Fung-wong](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_fung_wong.mp4)** · **[Hugging Face model](https://huggingface.co/euler314/typhoon-predict)**
+
+Release status: **research prerelease**, not operational certification. The package contains the released 1.2 weights, inference code, input contract, saved evaluation data and illustrated paper. The original 1.1 release remains separate.
+
 Trackformer 1.2 is a **research-only Western Pacific tropical-cyclone forecast model**. It evolves a sea-level-pressure (MSLP) field and a moving storm-centred pressure core every six hours through +120 h. A track and central-pressure estimate are extracted from the evolving core, not independently drawn on top of a pressure image. The prior [Trackformer 1.1 release](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.1) remains available and unchanged.
 
 **Not an operational warning system.** Do not use these forecasts for evacuation, aviation, maritime, or other safety-critical decisions. The public 1.2 name identifies one selected development checkpoint; a genuinely untouched storm-level holdout has not yet established generalization.
@@ -25,6 +29,21 @@ The two models use different input pipelines. A direct chart is therefore a *for
 5. **Autoregression.** The transition runs 20 times for +6, +12, …, +120 h. Training combines basin-field, regional/core-field, track, central-pressure and auxiliary-wind losses, plus masked pressure-change and displacement losses. Future truth is a training/evaluation target only, never an inference input.
 
 The implementation is in [`models/trackformer_1_2_field/`](models/trackformer_1_2_field/); its [`manifest.json`](models/trackformer_1_2_field/manifest.json) records exact grids, normalization, architecture and SHA-256 provenance. Internally the selected checkpoint came from experiment version `1.2.73`, epoch 4. The public model is **Trackformer 1.2**; that internal identifier is retained only for reproducibility.
+
+### Architecture at a glance
+
+| Component | Released configuration |
+| --- | --- |
+| Trainable parameters | 21,452,595 |
+| Input history | Nine analyses, −48 to 0 h; basin tensor 9 × 8 × 25 × 33 |
+| Basin evolution network | Widths 72 / 144 / 288 / 432; residual depths 2 / 2 / 4 / 4 |
+| Core evolution network | Widths 64 / 128 / 256 / 384; moving 65 × 65 pressure grid, 20-km spacing |
+| Environmental attention | 134 pooled tokens; width 64; four heads; two Transformer blocks; 825 basin queries |
+| Recurrent memory | 32 channels for each of basin and core |
+| Geographic readout | Pressure-associated centre within 300 km; central pressure sampled at that centre |
+| Five-day forecast | 20 autoregressive six-hour transitions; future observations excluded |
+
+Grid spacing describes the representation, not independently demonstrated effective resolution. A mean of member centres is not necessarily the minimum of the displayed mean pressure field.
 
 ## 270-case comparison: direction, route shape and position
 
@@ -56,7 +75,21 @@ The 1.2 mean has better aggregate direction, shape and position scores on this p
 
 ### Expanded daily-issue benchmark: 270 distinct typhoons
 
-A new **1,473-case / 270-storm** benchmark is in progress; it is not the completed 270-case result above. Each storm contributes at most one forecast per UTC day, through +120 h. Daily errors are averaged within each storm, then the 270 storm scores receive equal weight. Selection was frozen before new inference, without filtering on forecast quality. See the [protocol](docs/daily_storm_benchmark.md) and [frozen cohort](evaluation/release_data/daily_storm_cohort.json). Results are pending; no improvement is claimed from the partial run.
+A **1,473-case / 270-storm** benchmark is in progress; it is separate from the completed 270-case comparison above. Each storm contributes at most one forecast per UTC day, through +120 h. Daily errors are averaged within each storm, then storm scores receive equal weight. Selection was frozen before inference without filtering on forecast quality. See the [protocol](docs/daily_storm_benchmark.md) and [frozen cohort](evaluation/release_data/daily_storm_cohort.json).
+
+**Dated snapshot — 2026-09-29T06:09:06.508182+00:00 (UTC), not a live counter:** 808/1,473 daily forecasts saved; **159/270 storms fully completed**. The 1.2 forecasts use 50 causal input-perturbation members. [Machine-readable snapshot](evaluation/daily_storm_progress_20260929.json).
+
+| Preliminary equal-storm metric | 1.1 | 1.2 · mean of 50 |
+| --- | ---: | ---: |
+| Mean track error, +6 to +120 h ↓ | 843.9 km | 487.1 km |
+| Track error at +120 h ↓ | 1733.3 km | 1068.8 km |
+| Six-hour direction error ↓ | 51.81° | 35.33° |
+| Centred route-shape similarity ↑ | 0.7497 | 0.8842 |
+| Geographic path similarity ↑ | 0.5310 | 0.6611 |
+
+**Incomplete development evidence:** only the 159 fully completed storms enter this table. Execution order is not random, and the remaining storms can change the result. These are not the final 270-storm scores or an untouched-test claim. Do not compare this subset directly with the differently sampled 270-case table above.
+
+1.2-only pressure diagnostics: central-pressure MAE **12.62 hPa** over 40 storms with valid pressure labels; basin MSLP MAE **2.70 hPa** over 159 storms. There is no matched 1.1 pressure result in this run, and basin-wide error does not establish core-pressure-map accuracy.
 
 ## Fung-wong pressure forecast — MP4
 
@@ -89,6 +122,18 @@ This recent example is **one deterministic forecast**, separate from the benchma
 - [Input schema and inference instructions](models/trackformer_1_2_field/README.md)
 
 The inference-only `weights.pt` is hosted in the release/Hugging Face model folder, **not committed to GitHub source**. The manifest records its SHA-256 and the original training-checkpoint SHA-256. The three source modules are copied unchanged from the verified training implementation. Use **`models/trackformer_1_2_field/predict.py`** as the inference entry point. The withdrawn route/scalar candidate and its incompatible example have been removed from the current source tree.
+
+### Run one forecast
+
+Download and extract the complete package above, or obtain the source and place the [Hugging Face weights](https://huggingface.co/euler314/typhoon-predict/resolve/main/models/trackformer_1_2_field/weights.pt) at `models/trackformer_1_2_field/weights.pt`. In an environment with PyTorch and NumPy, prepare a normalized **causal issue packet** using the [input schema](models/trackformer_1_2_field/README.md), then run from the package root:
+
+```bash
+python models/trackformer_1_2_field/predict.py causal_issue_packet.npz forecast.npz --device mps
+```
+
+Use `--device cuda` for a compatible NVIDIA setup or `--device cpu` for CPU inference. `causal_issue_packet.npz` is a user-prepared input, not a bundled example or automatic live-data download. Output includes latitude/longitude track, central pressure and basin/regional MSLP arrays in hPa through +120 h. **This command produces one clean forecast, not the benchmark's 50-member mean.**
+
+Released weight SHA-256: `db49f36e85a3766defc4c172746897a1f783705d1ce8e6f9dfb8e87ae1d902cb`.
 
 Only issue-time and earlier analyses are permitted. The prediction wrapper rejects future-dated history and unexpected input keys, but cannot certify an externally built packet's data provenance. The operator must verify source timestamps and training-only normalization. The included wrapper runs one unperturbed forecast; it does not reproduce the saved 50-member mean automatically.
 

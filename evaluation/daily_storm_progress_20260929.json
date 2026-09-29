@@ -1,0 +1,81 @@
+{
+  "status": "running_partial",
+  "updated_utc": "2026-09-29T06:09:06.508182+00:00",
+  "cohort_sha256": "965184f1e5ab3fcb52e304f39b38583a14f753870aa2295f2d01942a441dcfd6",
+  "target_storm_count": 270,
+  "target_daily_cases": 1473,
+  "completed_daily_cases": 808,
+  "completed_storms": 159,
+  "aggregation": "Mean across 20 leads within each daily issue; mean of daily scores within each storm; equal-weight mean of storm scores",
+  "evaluation_label": "Broader development benchmark. Excludes 1.2 fitting/validation years; not certified untouched for all historical model versions.",
+  "aggregate_equal_storm": {
+    "1.1": {
+      "mean_track_error_km": 843.8621114511382,
+      "track_error_120h_km": 1733.2726378192087,
+      "direction_error_deg": 51.80990739742571,
+      "shape_similarity": 0.7497360046168909,
+      "frechet_distance_km": 1747.8702008094688,
+      "path_similarity": 0.5310399910204798,
+      "track_error_by_lead_km": [
+        70.07905921221005,
+        141.47157741053823,
+        213.71663132065547,
+        288.0827303125307,
+        366.6206773075269,
+        443.71663052326375,
+        522.0229150940693,
+        600.2095479405816,
+        680.9489001185718,
+        765.3511050266936,
+        851.273415712845,
+        937.8791152207183,
+        1029.786198881821,
+        1123.316585567243,
+        1219.8504751458606,
+        1317.1924939609435,
+        1420.7865879143453,
+        1523.7928891051765,
+        1627.8720554279569,
+        1733.2726378192087
+      ]
+    },
+    "1.2": {
+      "mean_track_error_km": 487.07502229168585,
+      "track_error_120h_km": 1068.7845200065838,
+      "direction_error_deg": 35.32516513287079,
+      "shape_similarity": 0.8841944328847995,
+      "frechet_distance_km": 1081.361206304057,
+      "path_similarity": 0.6610640343692109,
+      "track_error_by_lead_km": [
+        49.320702362800006,
+        91.93377381158523,
+        128.56644864243074,
+        163.48005333561366,
+        198.97070599127827,
+        237.04318919785257,
+        276.97202860768,
+        318.34651333401285,
+        363.26530711018916,
+        411.3252930097807,
+        464.2790038446656,
+        519.9047678712388,
+        578.6886955998453,
+        640.53742606808,
+        706.620202015708,
+        772.7616953132481,
+        843.2899944159193,
+        915.1638893217782,
+        992.2462359734283,
+        1068.7845200065842
+      ]
+    }
+  },
+  "pressure_equal_storm": {
+    "v12_pressure_mae_hpa": 12.620734815892849,
+    "v12_pressure_mae_hpa_valid_storms": 40,
+    "v12_basin_area_weighted_mslp_mae_hpa": 2.696000601689426,
+    "v12_basin_area_weighted_mslp_mae_hpa_valid_storms": 159
+  },
+  "pressure_note": "1.2-only diagnostics; no matched 1.1 central-pressure comparison is claimed. Basin fields are on a fixed common grid.",
+  "snapshot_note": "Dated partial development snapshot, not live status or final results. Only fully completed storms enter aggregates; execution order is not random."
+}

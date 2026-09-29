@@ -1,5 +1,7 @@
 # Trackformer 1.2 — research candidate
 
+**[Download weights + code](https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.2/trackformer_1_2_field_20260929.tar.gz)** · **[Download the illustrated PDF](https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.2/trackformer.pdf)** · **[Hugging Face model card](https://huggingface.co/euler314/typhoon-predict)**
+
 This release packages a verified moving-pressure-core model as **Trackformer 1.2**. It supersedes the withdrawn, unrelated route/scalar 1.2 candidate. Use `models/trackformer_1_2_field/predict.py`; the incompatible root-level candidate and example are no longer in the current source tree. Trackformer 1.1 remains available as a separate release.
 
 The attached archive includes inference-only weights, exact source modules, an input wrapper, a data-contract/provenance manifest, detailed documentation, **270-case direction/route-shape benchmark bars**, paired route examples and recent **Surigae pressure maps with labelled isobars**. The training checkpoint was internally labelled version `1.2.73`, epoch 4; its SHA-256 is `f194a23d3f91ea76ad776dfad942fabd669eeae8b3fd665815463095367e9ee0`. The exported inference weights SHA-256 is `db49f36e85a3766defc4c172746897a1f783705d1ce8e6f9dfb8e87ae1d902cb`.
@@ -15,3 +17,7 @@ The upgraded **illustrated technical paper** includes the detailed model archite
 The Surigae illustration is a single forecast issued 2026-09-27 12 UTC, with 4 hPa isobars at +6/+24/+36 h. It is separate from the 50-member historical benchmark. Reproduction data and metric definitions are included. The model weights are unchanged in this documentation revision.
 
 This is not an operational warning service. Do not use for safety-critical decisions. A genuinely untouched storm-level holdout is still required before generalization claims.
+
+## Expanded benchmark progress (dated snapshot)
+
+At 2026-09-29T06:09:06.508182+00:00, 808/1,473 daily forecasts and 159/270 storms were complete. This is an incomplete development snapshot, not final validation. The README includes separate preliminary direction, shape and position metrics and pressure-label coverage. The machine-readable snapshot is `evaluation/daily_storm_progress_20260929.json`. Model weights and published paper are unchanged in this documentation update.
