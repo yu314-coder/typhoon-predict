@@ -31,6 +31,14 @@ No same-270 1.1 central-pressure prediction array was verified in the route arti
 
 ## Recent pressure-line example
 
+### Interactive selected-best example
+
+The [interactive PRAPIROON map](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_pressure.html) uses the unchanged saved 50-member fields for case 151, issued 2024-07-19 00 UTC. It is selected by the lowest track error among four cases meeting the disclosed route-shape, heading, central-pressure and complete-map-coverage criteria. Its 133.2 km score is the existing benchmark local-coordinate mean; the UI's individual-lead position error is a great-circle distance to exact observed coordinates and is therefore a separately calculated diagnostic. The pressure MAE is 2.91 hPa. These are showcase results, not typical or new holdout performance.
+
+The page plays all twenty forecast leads, shows model and observed paths independently, and inspects physical mean pressure on the saved fixed grid. The observed path is taken directly from the storm's six-hour verification coordinates, not reconstructed from cumulative local displacements. Full-path observation overlays are retrospective verification and are never fed into inference. Data, hashes and the selection rule are in `paper/release_data/pressure_showcase.json` and the numerical data are in `pressure_showcase.npz`. Rebuild the standalone page and preview with `python release_tools/build_pressure_showcase.py`; no inference or GPU allocation is required to render saved outputs.
+
+### Recent single-member example
+
 The Surigae archive issued **2026-09-27 12 UTC** supplies real model regional MSLP fields at +6, +24 and +36 h. Isobars are drawn every 4 hPa, with selected labels every 12 hPa and one common colour scale. The magenta curve is the saved model route. Fields are neither relocated nor altered to force the map minimum onto the route. The regional map is a resampled composite and can differ slightly from central pressure sampled in the moving core.
 
 This example is one deterministic member from the released checkpoint. Inputs contain nine GFS analyses ending at 06 UTC (six hours before issue), issue-time JMA centre/central pressure, and static geography. Issue-time wind, prior motion and native regional history were unavailable and masked/zeroed. The stored +0 field is an input analysis; it is excluded from these forecast panels. The GFS transfer and input lag remain limitations. The selected leads keep the centre within the fixed 114–144°E, 11–41°N map. Names, times, member count and checkpoint/source hashes are in `paper/release_data/surigae_provenance.json`.

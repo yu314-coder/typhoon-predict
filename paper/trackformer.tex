@@ -1,224 +1,270 @@
 \documentclass[11pt]{article}
-\usepackage[margin=1in]{geometry}
-\usepackage{amsmath,amssymb}
-\usepackage{booktabs}
-\usepackage{graphicx}
-\usepackage{xcolor}
-\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
-\usepackage{array}
-\usepackage{microtype}
-
-\title{\textbf{Trackformer 1.1}\\
-\large Causal Western-Pacific Tropical-Cyclone Forecasting}
-\author{Yu Yao-Hsing\\
-\small \href{https://github.com/yu314-coder/typhoon-predict}{github.com/yu314-coder/typhoon-predict}}
-\date{Model card and training description\\2026-08-20}
-
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,booktabs,array,microtype,xcolor}
+\usepackage[colorlinks=true,linkcolor=teal,urlcolor=teal]{hyperref}
+\setlength{\parskip}{4pt}
+\setlength{\parindent}{0pt}
+\newcommand{\sample}{\mathcal{S}}
+\title{\textbf{Trackformer 1.2}\\[4pt]\large Architecture and Forecast-State Evolution}
+\author{Yu Yao-Hsing\\\small\url{https://github.com/yu314-coder/typhoon-predict}}
+\date{Implementation description --- 29 September 2026}
 \begin{document}
 \maketitle
-
 \begin{abstract}
-Trackformer 1.1 is a research model for forecasting tropical-cyclone motion,
-maximum sustained wind, central pressure, radius of maximum wind (RMW), and
-four-quadrant 34/50/64-kt wind radii over the western Pacific.  It combines a
-causal regional analysis-state route with spatial and temporal structure
-experts.  The model reads observed storm history and analysis information
-available at the issue time or earlier.  It does not consume official
-agency forecast tracks, positive-lead weather fields, or future observations
-as inputs.  This document describes the released model, its data contract,
-training procedure, source boundary, and held-out diagnostic comparison with
-the internal Trackformer 1.2.26 causal baseline.
+Trackformer 1.2 advances an atmospheric basin state and a translating pressure
+core to forecast tropical-cyclone motion and central pressure. Recurrent
+convolutional networks evolve the fields; multiscale attention supplies
+environmental context. The reported centre is associated with a depression in
+the predicted core, and central pressure is sampled from that same field.
+Twenty six-hour transitions produce a five-day forecast. This paper describes
+only the released architecture, input contract, update equations, objectives
+and ensemble mechanism. It contains no benchmark comparisons or skill claims.
 \end{abstract}
 
-\section{Scope and intended use}
+\section{Design and forecast state}
+The system is not a route predictor followed by an independently drawn pressure
+image. It evolves pressure and atmospheric states, proposes a translation of a
+storm-following frame, then associates a centre with the predicted pressure
+within that frame. Translation is learned and steering-conditioned: this is
+neither a pressure-only tracker nor a complete atmospheric numerical solver.
 
-The release is an experimental research artifact for reproducible tropical
-cyclone forecasting and hindcast evaluation.  It is not an operational
-warning system and must not be used for evacuation, aviation, maritime,
-emergency-management, or other safety-critical decisions.  Official
-meteorological agencies remain the authority for real-world warnings.
-
-\section{Forecast contract}
-
-The model produces twenty future states at six-hour intervals:
+At step $k$, the recurrent state is
 \[
-  \{6,12,18,\ldots,120\}\ {\rm hours}.
+s_k=(g_k,h^g_k,c_k,h^c_k,a_k,o_k,z_k,m_k,v_k;G,R,I,M).
 \]
-Each state contains latitude and longitude, maximum sustained wind, central
-pressure, RMW, and twelve quadrant radii:
-\[
-  [v_{\max},p_{\rm c},r_{\rm mw},R34_{NE},R34_{SE},R34_{SW},R34_{NW},
-    R50_{NE},\ldots,R64_{NW}].
-\]
-Wind is exposed as a one-minute estimate in knots.  Pressure is in hPa.
-Distances are exposed in kilometres, although the historical training
-structure labels and the native checkpoint tensors use nautical miles.  The
-public conversion is
-\[
-  1\ {\rm nautical\ mile}=1.852\ {\rm km}.
-\]
-The output projection keeps radii non-negative and enforces
-\[
- R34_q \geq R50_q \geq R64_q
-\]
-for every quadrant \(q\).
+Here $g$ is the normalized eight-channel basin field; $h^g$ its memory;
+$c$ the core pressure; $h^c$ core memory; $a$ its anomaly relative to the basin;
+$o$ the core-grid origin; $z$ the associated storm centre; $m$ displacement per
+six hours; and $v$ auxiliary maximum wind. Static geography $G$, regional
+coordinates $R$, issue intensity $I$ and masks $M$ stay fixed.
 
-\section{Architecture}
-
-\subsection{Causal regional route}
-
-The route module operates on a western-Pacific analysis domain covering the
-nearby ocean and the land regions that affect recurvature and decay.  It
-constructs steering views from 850-hPa, 500-hPa, and 200-hPa winds together
-with 500-hPa height.  Inner-flow, deep-layer, ridge, trough, and jet-level
-views are integrated into a weighted route ensemble.  The route sees only
-analysis states at or before the issue time.
-
-\subsection{Intensity and structure experts}
-
-The intensity input contract is a nine-step observed storm window with shape
-\(9\times54\), together with a current four-channel storm-centred analysis
-patch of shape \(4\times17\times17\).  The spatial experts use a transformer
-encoder for the observed track/environment sequence and a convolutional
-field encoder for the current patch.  Lead queries decode a twenty-step
-curve for maximum wind and central pressure.
-
-Three structure experts use the same causal history and field representation
-to estimate RMW and the twelve quadrant radii.  The structure decoder is
-shared across leads but has lead embeddings and a temporal decoder.  Expert
-outputs are averaged and blended using validation-only weights.
-
-\subsection{Temporal expert}
-
-An additional group of three temporal experts reads the current field and
-older analysis fields with shape \(8\times17\times17\).  It provides a
-validation-gated residual adjustment to the primary intensity path.  The
-residual branch is disabled when its required causal history is unavailable.
-It cannot access positive-lead fields.
-
-\section{Data and training}
-
-\subsection{Sources}
-
-\begin{itemize}
-\item \textbf{IBTrACS best track:} observed storm position, intensity,
-      RMW, and wind-radius history and future labels for training targets and
-      later verification.
-\item \textbf{Atmospheric analysis/reanalysis:} current, \(t-12\) h, and
-      \(t-24\) h pressure, height, and multi-level wind summaries.
-\item \textbf{SST summaries:} current and past sea-surface-temperature
-      context with availability flags.
-\item \textbf{Static geography:} land/sea state, terrain, land cover,
-      coastline proximity, and geographic location features.
-\end{itemize}
-
-The input policy excludes JMA, JTWC, ECMWF, GFS, GEFS, and other official
-forecast products.  It also excludes positive-lead weather fields and
-observations that were not available at issue time.  Future best-track labels
-are targets for supervised training or chronological scoring only.
-
-\subsection{Chronological storm-disjoint split}
-
-The split is determined by each storm's first year:
-\begin{center}
-\begin{tabular}{ll}
+\begin{center}\small
+\begin{tabular}{p{0.25\linewidth}p{0.63\linewidth}}
 \toprule
-\textbf{Split} & \textbf{Storm first year}\\
-\midrule
-Training & through 2015\\
-Validation & 2016--2019\\
-Test & 2020 onward\\
+Stage & Function\\\midrule
+Initialization & Past analyses and issue observations initialize fields and memories.\\
+Attention & Multiscale environmental tokens condition basin memory.\\
+Basin transition & Steering, backward transport and learned tendencies evolve eight fields.\\
+Core transition & A translated frame carries a recurrent pressure anomaly.\\
+Readout & Field-based association yields route and central pressure; pressure is reconstructed geographically.\\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{tabular}\end{center}
 
-All normalization statistics, checkpoint selection, and calibration fits are
-limited to the training and validation periods.  The test period is held out
-until final scoring.  Storm identity is kept intact across the split so
-overlapping windows from one storm cannot cross from training into
-validation or test.
+\section{Inputs, geometry and outputs}
+Nine past analyses at $-48,-42,\ldots,0$ h form a tensor of shape
+$B\times9\times8\times25\times33$. The basin spans $60$ to $0^\circ$N and
+$100$ to $180^\circ$E at $2.5^\circ$ spacing. Channels are
+\[
+[\mathrm{MSLP},Z_{500},u_{850},v_{850},u_{500},v_{500},u_{200},v_{200}],
+\]
+in hPa, metres and metres per second. Channel normalization is
+$\widetilde x_j=(x_j-\mu_j)/\sigma_j$, with the released training-only constants.
+Statistics are not refitted for each forecast.
 
-\subsection{Objectives and regularization}
+Optional regional pressure history has shape $B\times9\times1\times121\times121$
+on an issue-anchored patch sampled every $0.25^\circ$, with offsets of
+$\pm15^\circ$. A detail-availability flag chooses native regional history or
+coarse basin pressure during initialization. The regional coordinate grid is
+still supplied when native observations are unavailable.
 
-The training loss is a masked, lead-weighted Huber/Smooth L1 objective.  A
-temporal curve term penalizes implausible lead-to-lead jumps.  Structure
-channels use explicit availability masks, so an absent historical radius is
-not interpreted as a zero-radius label.  Radius ordering is penalized in the
-loss and enforced again at the output boundary.  Separate kinematic and
-thermodynamic paths reduce task interference between track and intensity.
-Three seeds are trained for each expert group and the ensemble/calibration
-weights are selected on the validation split.
+Four static channels encode latitude/$90$, longitude/$180-1$, land fraction
+and elevation/$8000$ m. The issue state supplies latitude/longitude, east/north
+motion in km per six hours, maximum wind in knots, central pressure in hPa and
+two intensity-availability masks. Only observations and analyses at or before
+issue time may enter inference; retrospective data availability is a separate
+operational question.
 
-\section{Held-out diagnostic comparison}
+The internal core is a $65\times65$ grid at 20-km sampling over $\pm640$ km.
+Its field is a learned reconstruction, not native 20-km observations.
+For each of twenty leads ($6,12,\ldots,120$ h), outputs include basin fields,
+regional pressure, core pressure/coordinates, storm centre, central pressure,
+domain masks and auxiliary maximum wind. This implementation does not output
+quadrant wind radii or a resolved surface-wind map.
 
-Table~\ref{tab:metrics} reports the final \(+120\) h mean absolute errors.  The
-Trackformer 1.1 values are the released calibrated public path.  The
-Trackformer 1.2.26 values are the causal physics-v4 comparison baseline on
-9,994 untouched test windows from storms whose first year is 2020 or later.
-Lower error is better.  The comparison is diagnostic; the 1.2.26 model is not
-part of this release.
+\section{Neural modules}
+The released non-tiny architecture has 21,452,595 trainable parameters.
+\subsection{Multiresolution evolution networks}
+The basin network receives 44 channels: eight fields, 32 memory features and
+four static channels. Encoder widths are $72,144,288,432$; residual-block depths
+are $2,2,4,4$. A $3\times3$ stem and stride-two convolutions produce four
+scales. The decoder uses $1\times1$ projections, bilinear upsampling, additive
+skip connections and one residual block at each reconstructed scale.
+Output heads emit ten transition channels and 32 recurrent features. Eight
+transition channels are field tendencies and two are flow corrections.
 
-\begin{table}[ht]
-\centering
-\caption{Reported held-out \(+120\) h errors.}
-\label{tab:metrics}
-\small
-\begin{tabular}{lrrr}
-\toprule
-\textbf{Metric} & \textbf{Trackformer 1.1} & \textbf{Trackformer 1.2.26} & \textbf{Unit}\\
-\midrule
-Maximum wind MAE & 20.36 & 19.88 & kt\\
-Central pressure MAE & 14.44 & 13.63 & hPa\\
-RMW MAE & 25.22 & 18.53 & km\\
-R34 MAE & 61.92 & 46.67 & km\\
-R50 MAE & 34.24 & 25.42 & km\\
-R64 MAE & 20.49 & 14.77 & km\\
-\bottomrule
-\end{tabular}
-\end{table}
+Each residual block comprises a depthwise $5\times5$ convolution, eight-group
+normalization, $1\times1$ expansion by four, GELU and $1\times1$ contraction.
+A learned residual multiplier starts at 0.01. Transition heads start at zero.
+The core network uses widths $64,128,256,384$ and the same depths. Its 45 inputs
+are core pressure, eight environmental fields, 32 core-memory channels and four
+geographic channels. Three outputs represent one anomaly tendency and two
+local-flow corrections.
 
-\begin{figure}[ht]
-\centering
-\includegraphics[width=\linewidth]{trackformer_1_1_vs_1_2_26_test120h_mae.png}
-\caption{The same comparison as Table~\ref{tab:metrics}.  The four-quadrant
-structure values for Trackformer 1.1 were converted from native nautical
-miles using 1.852 km per nautical mile.}
-\label{fig:comparison}
-\end{figure}
+\subsection{Convolutional recurrent memory}
+Basin and core memories each have 32 channels. History encoders receive 72
+flattened basin channels or nine pressure-history channels, respectively.
+Given advected memory $h$ and new evolution features $f$,
+\begin{align*}
+(r,u)&=\operatorname{sigmoid}(W_g*[h,f]),\\
+q&=\tanh(W_q*[r\odot h,f]),\\
+h'&=(1-u)\odot h+u\odot q.
+\end{align*}
+The gate convolution emits 64 channels split into reset and update gates;
+the candidate convolution emits 32. Forecast leads share these recurrent
+modules rather than using twenty independent predictors.
 
-\section{Release contents and reproducibility}
+\subsection{Environmental attention}
+A $1\times1$ convolution projects $[g,h^g,G]$ from 44 to 64 channels.
+Average pooling at sizes/strides three and five with ceiling mode yields
+$9\times11+5\times7=134$ environmental tokens. Two pre-normalization
+Transformer layers use width 64, four heads, feed-forward width 128,
+ReLU activation and zero dropout. Each of the 825 basin cells supplies a
+query projected from its memory to width 64. Four-head cross-attention
+retrieves context; a zero-initialized $64\to32$ projection adds it to basin
+memory before the transition. No separate positional embedding is added:
+geographic coordinates are already among the token inputs.
 
-The GitHub Release archive contains:
-\begin{itemize}
-\item three primary intensity checkpoints;
-\item three structure checkpoints;
-\item three temporal checkpoints;
-\item normalization statistics;
-\item calibration state and the model manifest.
-\end{itemize}
+\section{Observation-conditioned initialization}
+Write $\sample(F,\xi)$ for bilinear field sampling. Sampling uses FP32 geometry,
+aligned corners and border padding for the basin; transported core anomalies
+use zero padding. All nine pressure histories are sampled onto the core grid
+centred at the issue observation. A detail mask chooses native pressure or
+coarse pressure. The latest map initializes $c_0$, while all nine maps initialize
+the core memory.
 
-The main repository contains the public source modules:
-\begin{itemize}
-\item \texttt{trackformer\_1\_1.py} for the public loader;
-\item \texttt{trackformer\_1\_1\_route.py} for the causal route;
-\item \texttt{trackformer\_1\_1\_intensity.py} for intensity and structure;
-\item \texttt{trackformer\_1\_1\_temporal.py} for the temporal expert.
-\end{itemize}
-The supported checkpoint format is native PyTorch.  GGUF is not an
-appropriate interchange format for this CNN/Transformer weather model.
+If issue central pressure is valid, the initial core is corrected by
+\[
+c_0(x,y)\leftarrow c_0(x,y)+
+(\widetilde p_{\rm issue}-c_0(0,0))
+e^{-(x^2+y^2)/(2\,100^2)}T(x,y),
+\]
+where $x,y$ are kilometres and
+$T=\operatorname{clip}((640-\sqrt{x^2+y^2})/160,0,1)$.
+The anomaly is $a_0=c_0-\sample(g_{0,\mathrm{MSLP}},\xi_0)$.
+This compact prior is applied only at initialization. Future scalar pressure
+is not repeatedly inserted into the field.
 
-\section{Limitations}
+\section{One six-hour transition}
+\subsection{Basin transport}
+Learned softmax weights blend physical winds at 850, 500 and 200 hPa.
+Their initialization is $(0.4,0.4,0.2)$, not a fixed inference constraint.
+For network output $d$,
+\[
+U_k=\sum_\ell\alpha_\ell(u_\ell,v_\ell)_k+15\tanh(d_{8:10})
+\quad\mathrm{m\,s^{-1}}.
+\]
+Backtracing constructs departure coordinates $D(U_k)$ and
+\[
+g_{k+1}=\sample(g_k,D(U_k))+0.2\tanh(d_{0:8}).
+\]
+Six hours convert 1 m/s to 21.6 km. Coordinate conversion uses 111.2 km per
+latitude degree and $111.2\max(\cos\phi,0.2)$ km per longitude degree.
+The attention-conditioned memory is advected by the same departure grid and
+updated with new features. Tendencies are in normalized channel units.
+This semi-Lagrangian-style update is not a complete or exactly conservative
+atmospheric equation solver.
 
-Performance varies with storm structure, basin, analysis source, land
-interaction, and missing observations.  A held-out aggregate metric does not
-guarantee skill on every individual storm.  The release provides no
-operational warning confidence and must be interpreted with the limitations
-of the data and causal hindcast design.
+\subsection{Moving-frame proposal}
+A $44\to64\to3$ GELU MLP reads sampled 32-channel memory, eight basin fields,
+previous motion divided by 100, and two issue-intensity masks. For output $b$,
+\[
+m_{k+1}=0.7(21.6)U_k(z_k)+0.3m_k+100\tanh(b_{0:2}).
+\]
+This displacement, in km per six hours, defines a new origin relative to
+$z_k$. It proposes where the pressure core moves, but is not the final reported
+centre. The third output updates auxiliary wind:
+$v_{k+1}=\max(0,v_k+5b_2)$.
 
-\section*{License}
+\subsection{Relative core transport}
+The core network reads the previous pressure core, its old sampled environment,
+core memory and geography at the proposed origin. Local velocity is
+$U^{\rm local}=\sample(U_k)+5\tanh(d^c_{1:3})$.
+Subtracting $m_{k+1}/21.6$ removes bulk frame translation. Backward coordinates
+also account for the offset between the previous associated centre and its
+previous grid origin. On this relative departure grid $D_c$,
+\begin{align*}
+a_{k+1}&=\sample(a_k,D_c)+0.1d^c_0,\\
+c_{k+1}&=\sample(g_{k+1,\mathrm{MSLP}},\xi_{k+1})+Ta_{k+1}.
+\end{align*}
+Unlike the basin tendency, $d^c_0$ is not bounded by $\tanh$.
+Core memory uses the same relative sampling followed by its gated update.
 
-Code and compact artifacts are released under the repository MIT license.
-Upstream datasets remain subject to their own terms and attribution
-requirements.
+\subsection{Centre association and central pressure}
+Convert core pressure to hPa: $P=\sigma_p c_{k+1}+\mu_p$.
+For cells within 300 km of the proposed origin,
+\[
+w_i=\operatorname{softmax}_i\left(-P_i/2-r_i^2/(2\,180^2)\right).
+\]
+Cells beyond 300 km are excluded. The weighted mean of cell latitude/longitude
+is $z_{k+1}$. Central pressure is the bilinear sample $\sample(P,z_{k+1})$,
+not necessarily the grid minimum. The spatial prior associates the forecast
+with this storm rather than an unrelated remote depression.
 
+\subsection{Geographic pressure output}
+The issue-anchored regional output is
+\[
+\widehat p_R=\sample(g_{k+1,\mathrm{MSLP}},R)
+             +\sample(Ta_{k+1},R;\mathrm{zero\ padding}),
+\]
+then de-normalized to hPa. This basin-plus-core reconstruction is generated by
+the model itself; future observed fields and display-only vortices are not
+substituted. Its $0.25^\circ$ sampling is not proof of native resolution.
+Masks indicate valid basin coverage. Resampling and localized association mean
+the reported centre, central pressure and regional map minimum need not coincide
+exactly. A display must preserve those distinctions rather than relocate fields.
+
+\section{Autoregression and learning objectives}
+Inference initializes once and repeats the transition twenty times, using only
+fixed issue context and its own predicted future state. The implemented
+single-step loss is
+\begin{align*}
+L={}&L_{\rm env}+L_{\rm regional}+0.2L_{\rm route}
+    +0.5L_{\rm pressure}+0.05L_{\rm wind}\\
+ &+0.25L_{\Delta p}+0.1L_{\Delta z}.
+\end{align*}
+The final terms require valid preceding-target labels. Environment loss is
+cosine-latitude-weighted Smooth L1 in normalized units. Regional loss includes
+Smooth L1 and $0.2$ times adjacent-grid gradient errors on each axis. Absolute
+regional-field supervision excludes the inner 150 km around the target centre,
+because reanalysis can underresolve observed central pressure. This is a
+supervision choice, not proof of correct inner-core structure.
+
+Route residuals use a 100-km scale; pressure and wind use 20 hPa and 30 kt.
+Pressure-change error uses 10 hPa and displacement-change error uses 100 km.
+All objectives use explicit masks. They train field evolution and readout
+together, without adding an independent central-pressure output head.
+Training-only normalization, storm-level split boundaries and causal input
+selection remain essential implementation constraints.
+
+\section{Single forecasts and 50-member means}
+Evaluation-mode inference is deterministic for fixed inputs and weights.
+The documented ensemble perturbs only normalized historical weather: independent
+Gaussian fields are spatially smoothed with kernels five (basin) and nine
+(regional), centred, unit-scaled per map and multiplied by amplitudes 0.025 and
+0.015. Issue centre, motion, intensity, masks and geography remain fixed.
+Each member performs a complete recurrent rollout.
+
+With $M=50$, routes and central pressures are averaged separately:
+$\overline z=M^{-1}\sum_m z^{(m)}$ and $\overline p=M^{-1}\sum_m p^{(m)}$.
+Physical pressure fields are averaged on common geographic grids, not by
+averaging unaligned moving-core array indices. In general,
+\[
+\overline z\ne\arg\min_x\overline P(x),\qquad
+\overline p\ne\min_x\overline P(x).
+\]
+These are perturbed-input realizations of one model, not 50 trained networks or
+learned latent samples. Spread is not automatically calibrated uncertainty.
+Member counts, perturbation settings and seed policy must accompany the outputs.
+
+\section{Source identity and use boundary}
+The public name is \textbf{Trackformer 1.2}. Its manifest retains the internal
+checkpoint identity, 1.2.73 epoch 4, and exact weight/source hashes.
+\texttt{model.py} implements environmental attention and added temporal losses;
+\texttt{baseline\_model.py} implements moving-core evolution and readout;
+\texttt{v165\_base.py} supplies sampling, evolution blocks and memories.
+All are in \texttt{models/trackformer\_1\_2\_field/}.
+
+This paper describes mechanisms only. Learned reconstructions, limited domain,
+input-source differences and retrospective availability constrain interpretation.
+The model remains a research artifact, not an operational warning system.
 \end{document}

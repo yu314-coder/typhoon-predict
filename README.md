@@ -56,6 +56,18 @@ The 1.2 mean has better aggregate direction, shape and position scores on this p
 
 A new **1,473-case / 270-storm** benchmark is in progress; it is not the completed 270-case result above. Each storm contributes at most one forecast per UTC day, through +120 h. Daily errors are averaged within each storm, then the 270 storm scores receive equal weight. Selection was frozen before new inference, without filtering on forecast quality. See the [protocol](docs/daily_storm_benchmark.md) and [frozen cohort](paper/release_data/daily_storm_cohort.json). Results are pending; no improvement is claimed from the partial run.
 
+## Interactive forecast pressure and observed route
+
+**[Open the interactive 1.2 pressure map](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_pressure.html)** — play or scrub from +6 to +120 h, toggle forecast/observed routes, and hover or tap to inspect pressure and position. Click the preview below to open it. GitHub and Hugging Face Markdown cannot execute the interactive controls inside the README itself.
+
+[![Open the interactive Trackformer 1.2 pressure map against the observed Prapiroon route](paper/trackformer_1_2_interactive_pressure_preview.png)](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_pressure.html)
+
+This **PRAPIROON forecast issued 19 July 2024 at 00 UTC** uses the actual saved **50-member mean physical pressure field**, member-mean route and central pressure. The observed route uses exact six-hour best-track coordinates from the verification archive. It is the lowest-track-error case among the declared full-map-coverage and pressure-quality candidates: 133.2 km saved-benchmark mean track error and 2.91 hPa central-pressure MAE. This is a deliberately selected showcase, not typical performance or an unbiased evaluation. The [data and selection manifest](paper/release_data/pressure_showcase.json) explains the choice. The mean map has not been moved to match the observed track.
+
+### Architecture-only paper
+
+The revised **[Trackformer 1.2 technical paper (PDF)](paper/trackformer.pdf)** describes only the detailed architecture and how forecasts work: input tensors, multiscale attention, recurrent basin transport, moving pressure core, centre association, physical pressure reconstruction, objectives and 50-member means. [Editable LaTeX source](paper/trackformer.tex). Benchmark results remain separate in the evaluation notes; the previous 1.1 paper source is preserved as [a legacy document](paper/trackformer_1_1_legacy.tex).
+
 ## Recent pressure forecast with isobars
 
 The archived **Surigae forecast issued 27 September 2026 at 12:00 UTC** shows the model's regional pressure field at +6, +24 and +36 h. Thin lines are isobars every **4 hPa**, with selected labels every 12 hPa; magenta shows the forecast track and centre. Coastlines provide geographic context. These panels use the actual saved model values.
