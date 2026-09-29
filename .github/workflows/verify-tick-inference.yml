@@ -1,0 +1,50 @@
+name: Verify independent six-hour model initializations
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: .forecast-cache
+          key: trackformer-1-2-inputs-${{ runner.os }}-v1
+      - run: |
+          python -m pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install numpy==2.2.6 scipy==1.15.3 requests==2.32.4
+      - name: Run two consecutive real initializations without publishing
+        run: |
+          python release_tools/automatic_forecasts.py --output "$RUNNER_TEMP/tick-verification" --cache .forecast-cache --historical-limit 2 --minutes 3 --skip-live
+          python - <<'PY'
+          import gzip, hashlib, json, os
+          from pathlib import Path
+          from datetime import datetime
+          root=Path(os.environ['RUNNER_TEMP'])/'tick-verification'
+          rows=sorted([json.loads(p.read_text()) for p in (root/'forecasts').glob('*.json')],key=lambda r:r['issue_time_utc'])
+          assert len(rows)==2
+          stamps=[datetime.fromisoformat(r['issue_time_utc'].replace('Z','+00:00')) for r in rows]
+          assert (stamps[1]-stamps[0]).total_seconds()==21600
+          assert rows[0]['input_tensor_sha256']!=rows[1]['input_tensor_sha256']
+          assert rows[0]['route']!=rows[1]['route']
+          field_hashes=[]
+          for row in rows:
+              assert row['members']==1 and len(row['route'])==21
+              assert max(row['input_history_times_utc'])<=row['issue_time_utc']
+              field=json.loads(gzip.decompress((root/'fields'/(row['id']+'.json.gz')).read_bytes()))
+              assert len(field['pressure_hpa'])==20
+              field_hashes.append(hashlib.sha256(json.dumps(field['pressure_hpa']).encode()).hexdigest())
+              print('VERIFIED',row['id'],row['input_tensor_sha256'],field_hashes[-1])
+          assert field_hashes[0]!=field_hashes[1]
+          print('PASS: independent causal initializations, distinct routes and pressure fields; no output archive modified')
+          PY
