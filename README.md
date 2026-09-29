@@ -46,11 +46,15 @@ The saved 1.1 archive had a coordinate-label bug: its `v11_local` array held abs
 
 ### What the routes look like
 
-These are cases 1, 136 and 270, selected by their row positions before inspecting their forecast quality. Every curve starts at the same issue-time origin. The examples show both useful motion and substantial remaining errors, including missed turns.
+These are **six selected best-performing examples from six distinct storms**, not a representative sample. Among in-domain cases with at least 300 km of observed travel, shape similarity ≥0.90 and direction error ≤30° on at least 18 common valid leads, we select the lowest 1.2 mean track errors, with one case per storm. Every curve starts at the same issue-time origin. The [selection manifest and all 270 case scores](paper/trackformer_1_2_showcase_selection.json) make the choice auditable; the aggregate bars above still include every case, including poor forecasts.
 
-![Observed, 1.1 and 1.2 routes on three fixed benchmark examples](paper/trackformer_1_2_vs_1_1_route_examples.png)
+![Observed, 1.1 and 1.2 routes on six selected best-performing examples](paper/trackformer_1_2_vs_1_1_route_examples.png)
 
 The 1.2 mean has better aggregate direction, shape and position scores on this previously inspected development cohort. That does not establish an overall win on every storm or pressure metric. A same-270 1.1 central-pressure prediction array was not verified in these route artifacts, so it is not assigned a pressure-error bar. The separate 1.2 report gives 15.73 hPa central-pressure MAE and 2.54 hPa area-weighted regional MSLP MAE. TIP remains a separate diagnostic: its pressure error was worse for 1.2 (30.7 vs 20.1 hPa). See [metric definitions and limitations](docs/trackformer_1_2_evaluation.md).
+
+### Expanded daily-issue benchmark: 270 distinct typhoons
+
+A new **1,473-case / 270-storm** benchmark is in progress; it is not the completed 270-case result above. Each storm contributes at most one forecast per UTC day, through +120 h. Daily errors are averaged within each storm, then the 270 storm scores receive equal weight. Selection was frozen before new inference, without filtering on forecast quality. See the [protocol](docs/daily_storm_benchmark.md) and [frozen cohort](paper/release_data/daily_storm_cohort.json). Results are pending; no improvement is claimed from the partial run.
 
 ## Recent pressure forecast with isobars
 

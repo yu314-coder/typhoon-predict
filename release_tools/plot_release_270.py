@@ -120,11 +120,50 @@ def similarity_metrics(routes, truth):
     return result
 
 
+def select_showcase(routes, truth, meta, base_lat, base_lon):
+    steps = [np.diff(np.concatenate([np.zeros((len(p), 1, 2)), p], axis=1), axis=1) for p in [truth, *routes]]
+    valid = np.logical_and.reduce([np.linalg.norm(s, axis=-1) > 1 for s in steps])
+    all_cases = []
+    for i, case in enumerate(meta["cases"]):
+        row = {"case_index": i, **case, "base_lat": float(base_lat[i]), "base_lon": float(base_lon[i]),
+               "truth_path_length_km": float(np.linalg.norm(steps[0][i], axis=-1).sum()), "models": {}}
+        for key, route, step in zip(("1.1", "1.2"), routes, steps[1:]):
+            a = (route[i] - route[i].mean(axis=0)).ravel()
+            b = (truth[i] - truth[i].mean(axis=0)).ravel()
+            cosine = np.dot(a, b) / max(np.linalg.norm(a)*np.linalg.norm(b), 1e-8)
+            delta = np.arctan2(step[i,:,1], step[i,:,0]) - np.arctan2(steps[0][i,:,1], steps[0][i,:,0])
+            angles = np.degrees(np.abs(np.arctan2(np.sin(delta), np.cos(delta))))
+            error = np.linalg.norm(route[i]-truth[i], axis=-1)
+            row["models"][key] = {"mean_track_error_km": float(error.mean()),
+                "track_error_120h_km": float(error[-1]),
+                "shape_similarity": float(np.clip((1+cosine)/2, 0, 1)),
+                "direction_error_deg": float(angles[valid[i]].mean()) if valid[i].any() else None,
+                "direction_valid_steps": int(valid[i].sum())}
+        all_cases.append(row)
+    eligible = [c for c in all_cases if 0 <= c["base_lat"] <= 60 and 100 <= c["base_lon"] <= 180
+                and c["truth_path_length_km"] >= 300 and c["models"]["1.2"]["shape_similarity"] >= .9
+                and c["models"]["1.2"]["direction_valid_steps"] >= 18
+                and c["models"]["1.2"]["direction_error_deg"] <= 30]
+    chosen, storms = [], set()
+    for case in sorted(eligible, key=lambda c: (c["models"]["1.2"]["mean_track_error_km"], c["case_index"])):
+        if case["storm_id"] not in storms:
+            chosen.append(case)
+            storms.add(case["storm_id"])
+        if len(chosen) == 6:
+            break
+    if len(chosen) != 6:
+        raise ValueError("Fewer than six distinct storms meet the declared showcase thresholds")
+    return {"selection": "Selected best-performing examples, not a representative sample",
+        "rule": "Within 0-60N / 100-180E; observed path length >=300 km; 1.2 shape >=0.90; direction error <=30 degrees on >=18 common valid leads; ascending 1.2 mean track error; one case per storm; first six distinct storms",
+        "eligible_case_count": len(eligible), "selected": chosen, "all_case_metrics": all_cases}
+
+
 def plot_benchmark(data, output):
     meta = json.loads((data / "cohort_270.json").read_text())
     with np.load(data / "routes_270.npz", allow_pickle=False) as z:
         truth = z["truth_local"].astype("float64")
         routes = [z[k].astype("float64") for k in ("v11_local", "v12_local")]
+        base_lat, base_lon = z["base_lat"], z["base_lon"]
         errors = [np.linalg.norm(p - truth, axis=-1) for p in routes]
     similarity = similarity_metrics(routes, truth)
     assert all(e.shape == (270, 20) and np.isfinite(e).all() for e in errors)
@@ -171,21 +210,25 @@ def plot_benchmark(data, output):
         "position": "Euclidean displacement error in the existing benchmark local-km coordinate system"}
     meta["mean_track_error_reduction_percent"] = float(100*(1-errors[1].mean()/errors[0].mean()))
     (output / "trackformer_1_2_vs_1_1_270_metrics.json").write_text(json.dumps(meta, indent=2) + "\n")
-    fig, axes = plt.subplots(1, 3, figsize=(13, 5), layout="constrained")
-    for ax, case_index in zip(axes, (0, 135, 269)):
+    showcase = select_showcase(routes, truth, meta, base_lat, base_lon)
+    (output / "trackformer_1_2_showcase_selection.json").write_text(json.dumps(showcase, indent=2) + "\n")
+    fig, axes = plt.subplots(2, 3, figsize=(15, 10), layout="constrained")
+    for ax, selected in zip(axes.ravel(), showcase["selected"]):
+        case_index = selected["case_index"]
         for route, color, label in [(truth, "#182c42", "Observed"), (routes[0], colors[0], "1.1"), (routes[1], colors[1], "1.2 · mean of 50")]:
             points = np.vstack([np.zeros((1,2)), route[case_index]])
             ax.plot(points[:,0], points[:,1], color=color, label=label, linewidth=2,
                     linestyle="--" if label=="1.1" else "-", marker="o", markersize=2.5)
-            ax.annotate("+120 h", points[-1], color=color, fontsize=8, xytext=(3,3), textcoords="offset points")
+            ax.scatter(*points[-1], color=color, s=24, zorder=5)
         c = meta["cases"][case_index]
-        ax.set_title(f"Case {case_index+1} · {c['storm_id']}\n{c['issue_time_utc'][:16].replace('T',' ')} UTC", fontsize=10)
+        scores = selected["models"]["1.2"]
+        ax.set_title(f"{c['storm_id']} · {c['issue_time_utc'][:10]}\n1.2: {scores['mean_track_error_km']:.0f} km · shape {scores['shape_similarity']:.3f} · direction {scores['direction_error_deg']:.1f}°", fontsize=10)
         ax.set(xlabel="East displacement (km)", ylabel="North displacement (km)")
         ax.set_aspect("equal", adjustable="datalim")
         ax.grid(alpha=.18)
-    axes[0].legend(frameon=False, fontsize=8)
-    fig.suptitle("What the tracks look like · three fixed examples from the 270-case cohort", fontsize=15, fontweight="bold")
-    fig.text(.5, -.08, "Cases 1, 136 and 270 chosen by row position, without filtering by forecast quality. All start at the same issue-time origin.", ha="center", fontsize=9)
+    axes[0,0].legend(frameon=False, fontsize=9)
+    fig.suptitle("Trackformer 1.2 · selected best-performing route examples\nSix distinct storms from the 270-case benchmark", fontsize=16, fontweight="bold")
+    fig.text(.5, -.045, "Selected for low 1.2 track error, high shape similarity and low direction error. These are showcase examples, not typical performance.", ha="center", fontsize=10)
     fig.savefig(output / "trackformer_1_2_vs_1_1_route_examples.png", dpi=180, bbox_inches="tight")
     plt.close(fig)
 

@@ -17,7 +17,7 @@ The main chart compares 270 issue cases from 90 storms and all 20 leads (+6 thro
 - **Path similarity:** calculate discrete Fréchet distance on the ordered 20-point forecast/truth curves, then `exp(-distance / observed path length)`, and average over cases. The observed length includes the step from the issue origin. Means: **0.498254 for 1.1; 0.572741 for 1.2**. This responds to geographic displacement as well as the curve.
 - **Position error:** mean Euclidean error in the saved benchmark's local-kilometre projection, **902.3001 vs 714.4444 km**. At +120 h it is **1,833.2481 vs 1,433.3863 km**. These are local-coordinate distances, not newly calculated geodesic distances.
 
-No combined weighted ranking is introduced. Cases 1, 136 and 270 are shown for visual comparison, chosen by row position without filtering on forecast quality. Their axes retain actual kilometre displacements from the shared issue origin.
+No combined weighted ranking is introduced. The route gallery shows six deliberately selected best-performing examples, one per distinct storm, not a representative sample. Eligibility requires an issue inside 0–60°N / 100–180°E, observed travel ≥300 km, 1.2 shape similarity ≥0.90, and direction error ≤30° on ≥18 common valid leads. Eligible cases are sorted by ascending 1.2 mean track error, then the first six distinct storms are selected. `paper/trackformer_1_2_showcase_selection.json` records the rule, chosen cases and scores for all 270 cases. Axes retain actual kilometre displacements; no route is moved or rotated to improve the visual comparison. Full-cohort bars are unchanged.
 
 The full 270 cohort includes cases beyond the intended Western Pacific model domain. Its aggregate is a legacy development comparison, not a basin-specific validation claim. The previously inspected 133-case subset is separate and is not substituted for the requested 270 cases.
 
@@ -43,7 +43,11 @@ The public repository includes the small numerical plot inputs under `paper/rele
 python release_tools/plot_release_270.py
 ```
 
-This regenerates the four-panel benchmark, per-lead curve, fixed route examples, isobar figure and metrics JSON. `--source-root` is optional and is only used to rebuild the small plot inputs from the original local research archives. No inference, fitting or new weather retrieval is performed by this plotting script.
+This regenerates the four-panel benchmark, per-lead curve, selected-best route examples, full selection audit, isobar figure and metrics JSON. `--source-root` is optional and is only used to rebuild the small plot inputs from the original local research archives. No inference, fitting or new weather retrieval is performed by this plotting script.
+
+## Expanded benchmark in progress
+
+The [daily-storm protocol](daily_storm_benchmark.md) freezes 270 distinct Western Pacific storms and 1,473 daily issue cases. It averages leads within each daily issue, daily issues within each storm, and then storms equally. This new run does not reuse the old 270 cases as though they were 270 storms. Results remain pending until the whole frozen cohort is evaluated.
 
 ## Validation boundary
 
