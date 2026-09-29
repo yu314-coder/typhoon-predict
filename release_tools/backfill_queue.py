@@ -2,18 +2,25 @@
 from datetime import datetime, timedelta
 
 
-def queue_state(planned, done, errors, now):
+def retry_is_cooling(error, now, input_version=None):
+    # A corrected input reader gets one immediate retry; new failures back off.
+    # This must match both execution and status counts.
+    if input_version is not None and error.get('input_version') != input_version:
+        return False
+    try:
+        failed = datetime.fromisoformat(error['at'].replace('Z', '+00:00'))
+        return now - failed < timedelta(hours=24)
+    except (KeyError, TypeError, ValueError):
+        return True
+
+
+def queue_state(planned, done, errors, now, input_version=None):
     remaining = set(planned) - set(done)
     cooling = set()
     for ident in remaining:
         if ident not in errors:
             continue
-        try:
-            failed = datetime.fromisoformat(errors[ident]['at'].replace('Z', '+00:00'))
-            if now - failed < timedelta(hours=24):
-                cooling.add(ident)
-        except (KeyError, TypeError, ValueError):
-            # Unknown failure provenance is not permission for a tight retry loop.
+        if retry_is_cooling(errors[ident], now, input_version):
             cooling.add(ident)
     return {'historical_remaining': len(remaining),
             'historical_ready': len(remaining - cooling),

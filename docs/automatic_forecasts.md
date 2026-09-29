@@ -34,12 +34,30 @@ The resulting GFS transfer is experimental. Historical NOAA NCEP reanalyses are
 retrospective, not operationally available inputs; fitting-year overlaps are
 labelled and these forecasts are not a fresh independent evaluation.
 
+NOAA **ended NCEP/NCAR Reanalysis 1 at March 17, 2026**
+([source notice](https://psl.noaa.gov/data/reanalysis/)). Later historical issues
+now use nine exact six-hour **archived GFS f000 analyses** from NOAA's public
+archive. This is explicitly labelled an experimental GFS-input transfer, not
+the original R1 evaluation or a claim of operational availability at the issue.
+The complete history window uses one provider; R1 and GFS are not mixed within
+an initialization. No later-valid analysis, forecast step, nearest-date fill,
+or future observation can replace a missing analysis. Each new archive forecast
+records the nine source URLs, valid times and GRIB-subset SHA-256 hashes.
+Only the eight required GRIB messages are fetched with checked byte ranges;
+timestamps, levels, units and missing values are checked again after decoding.
+New analyses are cached across cloud batches to avoid re-downloading overlapping
+history windows.
+
 The input-only archive is checksum-pinned in `release_tools/history_inputs.json`.
 Weights and source modules must match the release hashes before inference.
 Complete finite +6…+120-hour outputs are saved on the `forecast-data` branch.
 Old issues are immutable; new outputs are added, not substituted into old dates.
 The live job is deduplicated by storm and exact analysis time. Historical errors
-are retried after 24 hours while other storms can continue.
+are retried after 24 hours while other storms can continue. A versioned input
+reader correction releases old failures for one immediate retry; a new failure
+then backs off normally. A manual exact-ID retry also bypasses the cooldown,
+without starting an automatic batch chain. Status separately reports unresolved
+planned-issue errors; obsolete diagnostic errors do not count as remaining work.
 
 Public files beneath that branch's `data/` directory:
 
@@ -71,7 +89,7 @@ and compressed output size should be measured on the cloud pilot before
 estimating total storage and wall-clock completion. The queued combined plan
 contains 5,568 issues (4,015 recent ticks and 1,553 older first issues).
 Scheduled batches attempt up to 500 issues or 45 minutes, whichever comes first.
-Missing recent NOAA reanalysis may delay individual historical ticks; the
+An unavailable archived analysis may delay an individual historical tick; the
 source error is retained and retried after 24 hours, never filled with truth.
 
 The read-only hosted integration run

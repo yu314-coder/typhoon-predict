@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime, timezone
-from backfill_queue import queue_state, should_continue
+from backfill_queue import queue_state, should_continue, retry_is_cooling
 
 
 class BackfillQueue(unittest.TestCase):
@@ -31,6 +31,16 @@ class BackfillQueue(unittest.TestCase):
     def test_bad_failure_timestamp_is_not_hot_retried(self):
         self.assertEqual(queue_state(['a'], [], {'a': {}}, datetime.now(timezone.utc))
                          ['historical_ready'], 0)
+
+    def test_fixed_reader_retries_old_failures_once(self):
+        now=datetime(2026,9,29,12,tzinfo=timezone.utc)
+        old={'at':'2026-09-29T11:00:00Z'}
+        new={**old,'input_version':'new-reader'}
+        self.assertFalse(retry_is_cooling(old,now,'new-reader'))
+        self.assertTrue(retry_is_cooling(new,now,'new-reader'))
+        self.assertEqual(queue_state(['a','b'],[],{'a':old,'b':new},now,'new-reader'),
+                         {'historical_remaining':2,'historical_ready':1,
+                          'historical_cooling_down':1})
 
 
 if __name__ == '__main__':

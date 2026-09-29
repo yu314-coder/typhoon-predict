@@ -13,7 +13,8 @@ import numpy as np
 import requests
 import torch
 from scipy.interpolate import RegularGridInterpolator
-from backfill_queue import queue_state
+from backfill_queue import queue_state, retry_is_cooling
+from gfs_archive import download_analysis
 
 ROOT=Path(__file__).resolve().parents[1]
 MODEL=ROOT/'models/trackformer_1_2_field'
@@ -22,6 +23,8 @@ from model import CoreForecaster
 CHECKPOINT='f194a23d3f91ea76ad776dfad942fabd669eeae8b3fd665815463095367e9ee0'
 HF='https://huggingface.co/euler314/typhoon-predict/resolve/f67f0b206876387c2aa6c9f8f19cb009b7a86091'
 HOUR=3600*10**9
+NCEP_LAST=datetime(2026,3,17,18,tzinfo=timezone.utc)
+HISTORICAL_INPUT_VERSION='2026-09-30-exact-archived-gfs-v1'
 
 def utc(d):return d.astimezone(timezone.utc).isoformat(timespec='seconds').replace('+00:00','Z')
 def parse(s):return datetime.fromisoformat(s.replace('Z','+00:00'))
@@ -30,11 +33,11 @@ def digest(b):return hashlib.sha256(b).hexdigest()
 def write(p,value):
     p=Path(p);p.parent.mkdir(parents=True,exist_ok=True)
     temp=p.with_suffix(p.suffix+'.tmp');temp.write_text(json.dumps(value,separators=(',',':'),allow_nan=False));temp.replace(p)
-def get(url):
+def get(url,**kwargs):
     last=None
     for attempt in range(3):
         try:
-            r=requests.get(url,timeout=(15,90));r.raise_for_status();return r
+            r=requests.get(url,timeout=(15,90),**kwargs);r.raise_for_status();return r
         except requests.RequestException as e:last=e;time.sleep(attempt+1)
     raise last
 def asset(cache,name,url,expected):
@@ -93,8 +96,35 @@ def ncep(row,contract):
     if not np.isfinite(fields).all() or np.max(np.abs(fields))>100000:raise ValueError('Missing or invalid reanalysis')
     return fields,np.asarray([ns(utc(t)) for t in wanted])
 
-def gfs(cycle,cache,contract):
+def decode_gfs(p,cycle,contract):
     import eccodes as ec
+    key=cycle.strftime('%Y%m%d%H')
+    maps={};yy,xx=np.meshgrid(contract['global_lat'],contract['global_lon'],indexing='ij')
+    with p.open('rb') as f:
+        while (gid:=ec.codes_grib_new_from_file(f)) is not None:
+            try:
+                name=ec.codes_get(gid,'shortName');level=ec.codes_get(gid,'level');kind=ec.codes_get(gid,'typeOfLevel')
+                if (ec.codes_get(gid,'step')!=0 or ec.codes_get(gid,'dataTime')!=cycle.hour*100
+                        or str(ec.codes_get(gid,'dataDate'))!=cycle.strftime('%Y%m%d')):
+                    raise ValueError('GFS must be the exact f000 analysis')
+                target=0 if name in ['prmsl','msl'] and kind in ['meanSea','meanSeaLevel'] else ({('gh',500):1,('u',850):2,('v',850):3,('u',500):4,('v',500):5,('u',200):6,('v',200):7}.get((name,level)) if kind=='isobaricInhPa' else None)
+                if target is None:continue
+                if target in maps:raise ValueError('Duplicate GFS channel')
+                units=ec.codes_get(gid,'units')
+                expected={0:['Pa'],1:['gpm'],2:['m s**-1'],3:['m s**-1'],4:['m s**-1'],5:['m s**-1'],6:['m s**-1'],7:['m s**-1']}
+                if units not in expected[target]:raise ValueError('Unexpected GFS physical unit: '+units)
+                lat=ec.codes_get_array(gid,'latitudes');lon=ec.codes_get_array(gid,'longitudes');values=ec.codes_get_values(gid)
+                latvals=np.unique(lat);lonvals=np.unique(lon);grid=np.full((len(latvals),len(lonvals)),np.nan)
+                grid[np.searchsorted(latvals,lat),np.searchsorted(lonvals,lon)]=values
+                result=RegularGridInterpolator((latvals,lonvals),grid,bounds_error=True)(np.stack([yy,xx],axis=-1))
+                if not np.isfinite(result).all() or ec.codes_get(gid,'numberOfMissing'):
+                    raise ValueError('Missing or non-finite GFS analysis values')
+                maps[target]=result/100 if target==0 else result
+            finally:ec.codes_release(gid)
+    if set(maps)!=set(range(8)):raise ValueError('GFS channels missing: '+str(sorted(maps)))
+    return np.stack([maps[i] for i in range(8)]).astype('float32')
+
+def gfs(cycle,cache,contract):
     key=cycle.strftime('%Y%m%d%H');p=cache/f'gfs-{key}.grib2'
     if not p.exists():
         params={'file':f'gfs.t{key[8:]}z.pgrb2.1p00.f000','dir':f'/gfs.{key[:8]}/{key[8:]}/atmos',
@@ -103,23 +133,24 @@ def gfs(cycle,cache,contract):
                 'leftlon':'100','rightlon':'190','toplat':'60','bottomlat':'0'}
         b=get('https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_1p00.pl?'+urlencode(params)).content
         if not b.startswith(b'GRIB') or len(b)>5000000:raise ValueError('Invalid NOAA GRIB response')
-        p.write_bytes(b)
-    maps={};yy,xx=np.meshgrid(contract['global_lat'],contract['global_lon'],indexing='ij')
-    with p.open('rb') as f:
-        while (gid:=ec.codes_grib_new_from_file(f)) is not None:
-            try:
-                name=ec.codes_get(gid,'shortName');level=ec.codes_get(gid,'level');kind=ec.codes_get(gid,'typeOfLevel')
-                if ec.codes_get(gid,'step')!=0 or str(ec.codes_get(gid,'dataDate'))+f"{int(ec.codes_get(gid,'dataTime'))//100:02d}"!=key:raise ValueError('GFS must be the exact f000 analysis')
-                target=0 if name in ['prmsl','msl'] and kind in ['meanSea','meanSeaLevel'] else {('gh',500):1,('u',850):2,('v',850):3,('u',500):4,('v',500):5,('u',200):6,('v',200):7}.get((name,level))
-                if target is None:continue
-                lat=ec.codes_get_array(gid,'latitudes');lon=ec.codes_get_array(gid,'longitudes');values=ec.codes_get_values(gid)
-                latvals=np.unique(lat);lonvals=np.unique(lon);grid=np.empty((len(latvals),len(lonvals)))
-                grid[np.searchsorted(latvals,lat),np.searchsorted(lonvals,lon)]=values
-                result=RegularGridInterpolator((latvals,lonvals),grid,bounds_error=True)(np.stack([yy,xx],axis=-1))
-                maps[target]=result/100 if target==0 else result
-            finally:ec.codes_release(gid)
-    if set(maps)!=set(range(8)):raise ValueError('GFS channels missing: '+str(sorted(maps)))
-    return np.stack([maps[i] for i in range(8)]).astype('float32')
+        temp=p.with_suffix('.part');temp.write_bytes(b);temp.replace(p)
+    return decode_gfs(p,cycle,contract)
+
+def remote_history(row,cache,contract):
+    end=parse(row['issue_time_utc'])
+    if end<=NCEP_LAST:
+        weather,times=ncep(row,contract)
+        return weather,times,'NOAA NCEP Reanalysis 1, exact six-hour history. Retrospective reconstruction; no operational-availability or independent-test claim.',{'provider':'NOAA NCEP Reanalysis 1'}
+    dates=[end-timedelta(hours=6*(8-i)) for i in range(9)]
+    weather=[];analyses=[]
+    # Use a consistent source across the whole input window, never mix R1/GFS.
+    for cycle in dates:
+        p,url=download_analysis(cycle,cache,get)
+        weather.append(decode_gfs(p,cycle,contract))
+        analyses.append({'valid_time_utc':utc(cycle),'url':url,'subset_sha256':digest(p.read_bytes())})
+    return (np.stack(weather),np.asarray([ns(utc(t)) for t in dates]),
+            'Archived NOAA GFS f000 analyses at nine exact six-hour valid times. NCEP R1 ended March 17, 2026. Experimental GFS input transfer; retrospective reconstruction, not an operational-availability or independent-test claim.',
+            {'provider':'NOAA GFS archive','experimental_transfer':True,'analyses':analyses})
 
 def live_rows():
     root='https://www.jma.go.jp/bosai/typhoon/data'
@@ -139,7 +170,7 @@ def live_rows():
                      'motion':[0.,0.],'observed':[]})
     return rows
 
-def infer(model,contract,geo,weather,times,row,out,kind,source):
+def infer(model,contract,geo,weather,times,row,out,kind,source,provenance=None):
     x=inputs(weather,times,row,contract,geo)
     with torch.inference_mode():
         state=model.initial(x);outputs=[]
@@ -157,6 +188,7 @@ def infer(model,contract,geo,weather,times,row,out,kind,source):
          'field_url':'/api/history/v1/fields/'+ident,'source_note':note,'pressure_note':'Model basin field; central pressure is the moving-core readout, not necessarily the basin minimum.',
          'input_history_times_utc':[str(np.datetime64(int(t),'ns').astype('datetime64[s]'))+'Z' for t in times],
          'input_tensor_sha256':digest(b''.join(x[k].numpy().tobytes() for k in sorted(x))),
+         'input_weather_source':provenance,
          'generated_at_utc':utc(datetime.now(timezone.utc)),'run_url':os.environ.get('RUN_URL')}
     field={'model':'Trackformer 1.2','forecast_id':ident,'members':1,'checkpoint_sha256':CHECKPOINT,'latitude':contract['global_lat'],'longitude':contract['global_lon'],
            'valid_times_utc':valid,'units':'hPa','rounding_hpa':.01,'grid':'2.5 degree model basin','note':note,'pressure_hpa':fields}
@@ -204,18 +236,20 @@ def main():
         ident=row['id']
         if a.only_id and ident!=a.only_id:continue
         if (a.output/'forecasts'/f'{ident}.json').exists():continue
-        if ident in errors and datetime.now(timezone.utc)-parse(errors[ident]['at'])<timedelta(hours=24):continue
+        if (not a.only_id and ident in errors and
+                retry_is_cooling(errors[ident],datetime.now(timezone.utc),HISTORICAL_INPUT_VERSION)):continue
         try:
+            provenance={'provider':'Verified bundled NCEP Reanalysis 1'}
             if row['atlas'] is not None:
                 b=plan['bundles'][str(row['season'])];z=np.load(asset(a.cache,b['file'],source+'/'+b['file'],b['sha256']),allow_pickle=False)
                 wanted=ns(row['issue_time_utc'])+np.arange(-8,1)*6*HOUR;idx=np.searchsorted(z['time'],wanted)
                 if not np.array_equal(z['time'][idx],wanted):raise ValueError('Bundled weather time mismatch')
                 weather=np.concatenate([z['slp'][idx,None].astype('float32'),z['q'][idx].astype('float32')*z['scale'][None,:,None,None]+z['offset'][None,:,None,None]],axis=1);times=wanted
                 source_note='Verified local NCEP atlas; exact causal history. Retrospective hindcast; may overlap fitting years, not an independent test.'
-            else:weather,times=ncep(row,contract);source_note='NOAA NCEP Reanalysis 1, four-times daily exact history. Retrospective reconstruction; no operational-availability or independent-test claim.'
-            infer(model,contract,geo,weather,times,row,a.output,'automatic-historical-hindcast',source_note);errors.pop(ident,None)
+            else:weather,times,source_note,provenance=remote_history(row,a.cache,contract)
+            infer(model,contract,geo,weather,times,row,a.output,'automatic-historical-hindcast',source_note,provenance);errors.pop(ident,None)
             succeeded+=1
-        except Exception as e:errors[ident]={'at':utc(datetime.now(timezone.utc)),'error':str(e)[:500]};print(json.dumps({'failed':ident,'error':str(e)[:500]}),flush=True)
+        except Exception as e:errors[ident]={'at':utc(datetime.now(timezone.utc)),'error':str(e)[:500],'input_version':HISTORICAL_INPUT_VERSION};print(json.dumps({'failed':ident,'error':str(e)[:500]}),flush=True)
         completed+=1
     storms={}
     for p in sorted((a.output/'forecasts').glob('*.json')):
@@ -232,9 +266,11 @@ def main():
             'live_issues':[{'id':r['id'],'storm_id':r['storm_id'],'issue_time_utc':r['issue_time_utc'],'available':(a.output/'forecasts'/f"{r['id']}.json").exists()} for r in live],
             'run_url':os.environ.get('RUN_URL'),'elapsed_seconds':round(time.monotonic()-started,1),
             'batch_attempted':completed,'batch_succeeded':succeeded,
-            **queue_state(planned,done,errors,datetime.now(timezone.utc))}
+            'historical_input_version':HISTORICAL_INPUT_VERSION,
+            'historical_pending_errors':len(set(errors)&(planned-done)),
+            **queue_state(planned,done,errors,datetime.now(timezone.utc),HISTORICAL_INPUT_VERSION)}
     write(a.output/'catalog.json',{'schema_version':'1.0','model':'Trackformer 1.2','checkpoint_sha256':CHECKPOINT,'storms':list(storms.values()),'status':status})
     write(a.output/'status.json',status);write(a.output/'coverage.json',{'start_year':1970,'records':plan['coverage']})
-    print(json.dumps(status),flush=True)
+    print(json.dumps({k:v for k,v in status.items() if k!='errors'}),flush=True)
 
 if __name__=='__main__':main()
