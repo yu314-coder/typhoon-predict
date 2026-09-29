@@ -1,0 +1,29 @@
+import json
+import unittest
+from datetime import datetime,timezone,timedelta
+import numpy as np
+import automatic_forecasts as a
+
+class CausalContract(unittest.TestCase):
+    def setUp(self):
+        self.c=json.loads((a.MODEL/'manifest.json').read_text())['data_contract']
+        self.row={'issue_time_utc':'2026-09-29T06:00:00Z','lat':20.,'lon':130.,'pressure_hpa':980.,'wind_kt':None}
+        self.t=a.ns(self.row['issue_time_utc'])+np.arange(-8,1)*6*a.HOUR
+        self.w=np.zeros((9,8,25,33),dtype='float32')
+    def test_future_rejected(self):
+        with self.assertRaisesRegex(ValueError,'causal'):a.inputs(self.w,self.t+6*a.HOUR,self.row,self.c,{})
+    def test_gap_rejected(self):
+        t=self.t.copy();t[2]+=a.HOUR
+        with self.assertRaisesRegex(ValueError,'causal'):a.inputs(self.w,t,self.row,self.c,{})
+    def test_stale_rejected(self):
+        with self.assertRaisesRegex(ValueError,'causal'):a.inputs(self.w,self.t-18*a.HOUR,self.row,self.c,{})
+    def test_nonfinite_rejected(self):
+        self.w[0,0,0,0]=np.nan
+        with self.assertRaisesRegex(ValueError,'Non-finite'):a.inputs(self.w,self.t,self.row,self.c,{})
+    def test_other_basin_rejected(self):
+        self.row['lon']=30
+        with self.assertRaisesRegex(ValueError,'domain'):a.inputs(self.w,self.t,self.row,self.c,{})
+    def test_epoch_is_1970_utc(self):
+        self.assertEqual(a.ns('1970-01-01T00:00:00Z'),0)
+
+if __name__=='__main__':unittest.main()

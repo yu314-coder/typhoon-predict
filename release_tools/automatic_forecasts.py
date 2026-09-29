@@ -1,0 +1,229 @@
+"""Exact public 1.2 CPU forecasts for scheduled GitHub-hosted research jobs.
+
+No future analyses/official forecast positions enter the model. One deterministic
+member, explicitly distinct from the existing 50-member development benchmark.
+The output Git branch is a resumable archive, never a source of model inputs.
+"""
+from __future__ import annotations
+import argparse, hashlib, json, os, sys, time
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
+from urllib.parse import urlencode
+import numpy as np
+import requests
+import torch
+from scipy.interpolate import RegularGridInterpolator
+
+ROOT=Path(__file__).resolve().parents[1]
+MODEL=ROOT/'models/trackformer_1_2_field'
+sys.path.insert(0,str(MODEL))
+from model import CoreForecaster
+CHECKPOINT='f194a23d3f91ea76ad776dfad942fabd669eeae8b3fd665815463095367e9ee0'
+HF='https://huggingface.co/euler314/typhoon-predict/resolve/f67f0b206876387c2aa6c9f8f19cb009b7a86091'
+HOUR=3600*10**9
+
+def utc(d):return d.astimezone(timezone.utc).isoformat(timespec='seconds').replace('+00:00','Z')
+def parse(s):return datetime.fromisoformat(s.replace('Z','+00:00'))
+def ns(s):return int(np.datetime64(s.replace('Z',''),'ns').astype('int64'))
+def digest(b):return hashlib.sha256(b).hexdigest()
+def write(p,value):
+    p=Path(p);p.parent.mkdir(parents=True,exist_ok=True)
+    temp=p.with_suffix(p.suffix+'.tmp');temp.write_text(json.dumps(value,separators=(',',':'),allow_nan=False));temp.replace(p)
+def get(url):
+    last=None
+    for attempt in range(3):
+        try:
+            r=requests.get(url,timeout=(15,90));r.raise_for_status();return r
+        except requests.RequestException as e:last=e;time.sleep(attempt+1)
+    raise last
+def asset(cache,name,url,expected):
+    p=cache/name
+    if p.exists() and digest(p.read_bytes())==expected:return p
+    b=get(url).content
+    if digest(b)!=expected:raise ValueError('Asset SHA-256 mismatch: '+name)
+    p.parent.mkdir(parents=True,exist_ok=True);tmp=p.with_suffix('.part');tmp.write_bytes(b);tmp.replace(p);return p
+
+def statics(contract,geo,lat,lon):
+    def grid(y,x):
+        yy,xx=np.meshgrid(y,x,indexing='ij');iy=np.rint((90-yy)*4).astype(int);ix=np.rint(xx*4).astype(int)%1440
+        if np.any(iy<0) or np.any(iy>=geo['land_fraction'].shape[0]):raise ValueError('Geography outside latitude coverage')
+        return np.stack([yy/90,xx/180-1,geo['land_fraction'][iy,ix],geo['elevation_m'][iy,ix]/8000]).astype('float32')
+    return grid(contract['global_lat'],contract['global_lon']),grid(round(lat*4)/4+np.linspace(15,-15,121),round(lon*4)/4+np.linspace(-15,15,121))
+
+def inputs(weather,times,row,contract,geo):
+    issue=ns(row['issue_time_utc']);times=np.asarray(times,dtype='int64')
+    if weather.shape!=(9,8,25,33) or times.shape!=(9,) or times[-1]>issue or issue-times[-1]>12*HOUR or not np.all(np.diff(times)==6*HOUR):
+        raise ValueError('Nine exact causal six-hour analyses ending no later than issue time are required')
+    if not np.isfinite(weather).all():raise ValueError('Non-finite weather')
+    lat,lon=row['lat'],row['lon']
+    if not (0<lat<60 and 100<lon<180):raise ValueError('Outside released Western Pacific model domain')
+    gs,rs=statics(contract,geo,lat,lon)
+    norm=contract['normalization'];mean=np.asarray(norm['mean'],dtype='float32');std=np.asarray(norm['std'],dtype='float32')
+    raw=[row.get('wind_kt'),row.get('pressure_hpa')]
+    mask=[v is not None and np.isfinite(v) and lo<v<hi for v,lo,hi in zip(raw,[-1,800],[250,1100])]
+    v={'global_history':(weather-mean[None,:,None,None])/std[None,:,None,None],
+       'regional_history':np.zeros((9,1,121,121),dtype='float32'),'detail_available':np.zeros(1,dtype='float32'),
+       'global_static':gs,'regional_static':rs,'center':np.asarray([lat,lon]),'motion':np.asarray(row.get('motion',[0.,0.])),
+       'issue_intensity':np.asarray([x if ok else 0 for x,ok in zip(raw,mask)]),'issue_mask':np.asarray(mask,dtype='float32')}
+    return {k:torch.from_numpy(np.asarray(a,dtype='float32')[None].copy()) for k,a in v.items()}
+
+def ncep(row,contract):
+    """Read exact 4x-daily fields through issue time, including cross-year history."""
+    import xarray as xr
+    end=parse(row['issue_time_utc']);wanted=[end-timedelta(hours=6*(8-i)) for i in range(9)]
+    fields=np.empty((9,8,25,33),dtype='float32')
+    specs=[('slp',None,0),('hgt',500,1),('uwnd',850,2),('vwnd',850,3),('uwnd',500,4),('vwnd',500,5),('uwnd',200,6),('vwnd',200,7)]
+    for year in sorted({t.year for t in wanted}):
+        positions=[i for i,t in enumerate(wanted) if t.year==year];dates=np.asarray([wanted[i].replace(tzinfo=None) for i in positions],dtype='datetime64[ns]')
+        for variable in ['slp','hgt','uwnd','vwnd']:
+            group='surface' if variable=='slp' else 'pressure'
+            url=f'https://psl.noaa.gov/thredds/dodsC/Datasets/ncep.reanalysis/{group}/{variable}.{year}.nc'
+            with xr.open_dataset(url,engine='netcdf4') as ds:
+                for var,level,ch in specs:
+                    if var!=variable:continue
+                    a=ds[var].sel(time=dates,lat=contract['global_lat'],lon=contract['global_lon'])
+                    if level is not None:a=a.sel(level=level)
+                    if not np.array_equal(a.time.values.astype('datetime64[ns]'),dates):raise ValueError('NCEP time mismatch')
+                    values=np.asarray(a.values,dtype='float32')
+                    if variable=='slp':
+                        if a.attrs.get('units','').lower() not in ['pascals','pa']:raise ValueError('Unexpected SLP unit')
+                        values=values/100
+                    fields[positions,ch]=values
+    if not np.isfinite(fields).all() or np.max(np.abs(fields))>100000:raise ValueError('Missing or invalid reanalysis')
+    return fields,np.asarray([ns(utc(t)) for t in wanted])
+
+def gfs(cycle,cache,contract):
+    import eccodes as ec
+    key=cycle.strftime('%Y%m%d%H');p=cache/f'gfs-{key}.grib2'
+    if not p.exists():
+        params={'file':f'gfs.t{key[8:]}z.pgrb2.1p00.f000','dir':f'/gfs.{key[:8]}/{key[8:]}/atmos',
+                'lev_mean_sea_level':'on','lev_200_mb':'on','lev_500_mb':'on','lev_850_mb':'on',
+                'var_PRMSL':'on','var_HGT':'on','var_UGRD':'on','var_VGRD':'on','subregion':'',
+                'leftlon':'100','rightlon':'190','toplat':'60','bottomlat':'0'}
+        b=get('https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_1p00.pl?'+urlencode(params)).content
+        if not b.startswith(b'GRIB') or len(b)>5000000:raise ValueError('Invalid NOAA GRIB response')
+        p.write_bytes(b)
+    maps={};yy,xx=np.meshgrid(contract['global_lat'],contract['global_lon'],indexing='ij')
+    with p.open('rb') as f:
+        while (gid:=ec.codes_grib_new_from_file(f)) is not None:
+            try:
+                name=ec.codes_get(gid,'shortName');level=ec.codes_get(gid,'level');kind=ec.codes_get(gid,'typeOfLevel')
+                if ec.codes_get(gid,'step')!=0 or str(ec.codes_get(gid,'dataDate'))+f"{int(ec.codes_get(gid,'dataTime'))//100:02d}"!=key:raise ValueError('GFS must be the exact f000 analysis')
+                target=0 if name in ['prmsl','msl'] and kind in ['meanSea','meanSeaLevel'] else {('gh',500):1,('u',850):2,('v',850):3,('u',500):4,('v',500):5,('u',200):6,('v',200):7}.get((name,level))
+                if target is None:continue
+                lat=ec.codes_get_array(gid,'latitudes');lon=ec.codes_get_array(gid,'longitudes');values=ec.codes_get_values(gid)
+                latvals=np.unique(lat);lonvals=np.unique(lon);grid=np.empty((len(latvals),len(lonvals)))
+                grid[np.searchsorted(latvals,lat),np.searchsorted(lonvals,lon)]=values
+                result=RegularGridInterpolator((latvals,lonvals),grid,bounds_error=True)(np.stack([yy,xx],axis=-1))
+                maps[target]=result/100 if target==0 else result
+            finally:ec.codes_release(gid)
+    if set(maps)!=set(range(8)):raise ValueError('GFS channels missing: '+str(sorted(maps)))
+    return np.stack([maps[i] for i in range(8)]).astype('float32')
+
+def live_rows():
+    root='https://www.jma.go.jp/bosai/typhoon/data'
+    targets=get(root+'/targetTc.json').json();rows=[]
+    for target in targets:
+        sid=target.get('tropicalCyclone','')
+        if not sid.startswith('TC') or not sid[2:].isdigit():continue
+        parts=get(f'{root}/{sid}/specifications.json').json()
+        title=next(p for p in parts if p.get('part')=='title')
+        p=next(p for p in parts if isinstance(p.get('part'),dict) and p['part'].get('en')=='Analysis')
+        issue=p['validtime']['UTC'];lat,lon=p['position']['deg'];pressure=p.get('pressure')
+        if not(0<float(lat)<60 and 100<float(lon)<180):continue
+        if datetime.now(timezone.utc)-parse(issue)>timedelta(hours=18):raise ValueError('JMA analysis is stale')
+        rows.append({'id':'auto-live-'+sid+'-'+parse(issue).strftime('%Y%m%dT%H%M'),'storm_id':sid,
+                     'name':title.get('name',{}).get('en','Unnamed'),'season':parse(issue).year,'issue_time_utc':issue,
+                     'lat':float(lat),'lon':float(lon),'pressure_hpa':float(pressure) if pressure is not None else None,'wind_kt':None,
+                     'motion':[0.,0.],'observed':[]})
+    return rows
+
+def infer(model,contract,geo,weather,times,row,out,kind,source):
+    x=inputs(weather,times,row,contract,geo)
+    with torch.inference_mode():
+        state=model.initial(x);outputs=[]
+        for _ in range(20):state,o=model.step(state);outputs.append(o)
+    route=[{'lat':row['lat'],'lon':row['lon'],'pressure_hpa':row.get('pressure_hpa'),'valid_time_utc':row['issue_time_utc'],'lead_hours':0}]
+    fields=[];valid=[]
+    for i,o in enumerate(outputs):
+        center=o['center'][0].numpy();p=float(o['pressure'][0]);field=o['global'][0,0].numpy()*contract['normalization']['std'][0]+contract['normalization']['mean'][0]
+        if not np.isfinite(center).all() or not np.isfinite(field).all() or not 800<p<1100 or field.min()<800 or field.max()>1100:raise ValueError('Model output failed physical/finite checks')
+        stamp=utc(parse(row['issue_time_utc'])+timedelta(hours=(i+1)*6));valid.append(stamp);fields.append(np.round(field,2).tolist())
+        route.append({'lat':float(center[0]),'lon':float(center[1]),'pressure_hpa':p,'valid_time_utc':stamp,'lead_hours':(i+1)*6})
+    ident=row['id'];note=source+' Single deterministic member. Native detail unavailable and masked; issue-time wind/motion may be missing. No future weather or official forecast route is an input. Research only.'
+    doc={'schema_version':'1.0','id':ident,'model':'Trackformer 1.2','checkpoint_sha256':CHECKPOINT,'storm_id':row['storm_id'],'name':row['name'],
+         'season':row['season'],'issue_time_utc':row['issue_time_utc'],'members':1,'kind':kind,'route':route,'observed':row.get('observed',[]),
+         'field_url':'/api/history/v1/fields/'+ident,'source_note':note,'pressure_note':'Model basin field; central pressure is the moving-core readout, not necessarily the basin minimum.',
+         'input_history_times_utc':[str(np.datetime64(int(t),'ns').astype('datetime64[s]'))+'Z' for t in times],
+         'input_tensor_sha256':digest(b''.join(x[k].numpy().tobytes() for k in sorted(x))),
+         'generated_at_utc':utc(datetime.now(timezone.utc)),'run_url':os.environ.get('RUN_URL')}
+    field={'model':'Trackformer 1.2','forecast_id':ident,'members':1,'checkpoint_sha256':CHECKPOINT,'latitude':contract['global_lat'],'longitude':contract['global_lon'],
+           'valid_times_utc':valid,'units':'hPa','rounding_hpa':.01,'grid':'2.5 degree model basin','note':note,'pressure_hpa':fields}
+    write(out/'fields'/f'{ident}.json',field);write(out/'forecasts'/f'{ident}.json',doc)
+    print(json.dumps({'complete':ident,'forecast_points':len(route),'fields':len(fields)}),flush=True)
+    return doc
+
+def main():
+    ap=argparse.ArgumentParser();ap.add_argument('--output',type=Path,required=True);ap.add_argument('--cache',type=Path,required=True);ap.add_argument('--historical-limit',type=int,default=80);ap.add_argument('--minutes',type=int,default=45);ap.add_argument('--skip-live',action='store_true');ap.add_argument('--only-id');a=ap.parse_args()
+    a.output.mkdir(parents=True,exist_ok=True);a.cache.mkdir(parents=True,exist_ok=True);started=time.monotonic();torch.set_num_threads(2)
+    config=json.loads((ROOT/'release_tools/history_inputs.json').read_text());source=config['base_url']
+    plan=json.loads(asset(a.cache,'input-manifest.json',source+'/manifest.json',config['manifest_sha256']).read_text())
+    meta=json.loads((MODEL/'manifest.json').read_text());assert meta['source_checkpoint_sha256']==CHECKPOINT
+    for file,expected in meta['source_module_sha256'].items():assert digest((MODEL/file).read_bytes())==expected
+    weight=asset(a.cache,'weights.pt',HF+'/models/trackformer_1_2_field/weights.pt',meta['inference_weights_sha256'])
+    geo=np.load(asset(a.cache,'geography.npz',source+'/geography.npz',plan['geography']['sha256']),allow_pickle=False)
+    contract=meta['data_contract'];model=CoreForecaster(contract).eval();model.load_state_dict(torch.load(weight,map_location='cpu',weights_only=True),strict=True)
+    old=json.loads((a.output/'status.json').read_text()) if (a.output/'status.json').exists() else {}
+    errors=old.get('errors',{});live=[];completed=0
+    if not a.skip_live:
+        try:
+            live=live_rows()
+            for row in live:
+                if (a.output/'forecasts'/f"{row['id']}.json").exists():continue
+                try:
+                    issue=parse(row['issue_time_utc']);now=datetime.now(timezone.utc);last=min(issue,now-timedelta(hours=3));last=last.replace(hour=last.hour//6*6,minute=0,second=0,microsecond=0)
+                    weather=None
+                    for lag in [0,6]:
+                        end=last-timedelta(hours=lag)
+                        if issue-end>timedelta(hours=12):continue
+                        try:
+                            dates=[end-timedelta(hours=6*(8-i)) for i in range(9)]
+                            weather=np.stack([gfs(d,a.cache,contract) for d in dates]);break
+                        except Exception as e:errors[row['id']]={'at':utc(now),'error':str(e)[:500]}
+                    if weather is None:raise ValueError('Complete causal GFS history unavailable')
+                    infer(model,contract,geo,weather,[ns(utc(d)) for d in dates],row,a.output,'live-GFS-transfer','Nine NOAA GFS f000 analyses; last valid '+utc(dates[-1])+'. Experimental GFS transfer.')
+                    errors.pop(row['id'],None)
+                except Exception as e:errors[row['id']]={'at':utc(datetime.now(timezone.utc)),'error':str(e)[:500]}
+        except Exception as e:errors['live-feed']={'at':utc(datetime.now(timezone.utc)),'error':str(e)[:500]}
+    for row in plan['queue']:
+        if completed>=a.historical_limit or time.monotonic()-started>a.minutes*60:break
+        ident=row['id']
+        if a.only_id and ident!=a.only_id:continue
+        if (a.output/'forecasts'/f'{ident}.json').exists():continue
+        if ident in errors and datetime.now(timezone.utc)-parse(errors[ident]['at'])<timedelta(hours=24):continue
+        try:
+            if row['atlas'] is not None:
+                b=plan['bundles'][str(row['season'])];z=np.load(asset(a.cache,b['file'],source+'/'+b['file'],b['sha256']),allow_pickle=False)
+                wanted=ns(row['issue_time_utc'])+np.arange(-8,1)*6*HOUR;idx=np.searchsorted(z['time'],wanted)
+                if not np.array_equal(z['time'][idx],wanted):raise ValueError('Bundled weather time mismatch')
+                weather=np.concatenate([z['slp'][idx,None].astype('float32'),z['q'][idx].astype('float32')*z['scale'][None,:,None,None]+z['offset'][None,:,None,None]],axis=1);times=wanted
+                source_note='Verified local NCEP atlas; exact causal history. Retrospective hindcast; may overlap fitting years, not an independent test.'
+            else:weather,times=ncep(row,contract);source_note='NOAA NCEP Reanalysis 1, four-times daily exact history. Retrospective reconstruction; no operational-availability or independent-test claim.'
+            infer(model,contract,geo,weather,times,row,a.output,'automatic-historical-hindcast',source_note);errors.pop(ident,None)
+        except Exception as e:errors[ident]={'at':utc(datetime.now(timezone.utc)),'error':str(e)[:500]};print(json.dumps({'failed':ident,'error':str(e)[:500]}),flush=True)
+        completed+=1
+    storms={}
+    for p in sorted((a.output/'forecasts').glob('*.json')):
+        f=json.loads(p.read_text());s=storms.setdefault(f['storm_id'],{'id':f['storm_id'],'name':f['name'],'season':f['season'],'issues':[]})
+        s['issues'].append({k:f[k] for k in ['id','issue_time_utc','members','kind']})
+    for s in storms.values():s['issues'].sort(key=lambda i:i['issue_time_utc'],reverse=True)
+    historical_done=sum(i['kind']=='automatic-historical-hindcast' for s in storms.values() for i in s['issues'])
+    status={'updated_at_utc':utc(datetime.now(timezone.utc)),'model':'Trackformer 1.2','members':1,'checkpoint_sha256':CHECKPOINT,'runner':'GitHub-hosted CPU; not the visitor or owner Mac',
+            'historical_start_year':1970,'historical_total':len(plan['queue']),'historical_completed':historical_done,'errors':errors,
+            'live_issues':[{'id':r['id'],'storm_id':r['storm_id'],'issue_time_utc':r['issue_time_utc'],'available':(a.output/'forecasts'/f"{r['id']}.json").exists()} for r in live],
+            'run_url':os.environ.get('RUN_URL'),'elapsed_seconds':round(time.monotonic()-started,1)}
+    write(a.output/'catalog.json',{'schema_version':'1.0','model':'Trackformer 1.2','checkpoint_sha256':CHECKPOINT,'storms':list(storms.values()),'status':status})
+    write(a.output/'status.json',status);write(a.output/'coverage.json',{'start_year':1970,'records':plan['coverage']})
+    print(json.dumps(status),flush=True)
+
+if __name__=='__main__':main()
