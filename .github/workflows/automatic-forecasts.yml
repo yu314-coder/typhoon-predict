@@ -68,8 +68,12 @@ jobs:
           args=()
           if [ -n "$ONLY_ID" ]; then args+=(--only-id "$ONLY_ID"); fi
           python release_tools/automatic_forecasts.py --output "$RUNNER_TEMP/forecast-data/data" --cache .forecast-cache --historical-limit "$HISTORICAL_LIMIT" --minutes 45 "${args[@]}"
+      - name: Verify every completed planned issue and pressure sequence
+        id: archive_verification
+        run: |
+          python release_tools/verify_forecast_archive.py --output "$RUNNER_TEMP/forecast-data/data" --manifest .forecast-cache/input-manifest.json
       - name: Publish complete outputs without replacing earlier issues
-        if: always()
+        if: always() && steps.archive_verification.outcome == 'success'
         run: |
           cd "$RUNNER_TEMP/forecast-data"
           if [ ! -f data/catalog.json ]; then exit 1; fi

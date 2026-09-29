@@ -211,6 +211,11 @@ def main():
     contract=meta['data_contract'];model=CoreForecaster(contract).eval();model.load_state_dict(torch.load(weight,map_location='cpu',weights_only=True),strict=True)
     old=json.loads((a.output/'status.json').read_text()) if (a.output/'status.json').exists() else {}
     errors=old.get('errors',{});live=[];completed=0;succeeded=0
+    planned_ids={row['id'] for row in plan['queue']}
+    retired_errors=old.get('retired_source_errors',{})
+    for ident in list(errors):
+        if ident.startswith(('auto-hist-','auto-tick-')) and ident not in planned_ids:
+            retired_errors[ident]=errors.pop(ident)
     if not a.skip_live:
         try:
             live=live_rows()
@@ -261,6 +266,7 @@ def main():
     historical_done=len(done)
     status={'updated_at_utc':utc(datetime.now(timezone.utc)),'model':'Trackformer 1.2','members':1,'checkpoint_sha256':CHECKPOINT,'runner':'GitHub-hosted CPU; not the visitor or owner Mac',
             'historical_start_year':1970,'historical_total':len(plan['queue']),'historical_completed':historical_done,'errors':errors,
+            'retired_source_errors':retired_errors,
             'historical_count_unit':'forecast issues','historical_storm_total':len({r['storm_id'] for r in plan['queue']}),
             'tick_start_year':plan.get('ticks_from_year'),'tick_hours':6,'tick_total':len(ticks),'tick_completed':len(done&ticks),
             'live_issues':[{'id':r['id'],'storm_id':r['storm_id'],'issue_time_utc':r['issue_time_utc'],'available':(a.output/'forecasts'/f"{r['id']}.json").exists()} for r in live],
@@ -271,6 +277,6 @@ def main():
             **queue_state(planned,done,errors,datetime.now(timezone.utc),HISTORICAL_INPUT_VERSION)}
     write(a.output/'catalog.json',{'schema_version':'1.0','model':'Trackformer 1.2','checkpoint_sha256':CHECKPOINT,'storms':list(storms.values()),'status':status})
     write(a.output/'status.json',status);write(a.output/'coverage.json',{'start_year':1970,'records':plan['coverage']})
-    print(json.dumps({k:v for k,v in status.items() if k!='errors'}),flush=True)
+    print(json.dumps({k:v for k,v in status.items() if k not in ['errors','retired_source_errors']}),flush=True)
 
 if __name__=='__main__':main()

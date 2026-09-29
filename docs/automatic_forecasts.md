@@ -57,13 +57,19 @@ are retried after 24 hours while other storms can continue. A versioned input
 reader correction releases old failures for one immediate retry; a new failure
 then backs off normally. A manual exact-ID retry also bypasses the cooldown,
 without starting an automatic batch chain. Status separately reports unresolved
-planned-issue errors; obsolete diagnostic errors do not count as remaining work.
+planned-issue errors; obsolete issue IDs from earlier queues are preserved under
+`retired_source_errors`, not presented as unresolved current work. Publication
+and chaining require the independent saved-output audit to pass.
 
 Public files beneath that branch's `data/` directory:
 
 - `catalog.json`: available storms, exact issues, member counts and worker status.
 - `status.json`: completion counts, live-issue availability, errors and run URL.
 - `coverage.json`: 1970 boundary, domain and input-queue classifications.
+- `verification.json`: an independent saved-output audit of every completed
+  planned issue: release/member identity, observed +0 alignment, causal history,
+  21 route points, 20 finite physical pressure grids, exact leads and catalogue
+  coverage. `complete` is true only when every pinned planned ID is present.
 - `forecasts/{id}.json`: geographic route, central pressure, provenance.
 - `fields/{id}.json.gz`: losslessly compressed genuine model basin-pressure
   arrays in hPa. Existing uncompressed files remain readable. The public API
