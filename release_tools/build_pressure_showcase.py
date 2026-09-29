@@ -11,7 +11,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 REPO=Path(__file__).resolve().parents[1]
-DATA=REPO/'paper/release_data'
+DATA=REPO/'evaluation/release_data'
 
 def sha(path):
     h=hashlib.sha256()
@@ -24,7 +24,7 @@ def absolute(local,lat,lon):
 
 def prepare(root):
     archive=root/'benchmark_ensemble50/v173_e4/v173_e4_causal_ensemble50.npz'
-    cases=json.loads((REPO/'paper/trackformer_1_2_showcase_selection.json').read_text())['all_case_metrics']
+    cases=json.loads((REPO/'evaluation/trackformer_1_2_showcase_selection.json').read_text())['all_case_metrics']
     patches={r['track_archive_row']:r for r in json.loads((root/'data/v164_reuse/plan.json').read_text())['rows']}
     with np.load(root/'track_build/track_windows_v13.npz') as w:
         target,mask=w['target'],w['target_mask']
@@ -103,7 +103,7 @@ def build():
     ax.set(xlim=bounds[:2],ylim=bounds[2:],xlabel='Longitude °E',ylabel='Latitude °N',title='Trackformer 1.2 · PRAPIROON · +72 h\nModel pressure + forecast and observed routes')
     ax.set_aspect(1/np.cos(np.deg2rad((bounds[2]+bounds[3])/2)));ax.legend();fig.colorbar(im,ax=ax,label='Model mean sea-level pressure (hPa)',shrink=.75)
     fig.text(.5,-.015,'Click to explore +6 to +120 h · Selected best-performing example, not typical skill',ha='center',fontsize=10)
-    fig.savefig(REPO/'paper/trackformer_1_2_interactive_pressure_preview.png',dpi=150,bbox_inches='tight');plt.close(fig)
+    fig.savefig(REPO/'evaluation/trackformer_1_2_interactive_pressure_preview.png',dpi=150,bbox_inches='tight');plt.close(fig)
     print('Built offline interactive map and README preview:',len(html),'bytes')
 
 if __name__=='__main__':

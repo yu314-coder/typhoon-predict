@@ -17,7 +17,7 @@ Direction error, route-shape similarity, Fréchet distance and path similarity r
 - The entire storm must lie outside the selected 1.2 checkpoint's 2000–2021 fitting and 2022–2023 validation years, with the history/target boundary also outside those years.
 - Issue centre within 0–60°N / 100–180°E; exact six-hour weather history through issue; complete route labels through +120 h; matching pressure-atlas coverage for scoring.
 - Use all eligible daily starts for each chosen storm. Never drop a case because its forecast looks poor.
-- [Cohort manifest](../paper/release_data/daily_storm_cohort.json) freezes rows, dates, storm IDs, source hashes and checkpoint identity before inference. Forecast artifacts are new; some recent storms overlap earlier development comparisons.
+- [Cohort manifest](../evaluation/release_data/daily_storm_cohort.json) freezes rows, dates, storm IDs, source hashes and checkpoint identity before inference. Forecast artifacts are new; some recent storms overlap earlier development comparisons.
 
 Requiring complete five-day truth excludes short remaining lifetimes. This is a declared coverage limitation, not an all-storm operational sample. Historical cases are retrospective hindcasts from a model trained on later years; reanalysis and best-track issue states do not establish real-time data availability. This cohort has not been certified untouched across all earlier experiments.
 

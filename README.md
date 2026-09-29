@@ -38,51 +38,53 @@ This comparison uses **270 forecast cases from 90 storms**, with the same issue 
 | Mean track error, +6 to +120 h | 902.3 km | **714.4 km** | Lower |
 | Track error at +120 h | 1,833.2 km | **1,433.4 km** | Lower |
 
-![270-case direction, route-shape, path and position comparison](paper/trackformer_1_2_vs_1_1_270_bars.png)
+![270-case direction, route-shape, path and position comparison](evaluation/trackformer_1_2_vs_1_1_270_bars.png)
 
 **What “similarity” means:** direction error compares the heading of each six-hour step, on 5,382 common valid case-leads where truth and both models move more than 1 km. Shape similarity compares the centred route curves after removing overall scale, while preserving their orientation; a score of 1 means identical shape under that comparison. Path similarity uses Fréchet distance and the observed route length, so it also responds to geographic displacement. These scores measure different aspects of the forecast and are reported separately.
 
-The saved 1.1 archive had a coordinate-label bug: its `v11_local` array held absolute latitude/longitude, while the original scorer interpreted it as east/north kilometres. The new comparison converts those coordinates to the same local projection used by 1.2 and verifies a round trip back to the original coordinates. **The old 1,036.3 km score is superseded by 902.3 km.** Original forecast archives are preserved. The [published metrics](paper/trackformer_1_2_vs_1_1_270_metrics.json), small plot-data arrays and [reproduction script](release_tools/plot_release_270.py) record the correction.
+**Actual route alignment is the goal:** predicted and observed positions should coincide geographically at the same valid times. A high centred-shape score alone does **not** demonstrate that alignment; a displaced forecast can have the right shape and still be wrong. Position error and the unshifted route overlay must therefore be read alongside the shape score.
+
+The saved 1.1 archive had a coordinate-label bug: its `v11_local` array held absolute latitude/longitude, while the original scorer interpreted it as east/north kilometres. The new comparison converts those coordinates to the same local projection used by 1.2 and verifies a round trip back to the original coordinates. **The old 1,036.3 km score is superseded by 902.3 km.** Original forecast archives are preserved. The [published metrics](evaluation/trackformer_1_2_vs_1_1_270_metrics.json), small plot-data arrays and [reproduction script](release_tools/plot_release_270.py) record the correction.
 
 ### What the routes look like
 
-These are **six selected best-performing examples from six distinct storms**, not a representative sample. Among in-domain cases with at least 300 km of observed travel, shape similarity ≥0.90 and direction error ≤30° on at least 18 common valid leads, we select the lowest 1.2 mean track errors, with one case per storm. Every curve starts at the same issue-time origin. The [selection manifest and all 270 case scores](paper/trackformer_1_2_showcase_selection.json) make the choice auditable; the aggregate bars above still include every case, including poor forecasts.
+These are **six selected best-performing examples from six distinct storms**, not a representative sample. Among in-domain cases with at least 300 km of observed travel, shape similarity ≥0.90 and direction error ≤30° on at least 18 common valid leads, we select the lowest 1.2 mean track errors, with one case per storm. Every curve starts at the same issue-time origin. The [selection manifest and all 270 case scores](evaluation/trackformer_1_2_showcase_selection.json) make the choice auditable; the aggregate bars above still include every case, including poor forecasts.
 
-![Observed, 1.1 and 1.2 routes on six selected best-performing examples](paper/trackformer_1_2_vs_1_1_route_examples.png)
+![Observed, 1.1 and 1.2 routes on six selected best-performing examples](evaluation/trackformer_1_2_vs_1_1_route_examples.png)
 
 The 1.2 mean has better aggregate direction, shape and position scores on this previously inspected development cohort. That does not establish an overall win on every storm or pressure metric. A same-270 1.1 central-pressure prediction array was not verified in these route artifacts, so it is not assigned a pressure-error bar. The separate 1.2 report gives 15.73 hPa central-pressure MAE and 2.54 hPa area-weighted regional MSLP MAE. TIP remains a separate diagnostic: its pressure error was worse for 1.2 (30.7 vs 20.1 hPa). See [metric definitions and limitations](docs/trackformer_1_2_evaluation.md).
 
 ### Expanded daily-issue benchmark: 270 distinct typhoons
 
-A new **1,473-case / 270-storm** benchmark is in progress; it is not the completed 270-case result above. Each storm contributes at most one forecast per UTC day, through +120 h. Daily errors are averaged within each storm, then the 270 storm scores receive equal weight. Selection was frozen before new inference, without filtering on forecast quality. See the [protocol](docs/daily_storm_benchmark.md) and [frozen cohort](paper/release_data/daily_storm_cohort.json). Results are pending; no improvement is claimed from the partial run.
+A new **1,473-case / 270-storm** benchmark is in progress; it is not the completed 270-case result above. Each storm contributes at most one forecast per UTC day, through +120 h. Daily errors are averaged within each storm, then the 270 storm scores receive equal weight. Selection was frozen before new inference, without filtering on forecast quality. See the [protocol](docs/daily_storm_benchmark.md) and [frozen cohort](evaluation/release_data/daily_storm_cohort.json). Results are pending; no improvement is claimed from the partial run.
 
 ## Bavi pressure forecast — MP4
 
-[![Play the Trackformer 1.2 Bavi pressure forecast MP4](paper/trackformer_1_2_bavi_video_poster.png)](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_bavi.mp4)
+[![Play the Trackformer 1.2 Bavi pressure forecast MP4](evaluation/trackformer_1_2_bavi_video_poster.png)](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_bavi.mp4)
 
 **[Play or download the Bavi MP4](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_bavi.mp4)** · 23 seconds · +6 to +120 h · **50-member mean**. This is a video, not an interactive map. Click the preview above to play it; inline video playback depends on the Markdown host.
 
-The forecast starts **3 July 2026 at 06 UTC**. It shows actual saved model-generated pressure with 4 hPa isobars, the mean forecast track, the observed route, and a central-pressure timeline. Observed pressure is the local IBTrACS **USA** series, not JMA. The dotted map boundary marks the fixed regional reconstruction: after the centre leaves it, only the coarser basin field is available at that location. No detailed pressure core is invented outside coverage. This requested Bavi example is not evidence of typical skill. [Data, source hashes and video provenance](paper/release_data/bavi_video.json).
+The forecast starts **3 July 2026 at 06 UTC**. It shows actual saved model-generated pressure with 4 hPa isobars, the mean forecast track, the observed route, and a central-pressure timeline. Observed pressure is the local IBTrACS **USA** series, not JMA. The dotted map boundary marks the fixed regional reconstruction: after the centre leaves it, only the coarser basin field is available at that location. No detailed pressure core is invented outside coverage. This requested Bavi example is not evidence of typical skill. [Data, source hashes and video provenance](evaluation/release_data/bavi_video.json).
 
 ## Interactive forecast pressure and observed route
 
 **[Open the interactive 1.2 pressure map](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_pressure.html)** — play or scrub from +6 to +120 h, toggle forecast/observed routes, and hover or tap to inspect pressure and position. Click the preview below to open it. GitHub and Hugging Face Markdown cannot execute the interactive controls inside the README itself.
 
-[![Open the interactive Trackformer 1.2 pressure map against the observed Prapiroon route](paper/trackformer_1_2_interactive_pressure_preview.png)](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_pressure.html)
+[![Open the interactive Trackformer 1.2 pressure map against the observed Prapiroon route](evaluation/trackformer_1_2_interactive_pressure_preview.png)](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_pressure.html)
 
-This **PRAPIROON forecast issued 19 July 2024 at 00 UTC** uses the actual saved **50-member mean physical pressure field**, member-mean route and central pressure. The observed route uses exact six-hour best-track coordinates from the verification archive. It is the lowest-track-error case among the declared full-map-coverage and pressure-quality candidates: 133.2 km saved-benchmark mean track error and 2.91 hPa central-pressure MAE. This is a deliberately selected showcase, not typical performance or an unbiased evaluation. The [data and selection manifest](paper/release_data/pressure_showcase.json) explains the choice. The mean map has not been moved to match the observed track.
+This **PRAPIROON forecast issued 19 July 2024 at 00 UTC** uses the actual saved **50-member mean physical pressure field**, member-mean route and central pressure. The observed route uses exact six-hour best-track coordinates from the verification archive. It is the lowest-track-error case among the declared full-map-coverage and pressure-quality candidates: 133.2 km saved-benchmark mean track error and 2.91 hPa central-pressure MAE. This is a deliberately selected showcase, not typical performance or an unbiased evaluation. The [data and selection manifest](evaluation/release_data/pressure_showcase.json) explains the choice. The mean map has not been moved to match the observed track.
 
 ### Architecture-only paper
 
-The revised **[Trackformer 1.2 technical paper (PDF)](paper/trackformer.pdf)** describes only the detailed architecture and how forecasts work: input tensors, multiscale attention, recurrent basin transport, moving pressure core, centre association, physical pressure reconstruction, objectives and 50-member means. [Editable LaTeX source](paper/trackformer.tex). Benchmark results remain separate in the evaluation notes; the previous 1.1 paper source is preserved as [a legacy document](paper/trackformer_1_1_legacy.tex).
+The **[Trackformer 1.2 technical paper (PDF)](paper/trackformer.pdf)** describes only the detailed architecture and how forecasts work: input tensors, multiscale attention, recurrent basin transport, moving pressure core, centre association, physical pressure reconstruction, objectives and 50-member means. [Editable LaTeX source](paper/trackformer.tex). Benchmark results remain separate in the evaluation notes. Historical material is recoverable from Git history and the [1.1 release](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.1).
 
 ## Recent pressure forecast with isobars
 
 The archived **Surigae forecast issued 27 September 2026 at 12:00 UTC** shows the model's regional pressure field at +6, +24 and +36 h. Thin lines are isobars every **4 hPa**, with selected labels every 12 hPa; magenta shows the forecast track and centre. Coastlines provide geographic context. These panels use the actual saved model values.
 
-![Surigae model-generated pressure forecast with labelled isobars](paper/trackformer_1_2_surigae_isobars.png)
+![Surigae model-generated pressure forecast with labelled isobars](evaluation/trackformer_1_2_surigae_isobars.png)
 
-This recent example is **one deterministic forecast**, separate from the benchmark's mean of 50. Its input uses nine GFS analyses ending at 06 UTC, six hours before issue time; issue-time JMA central pressure was provided, while wind, prior motion and native regional history were unavailable. This transfer from the training data contract is experimental. The fixed regional map ends at 144°E; the selected leads keep the forecast centre inside it. The [pressure-field provenance](paper/release_data/surigae_provenance.json) records the input limitations and checkpoint hash.
+This recent example is **one deterministic forecast**, separate from the benchmark's mean of 50. Its input uses nine GFS analyses ending at 06 UTC, six hours before issue time; issue-time JMA central pressure was provided, while wind, prior motion and native regional history were unavailable. This transfer from the training data contract is experimental. The fixed regional map ends at 144°E; the selected leads keep the forecast centre inside it. The [pressure-field provenance](evaluation/release_data/surigae_provenance.json) records the input limitations and checkpoint hash.
 
 ## Get the model and run it
 
@@ -90,6 +92,18 @@ This recent example is **one deterministic forecast**, separate from the benchma
 - [Hugging Face weights and model card](https://huggingface.co/euler314/typhoon-predict)
 - [Input schema and inference instructions](models/trackformer_1_2_field/README.md)
 
-The inference-only `weights.pt` is hosted in the release/Hugging Face model folder, **not committed to GitHub source**. The manifest records its SHA-256 and the original training-checkpoint SHA-256. The three source modules are copied unchanged from the verified training implementation. The root-level `trackformer_1_2.py` and older `examples/predict_trackformer_1_2.py` are legacy artifacts from a withdrawn, unrelated 1.2 candidate; **do not use them with these field weights**.
+The inference-only `weights.pt` is hosted in the release/Hugging Face model folder, **not committed to GitHub source**. The manifest records its SHA-256 and the original training-checkpoint SHA-256. The three source modules are copied unchanged from the verified training implementation. Use **`models/trackformer_1_2_field/predict.py`** as the inference entry point. The withdrawn route/scalar candidate and its incompatible example have been removed from the current source tree.
 
 Only issue-time and earlier analyses are permitted. The prediction wrapper rejects future-dated history and unexpected input keys, but cannot certify an externally built packet's data provenance. The operator must verify source timestamps and training-only normalization. The included wrapper runs one unperturbed forecast; it does not reproduce the saved 50-member mean automatically.
+
+## Repository guide
+
+| Folder | Contents |
+| --- | --- |
+| [`models/trackformer_1_2_field/`](models/trackformer_1_2_field/) | Current 1.2 model, inference wrapper and input/provenance contract |
+| [`paper/`](paper/) | Current architecture-only paper: editable source and PDF |
+| [`evaluation/`](evaluation/) | Benchmark charts, selected forecast previews, metrics and saved plot data |
+| [`docs/`](docs/) | Evaluation protocols and published HTML/MP4 showcases |
+| [`release_tools/`](release_tools/) | Reproduction scripts and weight-export utility |
+
+The older 1.1 implementation, obsolete Colab notebook, withdrawn candidate, and superseded comparison assets are no longer mixed into the current source tree. Their history and the existing release tags remain intact; the current 1.1-versus-1.2 comparison data are retained. See the [cleanup record](docs/repository_layout.md).

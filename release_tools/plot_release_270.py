@@ -1,7 +1,7 @@
 """Reproduce the public 270-case chart and recent isobar example.
 
 Use --source-root to prepare plot data from the local research archives. Without
-it, only the small published arrays under paper/release_data are required.
+it, only the small published arrays under evaluation/release_data are required.
 """
 from __future__ import annotations
 
@@ -267,7 +267,7 @@ def plot_pressure(data, output):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-root", type=Path)
-    parser.add_argument("--output-dir", type=Path, default=Path(__file__).resolve().parents[1] / "paper")
+    parser.add_argument("--output-dir", type=Path, default=Path(__file__).resolve().parents[1] / "evaluation")
     args = parser.parse_args()
     data = args.output_dir / "release_data"
     data.mkdir(parents=True, exist_ok=True)

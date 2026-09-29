@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 
 REPO=Path(__file__).resolve().parents[1]
-DATA=REPO/'paper/release_data'
+DATA=REPO/'evaluation/release_data'
 
 def sha(path):
     h=hashlib.sha256()
@@ -107,7 +107,7 @@ def build(work):
         fig.text(.055,.915,f'Issue: {start:%d %b %Y %H:%M} UTC     |     Valid: {valid:%d %b %Y %H:%M} UTC     |     50-member mean',fontsize=14,color='#385865')
         fig.text(.055,.035,'Actual model pressure fields; observed route is verification only. Mean central pressure is not the minimum of the mean map.',fontsize=11,color='#47636d')
         fig.savefig(work/f'frame_{k:03d}.png',dpi=100); 
-        if k==9:fig.savefig(REPO/'paper/trackformer_1_2_bavi_video_poster.png',dpi=100)
+        if k==9:fig.savefig(REPO/'evaluation/trackformer_1_2_bavi_video_poster.png',dpi=100)
         plt.close(fig)
     output=REPO/'docs/trackformer_1_2_bavi.mp4'
     cmd=['ffmpeg','-y','-hide_banner','-loglevel','warning','-framerate','1','-i',str(work/'frame_%03d.png'),'-vf','fps=30,tpad=stop_mode=clone:stop_duration=3','-c:v','h264_videotoolbox','-b:v','4M','-pix_fmt','yuv420p','-movflags','+faststart','-an',str(output)]
