@@ -63,3 +63,20 @@ contains 5,568 issues (4,015 recent ticks and 1,553 older first issues).
 Scheduled batches attempt up to 500 issues or 45 minutes, whichever comes first.
 Missing recent NOAA reanalysis may delay individual historical ticks; the
 source error is retained and retried after 24 hours, never filled with truth.
+
+The read-only hosted integration run
+[36554550793](https://github.com/yu314-coder/typhoon-predict/actions/runs/36554550793)
+verified two consecutive Fung-wong initializations: six hours apart, distinct
+causal input hashes, distinct routes and distinct pressure arrays, with 20
+forecast leads each. The second forecast completed about 1.27 seconds after the
+first; the two-run pipeline took 6.5 seconds excluding package setup. This tiny
+warm-cache sample is a throughput lower bound, not an ETA. At that rate the
+recent cohort needs about 1.4 compute-hours and the full archive about 23 hours,
+before weather retrieval, initialization, failures, publishing and scheduler
+gaps. At 500 issues per six-hour scheduled batch, even ideal recent completion
+takes roughly two days; NOAA availability can make it longer.
+
+A measured basin-field sequence used 44,311 bytes with lossless gzip: about
+170 MiB for 4,015 issues, or 2.7 GiB for 65,146, excluding routes, catalogues,
+Git history and existing outputs. These are single-sample storage estimates,
+not fixed quotas or guaranteed total sizes.
