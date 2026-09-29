@@ -14,6 +14,7 @@ on:
         type: string
 permissions:
   contents: write
+  actions: write # Dispatch the next serialized archive batch after publishing.
 concurrency:
   group: trackformer-1-2-automatic-forecast-archive
   cancel-in-progress: false
@@ -72,3 +73,26 @@ jobs:
             git push origin HEAD:forecast-data
           fi
           python -c "import json; d=json.load(open('data/status.json')); print('Historical forecasts:',d['historical_completed'],'/',d['historical_total']); print('Live issues:',d['live_issues']); print('Source errors:',len(d['errors']))"
+      - name: Decide whether another productive batch is ready
+        id: continuation
+        if: success()
+        env:
+          PYTHONPATH: release_tools
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from backfill_queue import should_continue
+          status = json.loads((Path(os.environ['RUNNER_TEMP']) / 'forecast-data/data/status.json').read_text())
+          ready = should_continue(status, os.environ['RUN_URL'], os.environ.get('ONLY_ID', ''))
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f"ready={str(ready).lower()}\n")
+          print('Continue immediately:', ready, 'ready:', status.get('historical_ready'),
+                'cooling down:', status.get('historical_cooling_down'))
+          PY
+      - name: Queue the next batch immediately
+        if: steps.continuation.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run automatic-forecasts.yml --repo "$GITHUB_REPOSITORY" --ref main -f historical_limit=500

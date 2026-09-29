@@ -6,6 +6,16 @@ CPU runners**, not on a visitor's browser or the owner's Mac. Every six hours
 JMA storms, then processes a bounded historical batch. GitHub may delay schedules;
 public-repository schedules can be disabled after 60 days of inactivity.
 
+Historical backfill now continues in **back-to-back serialized batches**: after
+successfully publishing a productive batch, the workflow immediately dispatches
+the next batch if uncomputed issues are ready. The same concurrency group permits
+only one runner at a time. There can still be GitHub queue and environment setup
+gaps; this is not a permanently running server. The six-hour schedule remains
+for live updates and delayed source retries. Continuation stops when all work is
+complete, only cooling-down failures remain, a batch makes no successful progress,
+or inference/publishing fails. A targeted single-issue retry does not start a chain.
+No model, input boundary, membership, or forecast values are changed by this policy.
+
 New outputs are **one deterministic member**, never labelled as 50-member means.
 The historical target starts in **1970**. Recent playback takes priority:
 **4,015 independent six-hour issues from all 135 eligible Western Pacific storms
@@ -73,8 +83,8 @@ first; the two-run pipeline took 6.5 seconds excluding package setup. This tiny
 warm-cache sample is a throughput lower bound, not an ETA. At that rate the
 recent cohort needs about 1.4 compute-hours and the full archive about 23 hours,
 before weather retrieval, initialization, failures, publishing and scheduler
-gaps. At 500 issues per six-hour scheduled batch, even ideal recent completion
-takes roughly two days; NOAA availability can make it longer.
+gaps. The former six-hour pause between productive backfill batches is removed;
+NOAA availability can still block completion regardless of compute throughput.
 
 A measured basin-field sequence used 44,311 bytes with lossless gzip: about
 170 MiB for 4,015 issues, or 2.7 GiB for 65,146, excluding routes, catalogues,

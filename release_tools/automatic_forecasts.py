@@ -13,6 +13,7 @@ import numpy as np
 import requests
 import torch
 from scipy.interpolate import RegularGridInterpolator
+from backfill_queue import queue_state
 
 ROOT=Path(__file__).resolve().parents[1]
 MODEL=ROOT/'models/trackformer_1_2_field'
@@ -177,7 +178,7 @@ def main():
     geo=np.load(asset(a.cache,'geography.npz',source+'/geography.npz',plan['geography']['sha256']),allow_pickle=False)
     contract=meta['data_contract'];model=CoreForecaster(contract).eval();model.load_state_dict(torch.load(weight,map_location='cpu',weights_only=True),strict=True)
     old=json.loads((a.output/'status.json').read_text()) if (a.output/'status.json').exists() else {}
-    errors=old.get('errors',{});live=[];completed=0
+    errors=old.get('errors',{});live=[];completed=0;succeeded=0
     if not a.skip_live:
         try:
             live=live_rows()
@@ -213,6 +214,7 @@ def main():
                 source_note='Verified local NCEP atlas; exact causal history. Retrospective hindcast; may overlap fitting years, not an independent test.'
             else:weather,times=ncep(row,contract);source_note='NOAA NCEP Reanalysis 1, four-times daily exact history. Retrospective reconstruction; no operational-availability or independent-test claim.'
             infer(model,contract,geo,weather,times,row,a.output,'automatic-historical-hindcast',source_note);errors.pop(ident,None)
+            succeeded+=1
         except Exception as e:errors[ident]={'at':utc(datetime.now(timezone.utc)),'error':str(e)[:500]};print(json.dumps({'failed':ident,'error':str(e)[:500]}),flush=True)
         completed+=1
     storms={}
@@ -228,7 +230,9 @@ def main():
             'historical_count_unit':'forecast issues','historical_storm_total':len({r['storm_id'] for r in plan['queue']}),
             'tick_start_year':plan.get('ticks_from_year'),'tick_hours':6,'tick_total':len(ticks),'tick_completed':len(done&ticks),
             'live_issues':[{'id':r['id'],'storm_id':r['storm_id'],'issue_time_utc':r['issue_time_utc'],'available':(a.output/'forecasts'/f"{r['id']}.json").exists()} for r in live],
-            'run_url':os.environ.get('RUN_URL'),'elapsed_seconds':round(time.monotonic()-started,1)}
+            'run_url':os.environ.get('RUN_URL'),'elapsed_seconds':round(time.monotonic()-started,1),
+            'batch_attempted':completed,'batch_succeeded':succeeded,
+            **queue_state(planned,done,errors,datetime.now(timezone.utc))}
     write(a.output/'catalog.json',{'schema_version':'1.0','model':'Trackformer 1.2','checkpoint_sha256':CHECKPOINT,'storms':list(storms.values()),'status':status})
     write(a.output/'status.json',status);write(a.output/'coverage.json',{'start_year':1970,'records':plan['coverage']})
     print(json.dumps(status),flush=True)
