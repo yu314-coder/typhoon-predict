@@ -70,9 +70,9 @@ This is the user-selected **Fung-wong route-and-pressure example**, not a claim 
 
 Native-detail input history was unavailable; the regional pressure reconstruction uses 0.25° output sampling, not native resolution. **From +66 h the forecast centre is outside the fixed regional patch**, so only the saved coarse basin field is displayed there. The video labels this coverage limit; it does not invent an extended detailed core. Member-mean central pressure still comes from each model member's moving-core readout, not the minimum of the displayed mean map. [Data, source hashes and video provenance](evaluation/release_data/fung_wong_video.json).
 
-### Architecture-only paper
+### Illustrated technical paper
 
-The **[Trackformer 1.2 technical paper (PDF)](paper/trackformer.pdf)** describes only the detailed architecture and how forecasts work: input tensors, multiscale attention, recurrent basin transport, moving pressure core, centre association, physical pressure reconstruction, objectives and 50-member means. [Editable LaTeX source](paper/trackformer.tex). Benchmark results remain separate in the evaluation notes. Historical material is recoverable from Git history and the [1.1 release](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.1).
+The **[Trackformer 1.2 technical paper (PDF)](paper/trackformer.pdf)** explains the input tensors, multiscale attention, recurrent basin transport, moving pressure core, centre association, objectives and 50-member means. It includes a **model-structure diagram**, **1.2-versus-1.1 benchmark bars and lead-error curves**, and the selected **Fung-wong route, central-pressure timeline and model-generated isobar map**. Development-data limitations, short-lead regressions and pressure failures are reported alongside improvements. [Editable, self-contained LaTeX source](paper/trackformer.tex) · [Figure reproduction utility](release_tools/build_paper_figures.py). Historical material is recoverable from Git history and the [1.1 release](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.1).
 
 ## Recent pressure forecast with isobars
 
@@ -97,7 +97,7 @@ Only issue-time and earlier analyses are permitted. The prediction wrapper rejec
 | Folder | Contents |
 | --- | --- |
 | [`models/trackformer_1_2_field/`](models/trackformer_1_2_field/) | Current 1.2 model, inference wrapper and input/provenance contract |
-| [`paper/`](paper/) | Current architecture-only paper: editable source and PDF |
+| [`paper/`](paper/) | Illustrated architecture and development-evaluation paper: editable source and PDF |
 | [`evaluation/`](evaluation/) | Benchmark charts, selected forecast previews, metrics and saved plot data |
 | [`docs/`](docs/) | Evaluation protocols and published HTML/MP4 showcases |
 | [`release_tools/`](release_tools/) | Reproduction scripts and weight-export utility |

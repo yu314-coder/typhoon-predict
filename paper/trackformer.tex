@@ -1,13 +1,27 @@
-\documentclass[11pt]{article}
+\documentclass[10pt]{article}
 \usepackage[margin=0.9in]{geometry}
 \usepackage{amsmath,amssymb,booktabs,array,microtype,xcolor}
+\usepackage{tikz,caption,fancyhdr}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\definecolor{modelteal}{HTML}{00857D}
+\definecolor{baselinegray}{HTML}{65758B}
+\definecolor{ink}{HTML}{182C42}
+\definecolor{routepink}{HTML}{B31565}
+\captionsetup{font=small,labelfont=bf}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textsc{Trackformer 1.2}}
+\fancyhead[R]{\small Architecture and development evaluation}
+\fancyfoot[C]{\small\thepage}
+\setlength{\headheight}{14pt}
 \usepackage[colorlinks=true,linkcolor=teal,urlcolor=teal]{hyperref}
+\hypersetup{pdftitle={Trackformer 1.2: Coupled Pressure-Field Evolution for Tropical-Cyclone Forecasting},pdfauthor={Yu Yao-Hsing},pdfsubject={Architecture and development evaluation}}
 \setlength{\parskip}{4pt}
 \setlength{\parindent}{0pt}
 \newcommand{\sample}{\mathcal{S}}
-\title{\textbf{Trackformer 1.2}\\[4pt]\large Architecture and Forecast-State Evolution}
+\title{\textbf{Trackformer 1.2: Coupled Pressure-Field\\Evolution for Tropical-Cyclone Forecasting}\\[5pt]\large Architecture, Forecast Dynamics and Development Evaluation}
 \author{Yu Yao-Hsing\\\small\url{https://github.com/yu314-coder/typhoon-predict}}
-\date{Implementation description --- 29 September 2026}
+\date{Research technical report --- 29 September 2026}
 \begin{document}
 \maketitle
 \begin{abstract}
@@ -16,9 +30,16 @@ core to forecast tropical-cyclone motion and central pressure. Recurrent
 convolutional networks evolve the fields; multiscale attention supplies
 environmental context. The reported centre is associated with a depression in
 the predicted core, and central pressure is sampled from that same field.
-Twenty six-hour transitions produce a five-day forecast. This paper describes
-only the released architecture, input contract, update equations, objectives
-and ensemble mechanism. It contains no benchmark comparisons or skill claims.
+Twenty six-hour transitions produce a five-day forecast. We describe the
+released architecture, input contract, update equations, objectives and
+50-member input-perturbation ensemble, illustrated by a module diagram.
+On a previously inspected development cohort of 270 forecast cases from
+90 storms, mean track error is 714.4 km for the 1.2 ensemble versus 902.3 km
+for the archived 1.1 route pipeline. These are output comparisons, not a
+controlled architecture ablation or evidence of untouched generalization.
+A selected Fung-wong example illustrates geographic route and pressure
+comparisons while retaining visible position, timing and intensity differences. All figures retain the saved
+predictions and explicitly separate aggregate evidence from selected examples.
 \end{abstract}
 
 \section{Design and forecast state}
@@ -38,17 +59,41 @@ $o$ the core-grid origin; $z$ the associated storm centre; $m$ displacement per
 six hours; and $v$ auxiliary maximum wind. Static geography $G$, regional
 coordinates $R$, issue intensity $I$ and masks $M$ stay fixed.
 
-\begin{center}\small
-\begin{tabular}{p{0.25\linewidth}p{0.63\linewidth}}
-\toprule
-Stage & Function\\\midrule
-Initialization & Past analyses and issue observations initialize fields and memories.\\
-Attention & Multiscale environmental tokens condition basin memory.\\
-Basin transition & Steering, backward transport and learned tendencies evolve eight fields.\\
-Core transition & A translated frame carries a recurrent pressure anomaly.\\
-Readout & Field-based association yields route and central pressure; pressure is reconstructed geographically.\\
-\bottomrule
-\end{tabular}\end{center}
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\small,>=Latex,
+ box/.style={draw=ink!50,rounded corners=3pt,align=center,text width=4.6cm,minimum height=1.15cm,inner sep=6pt,fill=ink!3},
+ flow/.style={->,thick,ink!75}]
+\node[box,text width=12.0cm] (inputs) {\textbf{Causal issue packet: nine analyses, $-48$ to $0$ h}\\
+Basin $9\!\times\!8\!\times\!25\!\times\!33$; regional MSLP $9\!\times\!1\!\times\!121\!\times\!121$;\\
+static geography, observed centre, recent motion, intensity and validity masks};
+\node[box,below=0.45cm of inputs,text width=12.0cm] (init) {\textbf{Observation-conditioned initialization}\\
+32-channel basin/core memories; moving $65\!\times\!65$ pressure core; issue-pressure prior};
+\node[box,anchor=north,fill=modelteal!7] (attention) at ($(init.south)+(-2.75,-0.5)$) {\textbf{Environmental attention}\\134 pooled tokens; width 64\\2 Transformer blocks; 825 queries};
+\node[box,right=0.75cm of attention,fill=routepink!5] (proposal) {\textbf{Moving-frame proposal}\\Steering + previous motion\\+ learned displacement residual};
+\node[box,below=0.55cm of attention,fill=modelteal!7] (basin) {\textbf{Basin evolution}\\Multiscale convolution + transport\\8 fields and 32-channel memory};
+\node[box,below=0.55cm of proposal,fill=routepink!5] (core) {\textbf{Relative core evolution}\\Advected anomaly + tendency\\20-km grid; 32-channel memory};
+\node[box,below=0.6cm of $(basin.south)!0.5!(core.south)$,text width=11.3cm] (readout) {\textbf{Coupled geographic readout}\\
+Pressure-associated centre within 300 km; pressure sampled at that centre;\\
+basin + regional pressure fields, coverage masks and auxiliary wind};
+\draw[flow] (inputs)--(init);
+\draw[flow] (init.south)-|(attention.north);
+\draw[flow] (init.south)-|(proposal.north);
+\draw[flow] (attention)--(basin);
+\draw[flow] (proposal)--(core);
+\draw[flow] (basin)--node[midway,above=2pt,font=\tiny,fill=white,inner sep=1pt]{fields}(core);
+\draw[flow] (basin.south)--(basin.south|-readout.north);
+\draw[flow] (core.south)--(core.south|-readout.north);
+\node[below=0.25cm of readout,align=center,font=\scriptsize,text=ink] {Shared transition repeated 20 times: +6, +12, $\ldots$, +120 h.\\
+50 perturbed input histories $\rightarrow$ 50 rollouts $\rightarrow$ separate route, pressure and common-grid field means.};
+\end{tikzpicture}
+\caption{Released model structure. The basin branch supplies environmental
+information to the moving core; motion is proposed before the pressure core determines the reported
+centre. Boxes show functional groups, not independent models. Future observations
+are excluded from inference. The ensemble contains 50 input realizations of one
+network, not 50 trained networks.}
+\label{fig:architecture}
+\end{figure}
 
 \section{Inputs, geometry and outputs}
 Nine past analyses at $-48,-42,\ldots,0$ h form a tensor of shape
@@ -157,8 +202,8 @@ Backtracing constructs departure coordinates $D(U_k)$ and
 \[
 g_{k+1}=\sample(g_k,D(U_k))+0.2\tanh(d_{0:8}).
 \]
-Six hours convert 1 m/s to 21.6 km. Coordinate conversion uses 111.2 km per
-latitude degree and $111.2\max(\cos\phi,0.2)$ km per longitude degree.
+Six hours convert 1 m/s to 21.6 km. A latitude degree is treated as 111.2 km.
+A longitude degree is treated as $111.2\max(\cos\phi,0.2)$ km.
 The attention-conditioned memory is advected by the same departure grid and
 updated with new features. Tendencies are in normalized channel units.
 This semi-Lagrangian-style update is not a complete or exactly conservative
@@ -264,7 +309,389 @@ checkpoint identity, 1.2.73 epoch 4, and exact weight/source hashes.
 \texttt{v165\_base.py} supplies sampling, evolution blocks and memories.
 All are in \texttt{models/trackformer\_1\_2\_field/}.
 
-This paper describes mechanisms only. Learned reconstructions, limited domain,
-input-source differences and retrospective availability constrain interpretation.
-The model remains a research artifact, not an operational warning system.
+Learned reconstructions, limited domain, input-source differences and retrospective
+availability constrain interpretation. The model remains a research artifact,
+not an operational warning system.
+
+
+\section{Development evaluation}
+\label{sec:evaluation}
+\subsection{Cohort and comparison boundary}
+The completed comparison comprises \textbf{270 issue cases from 90 storms},
+with three issues per storm and twenty six-hour leads per case. The 1.2 forecast
+is the mean of 50 causal historical-input perturbations; 1.1 uses its archived
+causal route pipeline. Cases, labels and forecast leads are matched, but the
+input pipelines differ. This is not a controlled architecture ablation.
+The cohort was repeatedly inspected and includes cases outside the intended
+Western Pacific domain. It is therefore development evidence, not an untouched
+or basin-specific validation claim.
+
+The original 1.1 archive stored absolute latitude/longitude under a local-km
+array name. The reproduced comparison converts those coordinates into the same
+issue-centred local projection used by 1.2 and checks a round trip to the
+original coordinates. Its corrected 902.3-km mean replaces the superseded
+1,036.3-km score; original forecasts are preserved.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm,font=\scriptsize]
+\begin{scope}[shift={(0,0)}]
+\node[font=\small\bfseries] at (2.5,4.05) {Mean position error};
+\node[rotate=90] at (-.75,1.75) {km; lower is better};
+\draw[black!10] (0,0.0000)--(5,0.0000);
+\node[left] at (0,0.0000) {0};
+\draw[black!10] (0,1.5909)--(5,1.5909);
+\node[left] at (0,1.5909) {500};
+\draw[black!10] (0,3.1818)--(5,3.1818);
+\node[left] at (0,3.1818) {1000};
+\fill[baselinegray] (1.02,0) rectangle (1.7799999999999998,2.8710);
+\node[above] at (1.4,2.8710) {902.3};
+\node[below=3pt] at (1.4,0) {1.1};
+\fill[modelteal] (3.22,0) rectangle (3.98,2.2731);
+\node[above] at (3.6,2.2731) {714.4};
+\node[below=3pt] at (3.6,0) {1.2 mean of 50};
+\draw[black!55] (0,3.5)--(0,0)--(5,0);
+\end{scope}
+\begin{scope}[shift={(7.2,0)}]
+\node[font=\small\bfseries] at (2.5,4.05) {Six-hour heading error};
+\node[rotate=90] at (-.75,1.75) {degrees; lower is better};
+\draw[black!10] (0,0.0000)--(5,0.0000);
+\node[left] at (0,0.0000) {0};
+\draw[black!10] (0,1.0000)--(5,1.0000);
+\node[left] at (0,1.0000) {20};
+\draw[black!10] (0,2.0000)--(5,2.0000);
+\node[left] at (0,2.0000) {40};
+\draw[black!10] (0,3.0000)--(5,3.0000);
+\node[left] at (0,3.0000) {60};
+\fill[baselinegray] (1.02,0) rectangle (1.7799999999999998,2.8110);
+\node[above] at (1.4,2.8110) {56.22};
+\node[below=3pt] at (1.4,0) {1.1};
+\fill[modelteal] (3.22,0) rectangle (3.98,2.2410);
+\node[above] at (3.6,2.2410) {44.82};
+\node[below=3pt] at (3.6,0) {1.2 mean of 50};
+\draw[black!55] (0,3.5)--(0,0)--(5,0);
+\end{scope}
+\end{tikzpicture}\par\vspace{7mm}
+\begin{tikzpicture}[x=1cm,y=1cm,font=\scriptsize]
+\node[font=\small\bfseries,align=center] at (6.100,4.100) {Error growth across forecast lead};
+\draw[black!10] (0.000,0)--(0.000,3.7);
+\node[below=3pt] at (0.000,0) {6};
+\draw[black!10] (1.926,0)--(1.926,3.7);
+\node[below=3pt] at (1.926,0) {24};
+\draw[black!10] (4.495,0)--(4.495,3.7);
+\node[below=3pt] at (4.495,0) {48};
+\draw[black!10] (7.063,0)--(7.063,3.7);
+\node[below=3pt] at (7.063,0) {72};
+\draw[black!10] (9.632,0)--(9.632,3.7);
+\node[below=3pt] at (9.632,0) {96};
+\draw[black!10] (12.200,0)--(12.200,3.7);
+\node[below=3pt] at (12.200,0) {120};
+\draw[black!10] (0,0.000)--(12.2,0.000);
+\node[left=3pt] at (0,0.000) {0};
+\draw[black!10] (0,0.925)--(12.2,0.925);
+\node[left=3pt] at (0,0.925) {500};
+\draw[black!10] (0,1.850)--(12.2,1.850);
+\node[left=3pt] at (0,1.850) {1000};
+\draw[black!10] (0,2.775)--(12.2,2.775);
+\node[left=3pt] at (0,2.775) {1500};
+\draw[black!10] (0,3.700)--(12.2,3.700);
+\node[left=3pt] at (0,3.700) {2000};
+\draw[black!55] (0,3.7)--(0,0)--(12.2,0);
+\node[font=\small] at (6.100,-.72) {Forecast lead (hours)};
+\node[font=\small,rotate=90] at (-1.05,1.850) {Mean position error (km)};
+\begin{scope}
+\clip (0,0) rectangle (12.2,3.7);
+\draw[baselinegray,dashed,thick] (0.0000,0.1347)--(0.6421,0.2659)--(1.2842,0.4048)--(1.9263,0.5515)--(2.5684,0.7090)--(3.2105,0.8669)--(3.8526,1.0296)--(4.4947,1.1938)--(5.1368,1.3637)--(5.7789,1.5348)--(6.4211,1.7135)--(7.0632,1.8929)--(7.7053,2.0728)--(8.3474,2.2493)--(8.9895,2.4266)--(9.6316,2.6085)--(10.2737,2.7982)--(10.9158,2.9886)--(11.5579,3.1884)--(12.2000,3.3915);
+\draw[modelteal,solid,thick] (0.0000,0.1373)--(0.6421,0.2516)--(1.2842,0.3709)--(1.9263,0.4892)--(2.5684,0.6140)--(3.2105,0.7368)--(3.8526,0.8550)--(4.4947,0.9752)--(5.1368,1.0968)--(5.7789,1.2152)--(6.4211,1.3405)--(7.0632,1.4703)--(7.7053,1.6031)--(8.3474,1.7378)--(8.9895,1.8779)--(9.6316,2.0217)--(10.2737,2.1710)--(10.9158,2.3276)--(11.5579,2.4906)--(12.2000,2.6518);
+\end{scope}
+\draw[baselinegray,dashed,thick] (0.250,-1.23)--(0.800,-1.23);
+\node[anchor=west] at (0.900,-1.23) {Trackformer 1.1};
+\draw[modelteal,solid,thick] (6.350,-1.23)--(6.900,-1.23);
+\node[anchor=west] at (7.000,-1.23) {Trackformer 1.2: mean of 50};
+\end{tikzpicture}
+\caption{Matched development comparison. Top: all-lead position and heading
+errors. Bottom: mean position error at each lead. Distances use the saved
+local-km projection. Heading uses 5,382 common valid steps where truth and
+both forecasts move more than 1 km. All 270 cases remain in the position
+scores, including poor and out-of-domain cases. No uncertainty intervals are
+available in these saved results.}
+\label{fig:benchmark}
+\end{figure}
+
+\subsection{Position, direction and shape are different quantities}
+Mean local-coordinate position error improves by 20.8\%, from 902.3 to
+714.4 km; +120 h error is 1,833.2 versus 1,433.4 km. The +6 h error is
+\emph{slightly worse} for 1.2 (74.2 versus 72.8 km), so the aggregate is not
+an improvement at every lead. Mean heading error is 56.22 versus 44.82 degrees.
+Centred route-shape similarity is 0.7273 versus 0.8249; normalized
+Fr\'echet path similarity is 0.4983 versus 0.5727. These metrics are not
+accuracy percentages and are not combined into a weighted rank.
+
+\textbf{Actual route alignment is the primary geographic criterion:}
+predicted and observed positions should coincide at the same valid times.
+The shape score removes translation and scale, so it can remain high for a
+geographically displaced forecast. It must not substitute for position error
+or an unshifted route overlay. The path score responds to displacement but
+is not a strict same-time distance.
+
+\clearpage
+\section{Selected Fung-wong case: alignment and intensity}
+The Fung-wong forecast is issued at 00 UTC on 7 November 2025, using the same
+saved 50-member policy. Figure~\ref{fig:fungwong} overlays predictions and exact
+six-hour observed coordinates without translating, rotating or scaling either
+route. Mean great-circle error is 130.9 km, +120 h error is 142.3 km and the
+maximum is 198.3 km: all twenty leads are within 200 km. These geographic
+errors are a separate diagnostic from the preceding local-coordinate scores.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm,font=\scriptsize]
+\node[font=\small\bfseries,align=center] at (6.100,7.800) {Fung-wong: geographic routes, +0 to +120 h};
+\draw[black!10] (0.000,0)--(0.000,7.4);
+\node[below=3pt] at (0.000,0) {116};
+\draw[black!10] (2.033,0)--(2.033,7.4);
+\node[below=3pt] at (2.033,0) {120};
+\draw[black!10] (4.067,0)--(4.067,7.4);
+\node[below=3pt] at (4.067,0) {124};
+\draw[black!10] (6.100,0)--(6.100,7.4);
+\node[below=3pt] at (6.100,0) {128};
+\draw[black!10] (8.133,0)--(8.133,7.4);
+\node[below=3pt] at (8.133,0) {132};
+\draw[black!10] (10.167,0)--(10.167,7.4);
+\node[below=3pt] at (10.167,0) {136};
+\draw[black!10] (12.200,0)--(12.200,7.4);
+\node[below=3pt] at (12.200,0) {140};
+\draw[black!10] (0,0.529)--(12.2,0.529);
+\node[left=3pt] at (0,0.529) {10};
+\draw[black!10] (0,2.643)--(12.2,2.643);
+\node[left=3pt] at (0,2.643) {14};
+\draw[black!10] (0,4.757)--(12.2,4.757);
+\node[left=3pt] at (0,4.757) {18};
+\draw[black!10] (0,6.871)--(12.2,6.871);
+\node[left=3pt] at (0,6.871) {22};
+\draw[black!55] (0,7.4)--(0,0)--(12.2,0);
+\node[font=\small] at (6.100,-.72) {Longitude ($^\circ$E)};
+\node[font=\small,rotate=90] at (-1.05,3.700) {Latitude ($^\circ$N)};
+\begin{scope}
+\clip (0,0) rectangle (12.2,7.4);
+\draw[ink,dashed,thick] (11.1833,1.2686)--(10.4717,1.4271)--(9.8617,1.5857)--(9.1500,1.6914)--(8.1842,1.8500)--(7.3708,2.0614)--(6.2017,2.2729)--(5.3375,2.4843)--(4.4733,2.7486)--(3.7108,3.0657)--(2.9483,3.7000)--(2.1350,3.9643)--(1.6267,4.2814)--(1.4742,4.5457)--(1.2708,4.9157)--(1.1692,5.2329)--(1.1692,5.4971)--(1.2708,5.9200)--(1.4742,6.1843)--(1.5250,6.5014)--(1.6775,6.5543);
+\fill[ink] (11.1833,1.2686) circle (1pt);
+\fill[ink] (10.4717,1.4271) circle (1pt);
+\fill[ink] (9.8617,1.5857) circle (1pt);
+\fill[ink] (9.1500,1.6914) circle (1pt);
+\fill[ink] (8.1842,1.8500) circle (1pt);
+\fill[ink] (7.3708,2.0614) circle (1pt);
+\fill[ink] (6.2017,2.2729) circle (1pt);
+\fill[ink] (5.3375,2.4843) circle (1pt);
+\fill[ink] (4.4733,2.7486) circle (1pt);
+\fill[ink] (3.7108,3.0657) circle (1pt);
+\fill[ink] (2.9483,3.7000) circle (1pt);
+\fill[ink] (2.1350,3.9643) circle (1pt);
+\fill[ink] (1.6267,4.2814) circle (1pt);
+\fill[ink] (1.4742,4.5457) circle (1pt);
+\fill[ink] (1.2708,4.9157) circle (1pt);
+\fill[ink] (1.1692,5.2329) circle (1pt);
+\fill[ink] (1.1692,5.4971) circle (1pt);
+\fill[ink] (1.2708,5.9200) circle (1pt);
+\fill[ink] (1.4742,6.1843) circle (1pt);
+\fill[ink] (1.5250,6.5014) circle (1pt);
+\fill[ink] (1.6775,6.5543) circle (1pt);
+\draw[routepink,solid,thick] (11.1833,1.2686)--(10.8126,1.5385)--(10.2634,1.7964)--(9.5878,2.0476)--(8.7916,2.2363)--(7.9528,2.4199)--(7.0713,2.6133)--(6.2164,2.7644)--(5.3473,2.9410)--(4.4594,3.1839)--(3.7004,3.5150)--(3.0550,3.9339)--(2.4588,4.2361)--(1.8929,4.4623)--(1.4884,4.7305)--(1.2671,5.0410)--(1.0867,5.3135)--(1.0185,5.5790)--(0.9671,5.7893)--(0.9844,5.9982)--(1.0752,6.2137);
+\fill[routepink] (11.1833,1.2686) circle (1pt);
+\fill[routepink] (10.8126,1.5385) circle (1pt);
+\fill[routepink] (10.2634,1.7964) circle (1pt);
+\fill[routepink] (9.5878,2.0476) circle (1pt);
+\fill[routepink] (8.7916,2.2363) circle (1pt);
+\fill[routepink] (7.9528,2.4199) circle (1pt);
+\fill[routepink] (7.0713,2.6133) circle (1pt);
+\fill[routepink] (6.2164,2.7644) circle (1pt);
+\fill[routepink] (5.3473,2.9410) circle (1pt);
+\fill[routepink] (4.4594,3.1839) circle (1pt);
+\fill[routepink] (3.7004,3.5150) circle (1pt);
+\fill[routepink] (3.0550,3.9339) circle (1pt);
+\fill[routepink] (2.4588,4.2361) circle (1pt);
+\fill[routepink] (1.8929,4.4623) circle (1pt);
+\fill[routepink] (1.4884,4.7305) circle (1pt);
+\fill[routepink] (1.2671,5.0410) circle (1pt);
+\fill[routepink] (1.0867,5.3135) circle (1pt);
+\fill[routepink] (1.0185,5.5790) circle (1pt);
+\fill[routepink] (0.9671,5.7893) circle (1pt);
+\fill[routepink] (0.9844,5.9982) circle (1pt);
+\fill[routepink] (1.0752,6.2137) circle (1pt);
+\end{scope}
+\draw[ink,dashed,thick] (0.250,-1.23)--(0.800,-1.23);
+\node[anchor=west] at (0.900,-1.23) {Observed best track};
+\draw[routepink,solid,thick] (6.350,-1.23)--(6.900,-1.23);
+\node[anchor=west] at (7.000,-1.23) {1.2 mean of 50};
+\end{tikzpicture}\par\vspace{5mm}
+\begin{tikzpicture}[x=1cm,y=1cm,font=\scriptsize]
+\node[font=\small\bfseries,align=center] at (6.100,4.200) {Central pressure: intensification and weakening};
+\draw[black!10] (0.000,0)--(0.000,3.8);
+\node[below=3pt] at (0.000,0) {6};
+\draw[black!10] (1.926,0)--(1.926,3.8);
+\node[below=3pt] at (1.926,0) {24};
+\draw[black!10] (4.495,0)--(4.495,3.8);
+\node[below=3pt] at (4.495,0) {48};
+\draw[black!10] (7.063,0)--(7.063,3.8);
+\node[below=3pt] at (7.063,0) {72};
+\draw[black!10] (9.632,0)--(9.632,3.8);
+\node[below=3pt] at (9.632,0) {96};
+\draw[black!10] (12.200,0)--(12.200,3.8);
+\node[below=3pt] at (12.200,0) {120};
+\draw[black!10] (0,0.712)--(12.2,0.712);
+\node[left=3pt] at (0,0.712) {940};
+\draw[black!10] (0,1.662)--(12.2,1.662);
+\node[left=3pt] at (0,1.662) {960};
+\draw[black!10] (0,2.612)--(12.2,2.612);
+\node[left=3pt] at (0,2.612) {980};
+\draw[black!10] (0,3.562)--(12.2,3.562);
+\node[left=3pt] at (0,3.562) {1000};
+\draw[black!55] (0,3.8)--(0,0)--(12.2,0);
+\node[font=\small] at (6.100,-.72) {Forecast lead (hours)};
+\node[font=\small,rotate=90] at (-1.05,1.900) {Central pressure (hPa)};
+\begin{scope}
+\clip (0,0) rectangle (12.2,3.8);
+\draw[ink,dashed,thick] (0.0000,2.8500)--(0.6421,2.6125)--(1.2842,2.3750)--(1.9263,2.1375)--(2.5684,1.9000)--(3.2105,1.4250)--(3.8526,1.1875)--(4.4947,0.4750)--(5.1368,0.4750)--(5.7789,1.1875)--(6.4211,1.9000)--(7.0632,2.3750)--(7.7053,2.6125)--(8.3474,2.6125)--(8.9895,2.6125)--(9.6316,2.6125)--(10.2737,2.8500)--(10.9158,3.0875)--(11.5579,3.1825)--(12.2000,3.2775);
+\draw[routepink,solid,thick] (0.0000,2.9281)--(0.6421,2.6225)--(1.2842,2.3125)--(1.9263,1.9838)--(2.5684,1.5806)--(3.2105,1.2532)--(3.8526,1.0846)--(4.4947,1.0421)--(5.1368,0.9741)--(5.7789,1.0095)--(6.4211,1.2812)--(7.0632,1.4903)--(7.7053,1.7742)--(8.3474,2.0435)--(8.9895,2.3351)--(9.6316,2.4446)--(10.2737,2.4997)--(10.9158,2.6524)--(11.5579,2.8034)--(12.2000,2.9488);
+\end{scope}
+\draw[ink,dashed,thick] (0.250,-1.23)--(0.800,-1.23);
+\node[anchor=west] at (0.900,-1.23) {JMA best track (IBTrACS)};
+\draw[routepink,solid,thick] (6.350,-1.23)--(6.900,-1.23);
+\node[anchor=west] at (7.000,-1.23) {1.2 member-mean pressure};
+\end{tikzpicture}
+\caption{Selected development example, not representative performance.
+Markers on the route denote matching six-hour valid times, including the issue
+centre. Observations are verification overlays, never forecast inputs.
+Pressure MAE is 7.36 hPa over twenty valid labels. The broad track and
+pressure evolution are similar, but the curves do not perfectly coincide;
+peak intensity and weakening timing remain imperfect.
+The companion MP4 shows the actual common-grid model pressure fields and
+4-hPa isobars; none of the pressure fields is moved to match observations.}
+\label{fig:fungwong}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm,font=\scriptsize]
+\node[font=\small\bfseries,align=center] at (5.750,8.900) {Fung-wong: model-mean MSLP at +48 h};
+\draw[black!10] (0.676,0)--(0.676,8.5);
+\node[below=3pt] at (0.676,0) {124};
+\draw[black!10] (3.382,0)--(3.382,8.5);
+\node[below=3pt] at (3.382,0) {128};
+\draw[black!10] (6.088,0)--(6.088,8.5);
+\node[below=3pt] at (6.088,0) {132};
+\draw[black!10] (8.794,0)--(8.794,8.5);
+\node[below=3pt] at (8.794,0) {136};
+\draw[black!10] (11.500,0)--(11.500,8.5);
+\node[below=3pt] at (11.500,0) {140};
+\draw[black!10] (0,0.000)--(11.5,0.000);
+\node[left=3pt] at (0,0.000) {10};
+\draw[black!10] (0,2.833)--(11.5,2.833);
+\node[left=3pt] at (0,2.833) {14};
+\draw[black!10] (0,5.667)--(11.5,5.667);
+\node[left=3pt] at (0,5.667) {18};
+\draw[black!10] (0,8.500)--(11.5,8.500);
+\node[left=3pt] at (0,8.500) {22};
+\draw[black!55] (0,8.5)--(0,0)--(11.5,0);
+\node[font=\small] at (5.750,-.72) {Longitude ($^\circ$E)};
+\node[font=\small,rotate=90] at (-1.05,4.250) {Latitude ($^\circ$N)};
+\begin{scope}
+\clip (0,0) rectangle (11.5,8.5);
+\draw[black!45,thin] (2.3676,3.3674)--(2.3636,3.3646)--(2.2037,3.1875)--(2.3676,3.0968)--(2.5263,3.1875)--(2.5368,3.3624)--(2.5368,3.3646)--(2.5368,3.3646)--(2.3676,3.3674);
+\draw[black!45,thin] (2.3676,3.4279)--(2.2761,3.3646)--(2.1985,3.2801)--(2.1246,3.1875)--(2.1606,3.0104)--(2.1985,2.9949)--(2.3676,3.0026)--(2.3846,3.0104)--(2.5368,3.0971)--(2.6276,3.1875)--(2.6458,3.3646)--(2.5368,3.4411)--(2.3676,3.4279);
+\draw[black!45,thin] (2.1985,3.3728)--(2.1902,3.3646)--(2.0485,3.1875)--(2.0294,3.1116)--(1.9935,3.0104)--(2.0294,2.9701)--(2.1946,2.9155);
+\draw[black!45,thin] (2.7366,3.2780)--(2.7468,3.3646)--(2.7059,3.4312)--(2.5368,3.5175)--(2.3676,3.4885)--(2.1985,3.3728);
+\draw[black!45,thin] (2.3676,3.5506)--(2.3536,3.5417)--(2.1985,3.4451)--(2.1171,3.3646)--(2.0294,3.2556)--(1.9707,3.1875)--(1.8859,3.0104)--(2.0294,2.8492)--(2.1985,2.8335)--(2.3676,2.8466)--(2.5368,2.9075)--(2.6913,3.0104)--(2.7059,3.0246)--(2.8304,3.1875)--(2.8381,3.3646)--(2.7373,3.5417)--(2.7059,3.5654)--(2.5368,3.5926)--(2.3676,3.5506);
+\draw[black!45,thin] (1.8341,2.8056)--(1.8603,2.7858)--(2.0294,2.7549)--(2.1985,2.7454)--(2.3676,2.7542)--(2.5368,2.8109)--(2.5822,2.8333)--(2.7059,2.9013)--(2.8405,3.0104)--(2.8750,3.0611)--(2.9447,3.1875)--(2.9358,3.3646)--(2.8750,3.5113)--(2.8599,3.5417)--(2.7059,3.6581)--(2.5368,3.6671)--(2.3676,3.6240)--(2.2375,3.5417)--(2.1985,3.5174)--(2.0828,3.4030);
+\draw[black!45,thin] (2.5368,3.7515)--(2.4501,3.7188)--(2.3676,3.6973)--(2.1985,3.6015)--(2.1340,3.5417)--(2.0294,3.4401)--(1.9550,3.3646)--(1.8603,3.2523)--(1.8063,3.1875)--(1.7023,3.0104)--(1.6912,2.9603)--(1.6564,2.8333)--(1.6912,2.7575)--(1.8603,2.6690)--(2.0294,2.6647)--(2.1985,2.6573)--(2.3676,2.6589)--(2.5368,2.7014)--(2.7059,2.7756)--(2.8043,2.8333)--(2.8750,2.8850)--(3.0064,3.0104)--(3.0441,3.1073)--(3.0702,3.1875)--(3.0441,3.3203)--(3.0379,3.3646)--(2.9679,3.5417)--(2.8750,3.6631)--(2.7840,3.7188)--(2.7059,3.7613)--(2.5368,3.7515);
+\draw[black!45,thin] (2.2165,3.7013)--(2.1985,3.6916)--(2.0368,3.5417)--(2.0294,3.5344)--(1.8621,3.3646)--(1.8603,3.3624)--(1.7147,3.1875)--(1.6912,3.1474)--(1.6075,3.0104)--(1.5452,2.8333)--(1.5678,2.6562)--(1.6912,2.5846)--(1.8603,2.5617)--(2.0294,2.5592)--(2.1985,2.5448)--(2.3676,2.5395)--(2.5368,2.5774)--(2.7059,2.6428)--(2.7351,2.6562)--(2.8750,2.7239)--(3.0419,2.8333)--(3.0441,2.8354)--(3.1848,3.0104)--(3.2123,3.1875)--(3.1711,3.3646)--(3.0865,3.5417)--(3.0441,3.5991)--(2.9605,3.7188)--(2.8799,3.8161);
+\draw[black!45,thin] (2.3676,3.9086)--(2.3472,3.8958)--(2.1985,3.8100)--(2.0960,3.7188)--(2.0294,3.6604)--(1.9096,3.5417)--(1.8603,3.4922)--(1.7486,3.3646)--(1.6912,3.2930)--(1.6121,3.1875)--(1.5221,3.0299)--(1.5103,3.0104)--(1.4329,2.8333)--(1.4040,2.6562)--(1.5221,2.5031)--(1.6001,2.4792)--(1.6912,2.4594)--(1.8603,2.4487)--(2.0294,2.4438)--(2.1985,2.4209)--(2.3676,2.4088)--(2.5368,2.4385)--(2.6701,2.4792)--(2.7059,2.4901)--(2.8750,2.5528)--(3.0441,2.6393)--(3.0691,2.6562)--(3.2132,2.7664)--(3.2772,2.8333)--(3.3642,3.0104)--(3.3657,3.1875)--(3.3196,3.3646)--(3.2416,3.5417)--(3.2132,3.5817)--(3.1169,3.7188)--(3.0441,3.8280)--(2.9916,3.8958)--(2.8750,4.0145)--(2.7059,4.0277)--(2.5368,3.9829)--(2.3676,3.9086);
+\draw[black!45,thin] (2.5368,4.1221)--(2.4242,4.0729)--(2.3676,4.0495)--(2.1985,3.9494)--(2.1280,3.8958)--(2.0294,3.8131)--(1.9274,3.7188)--(1.8603,3.6538)--(1.7587,3.5417)--(1.6912,3.4613)--(1.6223,3.3646)--(1.5221,3.2186)--(1.5017,3.1875)--(1.3977,3.0104)--(1.3529,2.9080)--(1.3152,2.8333)--(1.2595,2.6562)--(1.2714,2.4792)--(1.3529,2.4033)--(1.5221,2.3435)--(1.6912,2.3211)--(1.8603,2.3116)--(2.0294,2.3036)--(2.0408,2.3021)--(2.1985,2.2734)--(2.3676,2.2560)--(2.5368,2.2814)--(2.6154,2.3021)--(2.7059,2.3223)--(2.8033,2.3487);
+\draw[black!45,thin] (3.4092,2.7069)--(3.4973,2.8333)--(3.5462,3.0104)--(3.5333,3.1875)--(3.4887,3.3646)--(3.4224,3.5417)--(3.3824,3.6001)--(3.3015,3.7188)--(3.2132,3.8570)--(3.1887,3.8958)--(3.1087,4.0729)--(3.0441,4.1516)--(2.8750,4.2066)--(2.7059,4.1794)--(2.5368,4.1221);
+\draw[black!45,thin] (2.5368,4.2743)--(2.4851,4.2500)--(2.3676,4.2010)--(2.1985,4.1100)--(2.1422,4.0729)--(2.0294,3.9938)--(1.9014,3.8958)--(1.8603,3.8592)--(1.7212,3.7188)--(1.6912,3.6850)--(1.5785,3.5417)--(1.5221,3.4506)--(1.4725,3.3646)--(1.3690,3.1875)--(1.3529,3.1579)--(1.2672,3.0104)--(1.1848,2.8333)--(1.1838,2.8306)--(1.1125,2.6562)--(1.0740,2.4792)--(1.1266,2.3021)--(1.1838,2.2514)--(1.3529,2.1896)--(1.5221,2.1565)--(1.6912,2.1343)--(1.7852,2.1250)--(1.8603,2.1147)--(2.0294,2.0964)--(2.1985,2.0664)--(2.3676,2.0507)--(2.5368,2.0723)--(2.7059,2.1099)--(2.7643,2.1250)--(2.8750,2.1503)--(3.0441,2.1963)--(3.2132,2.2796)--(3.2511,2.3021)--(3.3824,2.3798)--(3.5030,2.4792)--(3.5515,2.5315)--(3.6423,2.6562)--(3.7206,2.8317)--(3.7213,2.8333)--(3.7516,3.0104)--(3.7288,3.1875)--(3.7206,3.2196)--(3.6869,3.3646)--(3.6306,3.5417)--(3.5515,3.6633)--(3.5156,3.7188)--(3.3987,3.8958)--(3.3824,3.9368)--(3.3345,4.0729)--(3.2696,4.2500)--(3.2132,4.3083)--(3.0441,4.3883)--(2.8750,4.3764)--(2.7059,4.3352)--(2.5368,4.2743);
+\draw[black!45,thin] (2.5368,4.4547)--(2.4725,4.4271)--(2.3676,4.3879)--(2.1985,4.3015)--(2.1165,4.2500)--(2.0294,4.2015)--(1.8603,4.0885)--(1.8406,4.0729)--(1.7788,4.0242);
+\draw[black!45,thin] (1.3281,3.4780)--(1.2783,3.3646)--(1.1980,3.1875)--(1.1838,3.1587)--(1.1071,3.0104)--(1.0257,2.8333)--(1.0147,2.8051)--(0.9485,2.6562)--(0.8917,2.4792)--(0.8682,2.3021)--(0.9269,2.1250)--(1.0147,2.0319)--(1.1838,1.9554)--(1.2186,1.9479)--(1.3529,1.9140)--(1.5221,1.8764)--(1.6912,1.8456)--(1.8603,1.8229)--(2.0294,1.8057)--(2.1985,1.7826)--(2.3676,1.7728)--(2.5368,1.7933)--(2.7059,1.8245)--(2.8750,1.8621)--(3.0441,1.9025)--(3.1458,1.9479)--(3.2132,1.9758)--(3.3824,2.0626)--(3.4775,2.1250)--(3.5515,2.1739)--(3.6927,2.3021)--(3.7206,2.3319)--(3.8351,2.4792)--(3.8897,2.5763)--(3.9328,2.6562)--(3.9867,2.8333)--(3.9968,3.0104)--(3.9718,3.1875)--(3.9313,3.3646)--(3.8897,3.5061)--(3.8802,3.5417)--(3.7725,3.7188)--(3.7206,3.8018)--(3.6622,3.8958)--(3.5834,4.0729)--(3.5515,4.2196)--(3.5455,4.2500)--(3.4632,4.4271)--(3.3824,4.4848)--(3.2132,4.5582)--(3.0441,4.5832)--(2.8750,4.5574)--(2.7059,4.5134)--(2.5368,4.4547);
+\draw[black!45,thin] (2.8750,4.8131)--(2.7554,4.7812)--(2.7059,4.7707)--(2.5368,4.7229)--(2.3676,4.6550)--(2.2604,4.6042)--(2.1985,4.5802)--(2.0294,4.5070)--(1.8817,4.4271)--(1.8603,4.4146)--(1.6912,4.2906)--(1.6458,4.2500)--(1.5221,4.1393)--(1.4608,4.0729)--(1.3529,3.9602)--(1.3035,3.8958)--(1.1838,3.7321)--(1.1740,3.7188)--(1.0661,3.5417)--(1.0183,3.3646)--(1.0147,3.3535)--(0.9576,3.1875)--(0.8924,3.0104)--(0.8456,2.8939)--(0.8176,2.8333)--(0.7396,2.6562)--(0.6784,2.4792)--(0.6765,2.4710)--(0.6243,2.3021)--(0.5998,2.1250)--(0.6364,1.9479)--(0.6765,1.8661)--(0.7405,1.7708)--(0.8456,1.6736)--(0.9857,1.5938)--(1.0147,1.5763)--(1.1838,1.5153)--(1.3529,1.4735)--(1.5221,1.4461)--(1.6912,1.4245)--(1.7629,1.4167)--(1.8603,1.4045)--(2.0294,1.3883)--(2.1985,1.3749)--(2.3676,1.3800)--(2.5368,1.4141)--(2.5479,1.4167)--(2.7059,1.4485)--(2.8750,1.4863)--(3.0441,1.5229)--(3.2132,1.5863)--(3.2302,1.5938)--(3.3824,1.6610)--(3.5515,1.7528)--(3.5785,1.7708)--(3.7206,1.8775)--(3.7945,1.9479)--(3.8897,2.0405)--(3.9685,2.1250)--(4.0588,2.2344)--(4.1148,2.3021)--(4.2207,2.4792)--(4.2279,2.4966)--(4.3056,2.6562)--(4.3457,2.8333)--(4.3417,3.0104)--(4.3122,3.1875)--(4.2682,3.3646)--(4.2279,3.5015)--(4.2184,3.5417)--(4.0963,3.7188)--(4.0588,3.7812)--(3.9952,3.8958)--(3.9153,4.0729)--(3.8897,4.1463)--(3.8589,4.2500)--(3.8390,4.4271)--(3.7299,4.6042)--(3.7206,4.6102)--(3.5515,4.6939)--(3.3824,4.7610)--(3.3156,4.7812)--(3.2132,4.8202)--(3.0441,4.8461)--(2.8750,4.8131);
+\draw[black!45,thin] (2.5368,5.1422)--(2.5090,5.1354)--(2.3676,5.1023)--(2.1985,5.0506)--(2.0294,4.9845)--(1.9731,4.9583)--(1.8603,4.9030)--(1.6912,4.8014)--(1.6619,4.7812)--(1.5221,4.6898)--(1.4155,4.6042)--(1.3529,4.5516)--(1.2554,4.4271)--(1.1838,4.3140)--(1.1463,4.2500)--(1.0416,4.0729)--(1.0147,4.0341)--(0.9169,3.8958)--(0.8456,3.7966)--(0.7856,3.7188)--(0.6765,3.5460)--(0.6733,3.5417)--(0.6190,3.3646)--(0.5697,3.1875)--(0.5280,3.0104)--(0.5074,2.9466)--(0.4590,2.8333)--(0.3770,2.6562)--(0.3382,2.5638)--(0.2913,2.4792)--(0.2260,2.3021)--(0.1769,2.1250)--(0.1691,2.0911)--(0.1133,1.9479)--(0.0604,1.7708)--(0.1678,1.5938)--(0.1691,1.5918)--(0.2670,1.4167)--(0.3382,1.2980)--(0.3729,1.2396)--(0.5074,1.0816)--(0.5286,1.0625)--(0.6765,0.9503)--(0.7765,0.8854)--(0.8456,0.8440)--(1.0147,0.7441)--(1.0727,0.7083)--(1.1838,0.6528)--(1.3529,0.5874)--(1.5221,0.5879)--(1.6912,0.6104)--(1.8603,0.6478)--(2.0294,0.6931)--(2.0708,0.7083)--(2.1985,0.7556)--(2.3676,0.8372)--(2.4713,0.8854)--(2.5368,0.9131)--(2.7059,0.9789)--(2.8750,1.0455)--(2.9286,1.0625)--(3.0441,1.0938)--(3.2132,1.1449)--(3.3824,1.2080)--(3.4567,1.2396)--(3.5515,1.2729)--(3.7206,1.3416)--(3.7365,1.3499);
+\draw[black!45,thin] (4.3505,1.9522)--(4.3971,2.0084)--(4.4931,2.1250)--(4.5662,2.1943)--(4.6816,2.3021)--(4.7353,2.3666)--(4.8267,2.4792)--(4.8785,2.6562)--(4.8820,2.8333)--(4.8630,3.0104)--(4.8339,3.1875)--(4.8042,3.3646)--(4.7723,3.5417)--(4.7353,3.5952)--(4.6212,3.7188)--(4.5662,3.7869)--(4.4826,3.8958)--(4.3971,4.0353)--(4.3771,4.0729)--(4.2855,4.2500)--(4.2465,4.4271)--(4.2279,4.5748)--(4.2242,4.6042)--(4.1011,4.7812)--(4.0588,4.8110)--(3.8897,4.9145)--(3.8078,4.9583)--(3.7206,5.0058)--(3.5515,5.0804)--(3.4007,5.1354)--(3.3824,5.1449)--(3.2132,5.2073)--(3.0441,5.2399)--(2.8750,5.2092)--(2.7059,5.1777)--(2.5368,5.1422);
+\draw[black!45,thin] (1.9648,0.0000)--(2.0294,0.0196)--(2.1985,0.0711)--(2.3676,0.1208)--(2.5368,0.1592)--(2.6346,0.1771)--(2.7059,0.1893)--(2.8750,0.2170)--(3.0441,0.2461)--(3.2132,0.2953)--(3.3824,0.3534)--(3.3842,0.3542)--(3.5515,0.4130)--(3.7206,0.4892)--(3.8009,0.5312)--(3.8897,0.5684)--(4.0588,0.6495)--(4.1614,0.7083)--(4.2279,0.7539)--(4.3827,0.8854)--(4.3971,0.8946)--(4.5662,1.0378)--(4.5893,1.0625)--(4.7353,1.2045)--(4.7645,1.2396)--(4.8625,1.4167)--(4.9044,1.4988)--(4.9514,1.5938)--(5.0119,1.7708)--(5.0723,1.9479)--(5.0735,1.9508)--(5.1490,2.1250)--(5.2426,2.2612)--(5.2667,2.3021)--(5.3799,2.4792)--(5.4118,2.5648)--(5.4465,2.6562)--(5.4597,2.8333)--(5.4443,3.0104)--(5.4170,3.1875)--(5.4118,3.2169)--(5.3822,3.3646)--(5.3449,3.5417)--(5.2426,3.7038)--(5.2320,3.7188)--(5.1174,3.8958)--(5.0735,3.9678)--(5.0104,4.0729)--(4.9123,4.2500)--(4.9044,4.2640)--(4.8215,4.4271)--(4.7667,4.6042)--(4.7353,4.7374)--(4.7256,4.7812)--(4.6350,4.9583)--(4.5662,5.0179)--(4.4219,5.1354)--(4.3971,5.1607)--(4.2370,5.3125)--(4.2279,5.3259)--(4.1056,5.4896)--(4.0588,5.5469)--(3.9408,5.6667)--(3.8897,5.7176)--(3.7396,5.8438)--(3.7206,5.8582)--(3.5515,5.9734)--(3.4752,6.0208)--(3.3824,6.0745)--(3.2132,6.1496)--(3.0441,6.1961)--(2.8750,6.1524)--(2.7059,6.1022)--(2.5368,6.0474)--(2.4602,6.0208)--(2.3676,5.9839)--(2.1985,5.9084)--(2.0739,5.8438)--(2.0294,5.8166)--(1.8603,5.6953)--(1.8277,5.6667)--(1.6912,5.5666)--(1.6030,5.4896)--(1.5221,5.4413)--(1.3529,5.3275)--(1.3370,5.3125)--(1.1838,5.1928)--(1.1217,5.1354)--(1.0147,5.0016)--(0.9833,4.9583)--(0.8722,4.7812)--(0.8456,4.7371)--(0.7654,4.6042)--(0.6765,4.4458)--(0.6651,4.4271)--(0.5680,4.2500)--(0.5074,4.1469)--(0.4537,4.0729)--(0.3382,3.9456)--(0.2792,3.8958)--(0.1691,3.8118)--(0.0273,3.7188)--(0.0000,3.6977);
+\draw[black!45,thin] (6.2873,0.0000)--(6.2667,0.1771)--(6.2574,0.2714)--(6.2498,0.3542)--(6.2356,0.5312)--(6.2236,0.7083)--(6.2133,0.8854)--(6.2043,1.0625)--(6.1964,1.2396)--(6.1895,1.4167)--(6.1832,1.5938)--(6.1777,1.7708)--(6.1728,1.8656);
+\draw[black!45,thin] (6.1379,2.7388)--(6.1352,2.8333)--(6.1305,3.0104)--(6.1260,3.1875)--(6.1217,3.3646)--(6.1177,3.5417)--(6.0882,3.6419)--(6.0654,3.7188)--(6.0096,3.8958)--(5.9490,4.0729)--(5.9191,4.1555)--(5.8845,4.2500)--(5.8157,4.4271)--(5.7500,4.5857)--(5.7423,4.6042)--(5.6668,4.7812)--(5.5832,4.9583)--(5.5809,4.9627)--(5.4873,5.1354)--(5.4118,5.2510)--(5.3661,5.3125)--(5.2810,5.4896)--(5.2426,5.5700)--(5.2012,5.6667)--(5.1278,5.8438)--(5.0735,5.9689)--(5.0509,6.0208)--(4.9674,6.1979)--(4.9044,6.3097)--(4.8670,6.3750)--(4.7492,6.5521)--(4.7353,6.5704)--(4.5662,6.7170)--(4.5524,6.7292)--(4.3971,6.8406)--(4.3003,6.9062)--(4.2279,6.9503)--(4.0588,7.0398)--(3.9656,7.0833)--(3.8897,7.1330)--(3.7206,7.2239)--(3.6445,7.2604)--(3.5515,7.3149)--(3.3824,7.3931)--(3.2685,7.4375)--(3.2132,7.4691)--(3.0441,7.5562)--(2.8750,7.5204)--(2.7059,7.4856)--(2.5368,7.4502)--(2.4795,7.4375)--(2.3676,7.4176)--(2.1985,7.3864)--(2.0294,7.3544)--(1.8603,7.3205)--(1.6912,7.2832)--(1.5967,7.2604)--(1.5221,7.2417)--(1.3529,7.1950)--(1.1838,7.1060)--(1.1427,7.0833)--(1.0147,7.0306)--(0.8456,6.9553)--(0.7417,6.9062)--(0.6765,6.8687)--(0.5074,6.7713)--(0.4343,6.7292)--(0.3382,6.6560)--(0.1966,6.5521)--(0.1691,6.5269)--(0.0000,6.3855);
+\draw[black!45,thin] (11.5000,4.1336)--(11.3309,4.1802)--(11.1618,4.2273)--(11.0811,4.2500)--(10.9926,4.2750)--(10.8235,4.3231)--(10.6544,4.3717)--(10.4853,4.4208)--(10.4639,4.4271)--(10.3162,4.4705)--(10.1471,4.5207)--(9.9779,4.5714)--(9.8698,4.6042)--(9.8088,4.6227)--(9.6397,4.6860)--(9.4706,4.7510)--(9.3933,4.7812)--(9.3015,4.8177)--(9.1324,4.8862)--(8.9632,4.9565)--(8.9588,4.9583)--(8.7941,5.0288)--(8.6250,5.1030)--(8.5527,5.1354)--(8.4559,5.1795)--(8.2868,5.2580)--(8.1723,5.3125)--(8.1176,5.3357)--(7.9748,5.4896)--(7.9485,5.5194)--(7.8248,5.6667)--(7.7794,5.7237)--(7.6882,5.8438)--(7.6103,5.9523)--(7.5632,6.0208)--(7.4485,6.1979)--(7.4412,6.2097)--(7.3428,6.3750)--(7.2721,6.5017)--(7.2450,6.5521)--(7.1545,6.7292)--(7.1029,6.8359)--(7.0702,6.9062)--(6.9917,7.0833)--(6.9338,7.2526)--(6.9311,7.2604)--(6.8675,7.4375)--(6.8007,7.6146)--(6.7647,7.7065)--(6.7305,7.7917)--(6.6566,7.9688)--(6.5956,8.1080)--(6.5786,8.1458)--(6.4963,8.3229)--(6.4265,8.4658)--(6.4131,8.5000);
+\draw[black!70,thin] (-0.2800,-0.0134)--(-0.1102,0.1850)--(-0.0356,0.6247)--(0.3375,0.6663)--(0.2285,0.1894)--(0.7292,0.8732)--(0.6646,0.1975)--(0.4216,-0.0354)--(0.2097,-0.4829)--(-0.0028,-0.6926)--(-0.4194,-0.2030)--(-0.2800,-0.0134);
+\draw[black!70,thin] (-0.4485,5.8260)--(-0.5586,5.5323)--(-0.3276,5.0246)--(-0.5058,4.4359)--(-0.9046,4.2011)--(-1.0113,3.6301)--(-0.8599,3.0659)--(-0.5013,2.9879)--(-0.2021,3.0717)--(0.6428,2.6790)--(0.5785,2.2934)--(0.7991,2.1232)--(0.7288,1.7968)--(0.2016,2.1445)--(-0.0483,2.5167)--(-0.2223,2.2566)--(-0.6530,2.6807)--(-1.2674,2.5760)--(-1.6042,2.7325)--(-1.5698,3.0253)--(-1.3585,3.2055)--(-1.5604,3.3693)--(-1.6478,3.1140)--(-1.9818,3.5210)--(-2.0829,3.8295)--(-2.1080,4.5076)--(-1.8356,4.2745)--(-1.7656,5.3827)--(-1.5451,6.0245)--(-1.1356,6.0237)--(-0.7187,5.8215)--(-0.5101,6.0059)--(-0.4485,5.8260);
+\draw[black!70,thin] (-0.6505,1.0029)--(-0.7552,1.3400)--(-0.3492,1.1207)--(0.0813,1.1218)--(0.0682,0.8259)--(-0.2451,0.5251)--(-0.6747,0.3124)--(-0.6985,0.6415)--(-0.6505,1.0029);
+\draw[black!70,thin] (1.6929,1.5319)--(1.8829,0.7410)--(1.3610,0.9289)--(1.3751,0.6912)--(1.5406,0.2541)--(1.2189,0.0954)--(1.1907,0.5936)--(0.9870,0.6304)--(0.8811,1.0592)--(1.2792,1.0027)--(1.2704,1.2709)--(0.8569,1.8117)--(1.5066,1.7961)--(1.6929,1.5319);
+\node[font=\tiny,fill=white,inner sep=.5pt,text=black!70] at (2.5368,3.0009) {960};
+\node[font=\tiny,fill=white,inner sep=.5pt,text=black!70] at (1.8603,3.1254) {968};
+\node[font=\tiny,fill=white,inner sep=.5pt,text=black!70] at (2.5368,3.8582) {976};
+\node[font=\tiny,fill=white,inner sep=.5pt,text=black!70] at (3.1362,2.4792) {984};
+\node[font=\tiny,fill=white,inner sep=.5pt,text=black!70] at (1.5221,3.7762) {992};
+\node[font=\tiny,fill=white,inner sep=.5pt,text=black!70] at (4.0998,1.5938) {1000};
+\node[font=\tiny,fill=white,inner sep=.5pt,text=black!70] at (6.1526,2.3021) {1008};
+\draw[ink,dashed,thick] (10.1471,0.9917)--(9.2000,1.2042)--(8.3882,1.4167)--(7.4412,1.5583)--(6.1559,1.7708)--(5.0735,2.0542)--(3.5176,2.3375)--(2.3676,2.6208)--(1.2176,2.9750);
+\fill[ink] (1.2176,2.9750) circle (2pt);
+\draw[routepink,solid,thick] (10.1471,0.9917)--(9.6537,1.3534)--(8.9229,1.6990)--(8.0238,2.0357)--(6.9642,2.2886)--(5.8480,2.5346)--(4.6750,2.7937)--(3.5373,2.9962)--(2.3807,3.2328);
+\fill[routepink] (2.3807,3.2328) circle (2pt);
+\end{scope}
+\draw[ink,dashed,thick] (0.250,-1.23)--(0.800,-1.23);
+\node[anchor=west] at (0.900,-1.23) {Observed route to +48 h};
+\draw[routepink,solid,thick] (6.000,-1.23)--(6.550,-1.23);
+\node[anchor=west] at (6.650,-1.23) {Forecast route to +48 h};
+\end{tikzpicture}
+\caption{Unmodified saved physical ensemble-mean regional MSLP at +48 h
+(9 November 2025, 00 UTC), contoured every 4 hPa and labelled every 8 hPa.
+The source grid is sampled at $0.25^\circ$; this is not a claim of native
+resolution. Lines overlay the observed and forecast paths only through this
+valid time. The figure uses the portion inside the fixed regional patch;
+its western edge is $123^\circ$E. The map has not been shifted to match the
+observed centre, and its minimum need not equal member-mean central pressure.}
+\label{fig:pressuremap}
+\end{figure}
+
+\clearpage
+\subsection{Pressure and coverage limitations}
+Observed pressure is JMA best track as stored in IBTrACS \texttt{TOKYO\_PRES},
+not a JMA forecast. Native-detail input history was unavailable for this issue;
+the regional pressure field is a learned basin-plus-core reconstruction
+sampled every $0.25^\circ$, not a native-resolution forecast. Coverage masks
+and fixed regional boundaries must be retained. From +66 h the forecast
+centre leaves the fixed regional patch; the video then shows only the saved
+coarse basin field at that location. The moving-core readout still supplies
+central pressure; no detailed map core is invented outside coverage.
+The mean route and mean
+central pressure need not be the minimum of the common-grid mean field.
+
+No verified same-270 1.1 pressure-prediction array is available in the route
+artifacts, so a pressure-comparison bar is not invented. On the separate,
+repeatedly inspected TIP ten-start diagnostic, central-pressure MAE is worse
+for 1.2 (30.7 versus 20.1 hPa). Overlapping issues of one storm are not ten
+independent tests. The route improvement cannot be read as an all-metric win.
+
+\section{Reproducibility and limitations}
+The figures above embed numeric values from the published saved artifacts,
+so this source compiles without external images. Model code, checkpoint
+provenance, plot data, selection rules and reproduction utilities are available
+in the release repository\footnote{\url{https://github.com/yu314-coder/typhoon-predict}}.
+The 270-case scores are in \path{evaluation/trackformer_1_2_vs_1_1_270_metrics.json};
+Fung-wong coordinates, pressure, source hashes and member policy are in
+\path{evaluation/release_data/fung_wong_video.npz} and its JSON manifest.
+The \href{https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_fung_wong.mp4}{Fung-wong MP4}
+is an illustration of saved predictions, not a new inference experiment.
+
+A separate expanded protocol freezes 1,473 daily issues from 270 distinct
+storms: average leads within each issue, issues within each storm, then storms
+equally. It is not the completed 270-case comparison reported here; its
+partial results are not used in these figures. Stronger generalization claims
+require a genuinely unused whole-storm holdout, fitting-only preprocessing,
+matched data availability and lead masks, and uncertainty estimates based on
+resampling whole storms rather than overlapping issues.
+
+\section{Conclusion}
+Trackformer 1.2 couples recurrent environmental evolution with a translating
+pressure anomaly and pressure-associated readout. Development results improve
+aggregate route measures relative to the archived 1.1 pipeline, while leaving
+large absolute errors, short-lead regressions and intensity failures. The
+architecture is a research model, not a substitute for official warnings;
+selected visually aligned routes do not establish operational reliability.
 \end{document}
