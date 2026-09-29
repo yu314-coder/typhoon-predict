@@ -56,6 +56,14 @@ The 1.2 mean has better aggregate direction, shape and position scores on this p
 
 A new **1,473-case / 270-storm** benchmark is in progress; it is not the completed 270-case result above. Each storm contributes at most one forecast per UTC day, through +120 h. Daily errors are averaged within each storm, then the 270 storm scores receive equal weight. Selection was frozen before new inference, without filtering on forecast quality. See the [protocol](docs/daily_storm_benchmark.md) and [frozen cohort](paper/release_data/daily_storm_cohort.json). Results are pending; no improvement is claimed from the partial run.
 
+## Bavi pressure forecast — MP4
+
+[![Play the Trackformer 1.2 Bavi pressure forecast MP4](paper/trackformer_1_2_bavi_video_poster.png)](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_bavi.mp4)
+
+**[Play or download the Bavi MP4](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_bavi.mp4)** · 23 seconds · +6 to +120 h · **50-member mean**. This is a video, not an interactive map. Click the preview above to play it; inline video playback depends on the Markdown host.
+
+The forecast starts **3 July 2026 at 06 UTC**. It shows actual saved model-generated pressure with 4 hPa isobars, the mean forecast track, the observed route, and a central-pressure timeline. Observed pressure is the local IBTrACS **USA** series, not JMA. The dotted map boundary marks the fixed regional reconstruction: after the centre leaves it, only the coarser basin field is available at that location. No detailed pressure core is invented outside coverage. This requested Bavi example is not evidence of typical skill. [Data, source hashes and video provenance](paper/release_data/bavi_video.json).
+
 ## Interactive forecast pressure and observed route
 
 **[Open the interactive 1.2 pressure map](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_pressure.html)** — play or scrub from +6 to +120 h, toggle forecast/observed routes, and hover or tap to inspect pressure and position. Click the preview below to open it. GitHub and Hugging Face Markdown cannot execute the interactive controls inside the README itself.

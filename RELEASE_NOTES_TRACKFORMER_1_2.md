@@ -10,6 +10,8 @@ The route gallery now shows six explicitly selected best-performing examples fro
 
 The README preview now links to an interactive PRAPIROON pressure/route showcase with playback, lead selection, hover details and observed-track overlays. It uses actual saved 50-member mean pressure fields and a disclosed selected-best rule. The main paper has been replaced with an architecture-only Trackformer 1.2 description; the 1.1 source is preserved separately.
 
+A separate Bavi MP4 now shows the saved 50-member mean pressure and forecast route against observations through +120 h. The clickable README poster opens the video directly. Regional coverage, the coarse-field fallback and the observed pressure source are explicitly labelled; the paper is unchanged.
+
 The Surigae illustration is a single forecast issued 2026-09-27 12 UTC, with 4 hPa isobars at +6/+24/+36 h. It is separate from the 50-member historical benchmark. Reproduction data and metric definitions are included. The model weights are unchanged in this documentation revision.
 
 This is not an operational warning service. Do not use for safety-critical decisions. A genuinely untouched storm-level holdout is still required before generalization claims.
