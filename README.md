@@ -76,11 +76,25 @@ Mean track error is **41.0% lower** for 1.2 on this cohort. Direction, shape and
 
 **[Play or download the Fung-wong MP4](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_fung_wong.mp4)** · 23 seconds · +6 to +120 h · **50-member mean**. Click the preview above to play it; inline video playback depends on the Markdown host.
 
-The forecast starts **7 November 2025 at 00 UTC**. Actual saved model-generated pressure with **4 hPa isobars** is shown alongside the mean forecast route and observed best track, at matching valid times and on the same geographic map. Neither route nor field is shifted or rescaled to improve alignment. The central-pressure timeline compares the forecast to **JMA best-track pressure from IBTrACS TOKYO_PRES**, not a JMA forecast.
+The forecast starts **7 November 2025 at 00 UTC**. The updated MP4 uses **blue for low pressure and red for high pressure**, with the unnecessary map grid and faint future-path overlays removed. Actual saved model-generated pressure with **4 hPa isobars** is shown alongside the mean forecast route and observed best track, at matching valid times and on the same geographic map. Neither route nor field is shifted or rescaled to improve alignment. The central-pressure timeline compares the forecast to **JMA best-track pressure from IBTrACS TOKYO_PRES**, not a JMA forecast.
 
 This is the user-selected **Fung-wong route-and-pressure example**, not a claim of typical or untouched-test performance. The curves follow a similar broad path but do not perfectly overlap; timing and position differences remain. Central-pressure MAE is **7.36 hPa** across 20 valid labels, with an imperfect intensification and weakening cycle. For context, mean geographic position error is 130.9 km and +120 h error is 142.3 km; those distances alone do not establish route overlap. These scores use exact observed coordinates and great-circle distances, separately from the saved local-coordinate benchmark scores above.
 
 Native-detail input history was unavailable; the regional pressure reconstruction uses 0.25° output sampling, not native resolution. **From +66 h the forecast centre is outside the fixed regional patch**, so only the saved coarse basin field is displayed there. The video labels this coverage limit; it does not invent an extended detailed core. Member-mean central pressure still comes from each model member's moving-core readout, not the minimum of the displayed mean map. [Data, source hashes and video provenance](evaluation/release_data/fung_wong_video.json).
+
+## More historical pressure forecasts — MP4
+
+Each film shows a **Western Pacific pressure overview**, a larger **unshifted forecast-versus-observed route close-up**, and a central-pressure comparison with JMA best track. All three were freshly forecast on the Mac GPU using the frozen **Trackformer 1.2** release and **50 distinct seeded input perturbations**. The displayed physical pressure fields, routes and central pressures are separately averaged over all 50 members. Each 23-second MP4 contains 20 genuine six-hour forecast states through **+120 h**, with blue lows, red highs and 4 hPa isobars; no interpolated forecast states.
+
+| Soudelor (2015) | Mangkhut (2018) | Meranti (2016) |
+| --- | --- | --- |
+| [![Soudelor forecast video](evaluation/trackformer_1_2_soudelor_video_poster.png)](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_soudelor.mp4) | [![Mangkhut forecast video](evaluation/trackformer_1_2_mangkhut_video_poster.png)](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_mangkhut.mp4) | [![Meranti forecast video](evaluation/trackformer_1_2_meranti_video_poster.png)](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_meranti.mp4) |
+| Issue: **5 Aug 2015, 00 UTC** | Issue: **11 Sep 2018, 00 UTC** | Issue: **10 Sep 2016, 00 UTC** |
+| [Play / download MP4](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_soudelor.mp4) · [Provenance](evaluation/release_data/soudelor_video.json) | [Play / download MP4](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_mangkhut.mp4) · [Provenance](evaluation/release_data/mangkhut_video.json) | [Play / download MP4](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_meranti.mp4) · [Provenance](evaluation/release_data/meranti_video.json) |
+
+**These are calendar-selected historical development examples, not untouched tests or representative skill claims.** Their dates were fixed before inference, without choosing the lowest-error starts, but may overlap the checkpoint's fitting/validation years. Inputs are nine exact six-hour retrospective NCEP analyses through issue time, current intensity and past motion. Future observations are comparison labels only. Native-detail history is not supplied to these runs and remains masked; the regional reconstruction has 0.25° sampling, while outside that fixed patch only the 2.5° basin field is shown. Meranti's issue-time wind was missing and remains masked, not filled from future data. No wind-radii forecast is implied.
+
+[50-member mean and MP4 audit](evaluation/release_data/historical_video50_verification.json) · [Mac GPU forecast preparation](release_tools/forecast_historical_video50_mac.py) · [Video renderer](release_tools/build_fung_wong_video.py)
 
 ### Illustrated technical paper
 

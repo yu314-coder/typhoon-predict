@@ -1,6 +1,6 @@
-"""Render the selected saved Fung-wong 50-member forecast, without model inference.
+"""Render genuine saved Trackformer 1.2 50-member videos, without model inference.
 
-Requires NumPy, Matplotlib and ffmpeg; --source-root prepares the public subset.
+Requires NumPy, Matplotlib and ffmpeg; --source-root prepares the Fung-wong subset.
 Never shift the model field or route to improve alignment with observations.
 """
 import argparse
@@ -101,70 +101,109 @@ def prepare(root):
     print(json.dumps(meta['metrics'], indent=2), flush=True)
 
 
-def build(work):
+def build(work, stem='fung_wong', data=DATA):
     work.mkdir(parents=True, exist_ok=True)
-    meta = json.loads((DATA/'fung_wong_video.json').read_text())
-    assert sha(DATA/'fung_wong_video.npz') == meta['data_sha256']
-    with np.load(DATA/'fung_wong_video.npz', allow_pickle=False) as z:
+    meta = json.loads((data/f'{stem}_video.json').read_text())
+    assert meta['model'] == 'Trackformer 1.2' and meta['members'] == 50
+    assert meta['checkpoint_sha256'] == CHECKPOINT
+    assert sha(data/f'{stem}_video.npz') == meta['data_sha256']
+    with np.load(data/f'{stem}_video.npz', allow_pickle=False) as z:
         a = {k: z[k] for k in z.files}
-    rings = json.loads((DATA/'fung_wong_coastlines.json').read_text())
+    rings = json.loads((data/f'{stem}_coastlines.json').read_text())
     f, o, lat, lon = (a[k] for k in ('forecast_lat_lon', 'observed_lat_lon', 'latitude', 'longitude'))
-    bounds = [115, 141, 8, 25]
-    levels, contours = np.arange(936, 1017, 2), np.arange(936, 1017, 4)
+    if f.shape != (21, 2) or a['regional_pressure_hpa'].shape != (20, 121, 121) or a['basin_pressure_hpa'].shape != (20, 25, 33):
+        raise ValueError('Video requires exact +6 through +120-hour fields and route')
+    bounds = meta.get('display_bounds', [115, 141, 8, 25])
+    vmin, vmax = 936, 1016
+    if stem != 'fung_wong':
+        field_min = min(a['basin_pressure_hpa'].min(), a['regional_pressure_hpa'].min())
+        field_max = max(a['basin_pressure_hpa'].max(), a['regional_pressure_hpa'].max())
+        vmin, vmax = min(1008, 4*np.floor(field_min/4)), max(1020, 4*np.ceil(field_max/4))
+    levels, contours = np.arange(vmin, vmax+1, 2), np.arange(vmin, vmax+1, 4)
     # Conventional diverging pressure colors: lows blue, highs red. The
     # numeric colorbar remains explicit; this changes rendering, never fields.
-    pressure_norm = TwoSlopeNorm(vmin=936, vcenter=1013.25, vmax=1016)
+    pressure_norm = TwoSlopeNorm(vmin=vmin, vcenter=1013.25, vmax=vmax)
+    regional = np.ma.masked_where(np.broadcast_to(~a.get('regional_valid_mask', np.ones((121, 121), dtype=bool)), (20, 121, 121)), a['regional_pressure_hpa'])
     glat, glon, leads = np.linspace(60, 0, 25), np.linspace(100, 180, 33), np.arange(6, 121, 6)
     start = datetime.fromisoformat(meta['issue_time_utc'].replace('Z', '+00:00'))
+    overview_layout = stem != 'fung_wong'
+    if overview_layout:
+        # One fixed geographic close-up for the entire film, including both
+        # unshifted paths. Its crop affects display only, never model inference.
+        points = np.concatenate([f, o])
+        points = points[np.isfinite(points).all(axis=1)]
+        closeup = [max(100, np.floor(points[:, 1].min()-3)), min(180, np.ceil(points[:, 1].max()+3)),
+                   max(0, np.floor(points[:, 0].min()-3)), min(60, np.ceil(points[:, 0].max()+3))]
+        meta['video_layout'] = {'overview_bounds': bounds, 'closeup_bounds': [float(v) for v in closeup],
+            'pressure_colors': 'Blue below 1013.25 hPa; red above. Fixed range throughout each film.',
+            'map_graticule': False, 'geographic_route_adjustment': False}
     plt.rcParams.update({'font.size': 12, 'axes.titlesize': 15})
     for k, lead in enumerate(leads):
         fig = plt.figure(figsize=(16, 10), dpi=100, facecolor='#f8fafb')
-        gs = fig.add_gridspec(2, 2, width_ratios=[3.9, 1.25], height_ratios=[4.5, 1.4],
-            left=.055, right=.93, bottom=.155, top=.85, wspace=.25, hspace=.38)
-        ax = fig.add_subplot(gs[0, :])
-        ax.contourf(glon, glat, a['basin_pressure_hpa'][k], levels=levels, cmap='RdYlBu_r', norm=pressure_norm, extend='both')
-        ax.contour(glon, glat, a['basin_pressure_hpa'][k], levels=contours, colors='#546971', linewidths=.45)
-        im = ax.contourf(lon, lat, a['regional_pressure_hpa'][k], levels=levels, cmap='RdYlBu_r', norm=pressure_norm, extend='both')
-        cs = ax.contour(lon, lat, a['regional_pressure_hpa'][k], levels=contours, colors='#354b58', linewidths=.65)
-        ax.clabel(cs, levels=contours[::2], fmt='%d', fontsize=9)
-        for ring in rings:
-            xy = np.asarray(ring); ax.plot(xy[:, 0], xy[:, 1], c='#66716b', lw=.8)
-        for points, color, label, style in [(o, '#182f42', 'Observed best track', '--'), (f, '#b31565', 'Trackformer 1.2 mean of 50', '-')]:
-            ax.plot(points[:k+2, 1], points[:k+2, 0], ls=style, c=color, lw=2.8, label=label)
-            ax.scatter(points[k+1, 1], points[k+1, 0], s=75, c=color, edgecolors='white', linewidths=1.8, zorder=6)
-        ax.set(xlim=bounds[:2], ylim=bounds[2:], xlabel='Longitude °E', ylabel='Latitude °N')
-        ax.set_aspect(1/np.cos(np.deg2rad(16.5))); ax.grid(False)
+        if overview_layout:
+            gs = fig.add_gridspec(2, 3, width_ratios=[2.6, 4.6, 1.4], height_ratios=[4.5, 1.4],
+                left=.065, right=.91, bottom=.16, top=.83, wspace=.34, hspace=.40)
+            small = fig.add_subplot(gs[0, 0])
+            ax = fig.add_subplot(gs[0, 1:])
+            maps = [(small, bounds, True), (ax, closeup, False)]
+        else:
+            gs = fig.add_gridspec(2, 2, width_ratios=[3.9, 1.25], height_ratios=[4.5, 1.4],
+                left=.055, right=.93, bottom=.155, top=.85, wspace=.25, hspace=.38)
+            ax = fig.add_subplot(gs[0, :])
+            maps = [(ax, bounds, False)]
+        for axis, extent, is_small in maps:
+            axis.contourf(glon, glat, a['basin_pressure_hpa'][k], levels=levels, cmap='RdYlBu_r', norm=pressure_norm, extend='both')
+            axis.contour(glon, glat, a['basin_pressure_hpa'][k], levels=contours, colors='#546971', linewidths=.4)
+            im = axis.contourf(lon, lat, regional[k], levels=levels, cmap='RdYlBu_r', norm=pressure_norm, extend='both')
+            cs = axis.contour(lon, lat, regional[k], levels=contours, colors='#354b58', linewidths=.6)
+            if not is_small:
+                axis.clabel(cs, levels=contours[::2], fmt='%d', fontsize=9)
+            for ring in rings:
+                xy = np.asarray(ring); axis.plot(xy[:, 0], xy[:, 1], c='#66716b', lw=.65 if is_small else .8)
+            for path, color, label, style in [(o, '#182f42', 'Observed best track', '--'), (f, '#b31565', 'Trackformer 1.2 mean of 50', '-')]:
+                axis.plot(path[:k+2, 1], path[:k+2, 0], ls=style, c=color, lw=1.8 if is_small else 2.8, label=label)
+                axis.scatter(path[k+1, 1], path[k+1, 0], s=28 if is_small else 75, c=color, edgecolors='white', linewidths=1.2, zorder=6)
+            axis.set(xlim=extent[:2], ylim=extent[2:], xlabel='Longitude °E', ylabel='Latitude °N')
+            axis.set_aspect(1/np.cos(np.deg2rad((extent[2]+extent[3])/2))); axis.grid(False)
+            if overview_layout:
+                axis.set_title('Western Pacific overview' if is_small else 'Route and model-pressure close-up', loc='left', pad=12)
+            if is_small:
+                axis.tick_params(labelsize=9)
+                axis.set_xticks([100, 140, 180])
+                axis.text(0, -.24, 'Same 50-member pressure mean\nBasin + fixed regional reconstruction\nNo decorative grid / no route shift',
+                    transform=axis.transAxes, fontsize=10, color='#47636d', va='top')
         ax.legend(loc='lower left', fontsize=11, framealpha=.95)
         ax.text(.985, .035, 'Same map / same valid time\nNo route shifting or rescaling', transform=ax.transAxes,
             ha='right', va='bottom', fontsize=10, bbox={'facecolor': 'white', 'alpha': .9, 'edgecolor': 'none', 'pad': 5})
-        fig.colorbar(im, cax=fig.add_axes([.952, .40, .014, .40]), label='Model mean sea-level pressure (hPa)')
-        curve = fig.add_subplot(gs[1, 0])
+        bar = fig.colorbar(im, cax=fig.add_axes([.943 if overview_layout else .952, .40, .011, .40]), label='Model mean MSLP (hPa)')
+        bar.ax.yaxis.set_label_position('left')
+        curve = fig.add_subplot(gs[1, :2] if overview_layout else gs[1, 0])
         curve.plot(leads, a['central_pressure_hpa'], c='#b31565', lw=2, label='Model')
         curve.plot(leads, a['observed_pressure_hpa'], '--', c='#182f42', lw=2, label='Observed (JMA best track)')
         curve.axvline(lead, c='#688e98', lw=1.5)
         curve.scatter([lead], [a['central_pressure_hpa'][k]], c='#b31565', s=40, zorder=4)
         curve.set(xlim=(6, 120), xlabel='Forecast lead (hours)', ylabel='Central pressure (hPa)', xticks=[6, 24, 48, 72, 96, 120])
         curve.grid(alpha=.2); curve.legend(loc='lower left', fontsize=10)
-        info = fig.add_subplot(gs[1, 1]); info.axis('off')
+        info = fig.add_subplot(gs[1, 2] if overview_layout else gs[1, 1]); info.axis('off')
         inside = lon.min() <= f[k+1, 1] <= lon.max() and lat.min() <= f[k+1, 0] <= lat.max()
         coverage = 'Centre within regional field' if inside else 'Centre outside regional field\nCoarse pressure only here'
         info.text(0, 1, f"Position error: {a['track_error_km'][k]:.0f} km\nModel: {a['central_pressure_hpa'][k]:.1f} hPa\nObserved: {a['observed_pressure_hpa'][k]:.0f} hPa\n\n{coverage}", va='top', fontsize=12, color='#244754')
         valid = start+timedelta(hours=int(lead))
-        fig.suptitle(f'Trackformer 1.2  /  FUNG-WONG  /  +{lead:03d} h', x=.055, y=.97, ha='left', fontsize=24, fontweight='bold', color='#173947')
+        fig.suptitle(f"Trackformer 1.2  /  {meta['storm']}  /  +{lead:03d} h", x=.055, y=.97, ha='left', fontsize=24, fontweight='bold', color='#173947')
         fig.text(.055, .918, f'Issue: {start:%d %b %Y %H:%M} UTC     |     Valid: {valid:%d %b %Y %H:%M} UTC     |     50-member mean', fontsize=14, color='#385865')
         fig.text(.055, .067, 'Actual model pressure with 4 hPa isobars. Observations are verification only; selected example, not typical skill.', fontsize=11, color='#47636d')
         fig.text(.055, .040, 'Regional reconstruction has no native-detail history. Outside its coverage: saved coarse basin field only.', fontsize=10, color='#47636d')
         fig.text(.93, .91, 'Blue: low (L)  /  Red: high (H)', ha='right', fontsize=12, color='#385865')
         fig.savefig(work/f'frame_{k:03d}.png', dpi=100)
-        if k == 9: fig.savefig(REPO/'evaluation/trackformer_1_2_fung_wong_video_poster.png', dpi=100)
+        if k == 9: fig.savefig(REPO/f'evaluation/trackformer_1_2_{stem}_video_poster.png', dpi=100)
         plt.close(fig)
-    output = REPO/'docs/trackformer_1_2_fung_wong.mp4'
+    output = REPO/f'docs/trackformer_1_2_{stem}.mp4'
     subprocess.run(['ffmpeg', '-y', '-hide_banner', '-loglevel', 'warning', '-framerate', '1', '-i', str(work/'frame_%03d.png'),
         '-vf', 'fps=30,tpad=stop_mode=clone:stop_duration=3', '-c:v', 'h264_videotoolbox', '-b:v', '4M', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-an', str(output)], check=True)
-    meta['video'] = {'file': 'docs/trackformer_1_2_fung_wong.mp4', 'duration_seconds': 23, 'forecast_states': 20,
+    meta['video'] = {'file': f'docs/trackformer_1_2_{stem}.mp4', 'duration_seconds': 23, 'forecast_states': 20,
         'codec': 'H.264', 'encoder': 'h264_videotoolbox', 'sha256': sha(output),
         'playback': 'Each six-hour state held for 1 second; final frame held 3 seconds extra. No interpolated forecast states.'}
-    (DATA/'fung_wong_video.json').write_text(json.dumps(meta, indent=2)+'\n')
+    (data/f'{stem}_video.json').write_text(json.dumps(meta, indent=2)+'\n')
     print('Saved', output, output.stat().st_size, 'bytes', flush=True)
 
 
@@ -172,6 +211,11 @@ if __name__ == '__main__':
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--source-root', type=Path)
     p.add_argument('--work', type=Path, required=True)
+    p.add_argument('--stem', choices=['fung_wong', 'soudelor', 'mangkhut', 'meranti'], default='fung_wong')
+    p.add_argument('--data', type=Path, default=DATA)
     args = p.parse_args()
-    if args.source_root: prepare(args.source_root)
-    build(args.work)
+    if args.source_root:
+        if args.stem != 'fung_wong' or args.data != DATA:
+            p.error('--source-root prepares only the original saved Fung-wong dataset')
+        prepare(args.source_root)
+    build(args.work, args.stem, args.data)
