@@ -136,7 +136,7 @@
     "forecast_states": 20,
     "codec": "H.264",
     "encoder": "h264_videotoolbox",
-    "sha256": "df5b04c0bdff6a0f126a3328dafd6fb7f986788e2622d4ea9667084db5c075b5",
+    "sha256": "472f1752c812aa474fa581ef575b35816fe363dc41dc0621c6ec0d83bc99517b",
     "playback": "Each six-hour state held for 1 second; final frame held 3 seconds extra. No interpolated forecast states."
   }
 }

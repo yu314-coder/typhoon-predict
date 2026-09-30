@@ -15,7 +15,7 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
+from matplotlib.colors import TwoSlopeNorm
 
 REPO = Path(__file__).resolve().parents[1]
 DATA = REPO / 'evaluation/release_data'
@@ -111,6 +111,9 @@ def build(work):
     f, o, lat, lon = (a[k] for k in ('forecast_lat_lon', 'observed_lat_lon', 'latitude', 'longitude'))
     bounds = [115, 141, 8, 25]
     levels, contours = np.arange(936, 1017, 2), np.arange(936, 1017, 4)
+    # Conventional diverging pressure colors: lows blue, highs red. The
+    # numeric colorbar remains explicit; this changes rendering, never fields.
+    pressure_norm = TwoSlopeNorm(vmin=936, vcenter=1013.25, vmax=1016)
     glat, glon, leads = np.linspace(60, 0, 25), np.linspace(100, 180, 33), np.arange(6, 121, 6)
     start = datetime.fromisoformat(meta['issue_time_utc'].replace('Z', '+00:00'))
     plt.rcParams.update({'font.size': 12, 'axes.titlesize': 15})
@@ -119,21 +122,18 @@ def build(work):
         gs = fig.add_gridspec(2, 2, width_ratios=[3.9, 1.25], height_ratios=[4.5, 1.4],
             left=.055, right=.93, bottom=.155, top=.85, wspace=.25, hspace=.38)
         ax = fig.add_subplot(gs[0, :])
-        ax.contourf(glon, glat, a['basin_pressure_hpa'][k], levels=levels, cmap='RdYlBu_r', extend='both')
+        ax.contourf(glon, glat, a['basin_pressure_hpa'][k], levels=levels, cmap='RdYlBu_r', norm=pressure_norm, extend='both')
         ax.contour(glon, glat, a['basin_pressure_hpa'][k], levels=contours, colors='#546971', linewidths=.45)
-        im = ax.contourf(lon, lat, a['regional_pressure_hpa'][k], levels=levels, cmap='RdYlBu_r', extend='both')
+        im = ax.contourf(lon, lat, a['regional_pressure_hpa'][k], levels=levels, cmap='RdYlBu_r', norm=pressure_norm, extend='both')
         cs = ax.contour(lon, lat, a['regional_pressure_hpa'][k], levels=contours, colors='#354b58', linewidths=.65)
         ax.clabel(cs, levels=contours[::2], fmt='%d', fontsize=9)
         for ring in rings:
             xy = np.asarray(ring); ax.plot(xy[:, 0], xy[:, 1], c='#66716b', lw=.8)
-        ax.add_patch(Rectangle((lon.min(), lat.min()), np.ptp(lon), np.ptp(lat), fill=False, edgecolor='#265b61', lw=1.2, ls=':'))
         for points, color, label, style in [(o, '#182f42', 'Observed best track', '--'), (f, '#b31565', 'Trackformer 1.2 mean of 50', '-')]:
-            ax.plot(points[:, 1], points[:, 0], ls=style, c=color, alpha=.2, lw=1.6)
             ax.plot(points[:k+2, 1], points[:k+2, 0], ls=style, c=color, lw=2.8, label=label)
             ax.scatter(points[k+1, 1], points[k+1, 0], s=75, c=color, edgecolors='white', linewidths=1.8, zorder=6)
-        ax.plot([f[k+1, 1], o[k+1, 1]], [f[k+1, 0], o[k+1, 0]], ':', c='#7a5a85', lw=1.4)
         ax.set(xlim=bounds[:2], ylim=bounds[2:], xlabel='Longitude °E', ylabel='Latitude °N')
-        ax.set_aspect(1/np.cos(np.deg2rad(16.5))); ax.grid(alpha=.13)
+        ax.set_aspect(1/np.cos(np.deg2rad(16.5))); ax.grid(False)
         ax.legend(loc='lower left', fontsize=11, framealpha=.95)
         ax.text(.985, .035, 'Same map / same valid time\nNo route shifting or rescaling', transform=ax.transAxes,
             ha='right', va='bottom', fontsize=10, bbox={'facecolor': 'white', 'alpha': .9, 'edgecolor': 'none', 'pad': 5})
@@ -153,7 +153,8 @@ def build(work):
         fig.suptitle(f'Trackformer 1.2  /  FUNG-WONG  /  +{lead:03d} h', x=.055, y=.97, ha='left', fontsize=24, fontweight='bold', color='#173947')
         fig.text(.055, .918, f'Issue: {start:%d %b %Y %H:%M} UTC     |     Valid: {valid:%d %b %Y %H:%M} UTC     |     50-member mean', fontsize=14, color='#385865')
         fig.text(.055, .067, 'Actual model pressure with 4 hPa isobars. Observations are verification only; selected example, not typical skill.', fontsize=11, color='#47636d')
-        fig.text(.055, .040, 'Dotted boundary: fixed regional reconstruction (no native-detail history). Outside: coarse basin field only.', fontsize=10, color='#47636d')
+        fig.text(.055, .040, 'Regional reconstruction has no native-detail history. Outside its coverage: saved coarse basin field only.', fontsize=10, color='#47636d')
+        fig.text(.93, .91, 'Blue: low (L)  /  Red: high (H)', ha='right', fontsize=12, color='#385865')
         fig.savefig(work/f'frame_{k:03d}.png', dpi=100)
         if k == 9: fig.savefig(REPO/'evaluation/trackformer_1_2_fung_wong_video_poster.png', dpi=100)
         plt.close(fig)

@@ -15,6 +15,7 @@ import torch
 from scipy.interpolate import RegularGridInterpolator
 from backfill_queue import queue_state, retry_is_cooling
 from gfs_archive import download_analysis
+from ensemble_forecast import analysis_motion, run_ensemble, mean_outputs
 
 ROOT=Path(__file__).resolve().parents[1]
 MODEL=ROOT/'models/trackformer_1_2_field'
@@ -184,7 +185,9 @@ def live_rows():
         if not sid.startswith('TC') or not sid[2:].isdigit():continue
         parts=get(f'{root}/{sid}/specifications.json').json()
         row=jma_analysis_row(sid,parts,datetime.now(timezone.utc))
-        if row is not None:rows.append(row)
+        if row is not None:
+            row['ensemble_motion'],row['ensemble_motion_source']=analysis_motion(parts)
+            rows.append(row)
     return rows
 
 def infer(model,contract,geo,weather,times,row,out,kind,source,provenance=None):
@@ -217,6 +220,54 @@ def infer(model,contract,geo,weather,times,row,out,kind,source,provenance=None):
     print(json.dumps({'complete':ident,'forecast_points':len(route),'fields':len(fields)}),flush=True)
     return doc
 
+def infer_live50(model,contract,geo,weather,times,row,out,source,provenance=None):
+    """Append a distinct 50-member live issue; never overwrite the old one-member archive."""
+    ident=row['id'].replace('auto-live-','auto-live50-',1)
+    destination=out/'live50'
+    if (destination/'forecasts'/f'{ident}.json').exists():
+        return
+    initial=dict(row,motion=row.get('ensemble_motion',row.get('motion',[0.,0.])))
+    x=inputs(weather,times,initial,contract,geo)
+    output,policy=run_ensemble(model,x,contract,'cpu',chunk=2,
+        progress=lambda done,total,elapsed:print(json.dumps({'live50_members':done,'total':total,'elapsed_seconds':elapsed}),flush=True))
+    means=mean_outputs(output)
+    route=[{'lat':row['lat'],'lon':row['lon'],'pressure_hpa':row.get('pressure_hpa'),
+            'valid_time_utc':row['issue_time_utc'],'lead_hours':0}]
+    valid=[]
+    for i in range(20):
+        stamp=utc(parse(row['issue_time_utc'])+timedelta(hours=(i+1)*6));valid.append(stamp)
+        center=means['center'][i]
+        route.append({'lat':float(center[0]),'lon':float(center[1]),'pressure_hpa':float(means['pressure'][i]),
+                      'valid_time_utc':stamp,'lead_hours':(i+1)*6,'valid_member_count':int(output['track_valid'][:,i].sum())})
+    note=source+' Equal-weight mean of 50 distinct seeded input-perturbed forecasts, not latent samples or deterministic duplicates. Actual common-grid model basin pressure; native detail unavailable and masked. No future weather or official forecast route is an input. Experimental transfer; research only.'
+    doc={'schema_version':'1.0','id':ident,'model':'Trackformer 1.2','checkpoint_sha256':CHECKPOINT,
+         'storm_id':row['storm_id'],'name':row['name'],'season':row['season'],'issue_time_utc':row['issue_time_utc'],
+         'members':50,'kind':'live-GFS-transfer-ensemble50','route':route,'ensemble_policy':policy,
+         'source_note':note,'pressure_note':'Member-mean central pressure is read from each moving core; it is not the minimum of the mean basin field.',
+         'input_history_times_utc':[str(np.datetime64(int(t),'ns').astype('datetime64[s]'))+'Z' for t in times],
+         'input_tensor_sha256':digest(b''.join(x[k].numpy().tobytes() for k in sorted(x))),
+         'input_weather_source':provenance,'issue_analysis_source':row.get('jma_analysis'),
+         'motion_input':row.get('ensemble_motion_source'), 'generated_at_utc':utc(datetime.now(timezone.utc)),
+         'run_url':os.environ.get('RUN_URL')}
+    field={'model':'Trackformer 1.2','forecast_id':ident,'members':50,'checkpoint_sha256':CHECKPOINT,
+           'latitude':contract['global_lat'],'longitude':contract['global_lon'],'valid_times_utc':valid,
+           'units':'hPa','rounding_hpa':.01,'grid':'2.5 degree model basin; 50-member physical mean',
+           'note':note,'pressure_hpa':np.round(means['basin'],2).tolist()}
+    folder=destination/'fields';folder.mkdir(parents=True,exist_ok=True)
+    p=folder/f'{ident}.json.gz';temp=p.with_suffix('.tmp')
+    temp.write_bytes(gzip.compress(json.dumps(field,separators=(',',':'),allow_nan=False).encode(),mtime=0));temp.replace(p)
+    write(destination/'forecasts'/f'{ident}.json',doc)
+    print(json.dumps({'complete_live50':ident,'distinct_inputs':50,'distinct_routes':50,'distinct_fields':50}),flush=True)
+
+def live50_catalog(out):
+    storms={}
+    for p in sorted((out/'live50/forecasts').glob('*.json')):
+        f=json.loads(p.read_text());s=storms.setdefault(f['storm_id'],{'id':f['storm_id'],'name':f['name'],'issues':[]})
+        s['issues'].append({k:f[k] for k in ('id','issue_time_utc','members','kind')})
+    for s in storms.values():s['issues'].sort(key=lambda i:i['issue_time_utc'],reverse=True)
+    write(out/'live50/catalog.json',{'model':'Trackformer 1.2','members':50,'checkpoint_sha256':CHECKPOINT,
+          'storms':list(storms.values()),'updated_at_utc':utc(datetime.now(timezone.utc))})
+
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--output',type=Path,required=True);ap.add_argument('--cache',type=Path,required=True);ap.add_argument('--historical-limit',type=int,default=80);ap.add_argument('--minutes',type=int,default=45);ap.add_argument('--skip-live',action='store_true');ap.add_argument('--only-id');a=ap.parse_args()
     a.output.mkdir(parents=True,exist_ok=True);a.cache.mkdir(parents=True,exist_ok=True);started=time.monotonic();torch.set_num_threads(2)
@@ -238,7 +289,9 @@ def main():
         try:
             live=live_rows()
             for row in live:
-                if (a.output/'forecasts'/f"{row['id']}.json").exists():continue
+                base_done=(a.output/'forecasts'/f"{row['id']}.json").exists()
+                mean_done=(a.output/'live50/forecasts'/f"{row['id'].replace('auto-live-','auto-live50-',1)}.json").exists()
+                if base_done and mean_done:continue
                 try:
                     issue=parse(row['issue_time_utc']);now=datetime.now(timezone.utc);last=min(issue,now-timedelta(hours=3));last=last.replace(hour=last.hour//6*6,minute=0,second=0,microsecond=0)
                     weather=None
@@ -250,7 +303,17 @@ def main():
                             weather=np.stack([gfs(d,a.cache,contract) for d in dates]);break
                         except Exception as e:errors[row['id']]={'at':utc(now),'error':str(e)[:500]}
                     if weather is None:raise ValueError('Complete causal GFS history unavailable')
-                    infer(model,contract,geo,weather,[ns(utc(d)) for d in dates],row,a.output,'live-GFS-transfer','Nine NOAA GFS f000 analyses; last valid '+utc(dates[-1])+'. Experimental GFS transfer.')
+                    times=[ns(utc(d)) for d in dates]
+                    note='Nine NOAA GFS f000 analyses; last valid '+utc(dates[-1])+'. Experimental GFS transfer.'
+                    if not base_done:infer(model,contract,geo,weather,times,row,a.output,'live-GFS-transfer',note)
+                    try:
+                        provenance={'provider':'NOAA GFS f000 analysis','experimental_transfer':True,
+                                    'analyses':[{'valid_time_utc':utc(d),'subset_sha256':digest((a.cache/f"gfs-{d.strftime('%Y%m%d%H')}.grib2").read_bytes()),
+                                                 'source':'NOAA GFS f000; exact GRIB date, time, channels and units validated'} for d in dates]}
+                        infer_live50(model,contract,geo,weather,times,row,a.output,note,provenance)
+                        errors.pop('live50-'+row['storm_id'],None)
+                    except Exception as e:
+                        errors['live50-'+row['storm_id']]={'at':utc(datetime.now(timezone.utc)),'error':str(e)[:500]}
                     errors.pop(row['id'],None)
                 except Exception as e:errors[row['id']]={'at':utc(datetime.now(timezone.utc)),'error':str(e)[:500]}
         except Exception as e:errors['live-feed']={'at':utc(datetime.now(timezone.utc)),'error':str(e)[:500]}
@@ -293,6 +356,7 @@ def main():
             'historical_input_version':HISTORICAL_INPUT_VERSION,
             'historical_pending_errors':len(set(errors)&(planned-done)),
             **queue_state(planned,done,errors,datetime.now(timezone.utc),HISTORICAL_INPUT_VERSION)}
+    live50_catalog(a.output)
     write(a.output/'catalog.json',{'schema_version':'1.0','model':'Trackformer 1.2','checkpoint_sha256':CHECKPOINT,'storms':list(storms.values()),'status':status})
     write(a.output/'status.json',status);write(a.output/'coverage.json',{'start_year':1970,'records':plan['coverage']})
     print(json.dumps({k:v for k,v in status.items() if k not in ['errors','retired_source_errors']}),flush=True)
