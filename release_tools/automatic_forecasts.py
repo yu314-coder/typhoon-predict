@@ -327,7 +327,7 @@ def main():
         try:
             provenance={'provider':'Verified bundled NCEP Reanalysis 1'}
             if row['atlas'] is not None:
-                b=plan['bundles'][str(row['season'])];z=np.load(asset(a.cache,b['file'],source+'/'+b['file'],b['sha256']),allow_pickle=False)
+                b=plan['bundles'][row.get('bundle_key',str(row['season']))];z=np.load(asset(a.cache,b['file'],source+'/'+b['file'],b['sha256']),allow_pickle=False)
                 wanted=ns(row['issue_time_utc'])+np.arange(-8,1)*6*HOUR;idx=np.searchsorted(z['time'],wanted)
                 if not np.array_equal(z['time'][idx],wanted):raise ValueError('Bundled weather time mismatch')
                 weather=np.concatenate([z['slp'][idx,None].astype('float32'),z['q'][idx].astype('float32')*z['scale'][None,:,None,None]+z['offset'][None,:,None,None]],axis=1);times=wanted
@@ -355,6 +355,9 @@ def main():
             'batch_attempted':completed,'batch_succeeded':succeeded,
             'historical_input_version':HISTORICAL_INPUT_VERSION,
             'historical_pending_errors':len(set(errors)&(planned-done)),
+            'requested_storms':[{**r,'planned':sum(p['storm_id']==r['storm_id'] for p in plan['queue']),
+                                 'completed':sum(p['storm_id']==r['storm_id'] and p['id'] in done for p in plan['queue'])}
+                                for r in plan.get('requested_storms',[])],
             **queue_state(planned,done,errors,datetime.now(timezone.utc),HISTORICAL_INPUT_VERSION)}
     live50_catalog(a.output)
     write(a.output/'catalog.json',{'schema_version':'1.0','model':'Trackformer 1.2','checkpoint_sha256':CHECKPOINT,'storms':list(storms.values()),'status':status})
