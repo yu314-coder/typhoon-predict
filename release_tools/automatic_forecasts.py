@@ -21,6 +21,7 @@ ROOT=Path(__file__).resolve().parents[1]
 MODEL=ROOT/'models/trackformer_1_2_field'
 sys.path.insert(0,str(MODEL))
 from model import CoreForecaster
+from wind_estimation import diagnose_outputs, summarize_members
 CHECKPOINT='f194a23d3f91ea76ad776dfad942fabd669eeae8b3fd665815463095367e9ee0'
 HF='https://huggingface.co/euler314/typhoon-predict/resolve/f67f0b206876387c2aa6c9f8f19cb009b7a86091'
 HOUR=3600*10**9
@@ -194,6 +195,7 @@ def infer(model,contract,geo,weather,times,row,out,kind,source,provenance=None):
     x=inputs(weather,times,row,contract,geo)
     with torch.inference_mode():
         state=model.initial(x);outputs=[]
+        initial_pressure=(state['g'][0,0]*contract['normalization']['std'][0]+contract['normalization']['mean'][0]).numpy()
         for _ in range(20):state,o=model.step(state);outputs.append(o)
     route=[{'lat':row['lat'],'lon':row['lon'],'pressure_hpa':row.get('pressure_hpa'),'valid_time_utc':row['issue_time_utc'],'lead_hours':0}]
     fields=[];valid=[]
@@ -201,7 +203,9 @@ def infer(model,contract,geo,weather,times,row,out,kind,source,provenance=None):
         center=o['center'][0].numpy();p=float(o['pressure'][0]);field=o['global'][0,0].numpy()*contract['normalization']['std'][0]+contract['normalization']['mean'][0]
         if not np.isfinite(center).all() or not np.isfinite(field).all() or not 800<p<1100 or field.min()<800 or field.max()>1100:raise ValueError('Model output failed physical/finite checks')
         stamp=utc(parse(row['issue_time_utc'])+timedelta(hours=(i+1)*6));valid.append(stamp);fields.append(np.round(field,2).tolist())
-        route.append({'lat':float(center[0]),'lon':float(center[1]),'pressure_hpa':p,'valid_time_utc':stamp,'lead_hours':(i+1)*6})
+        route.append({'lat':float(center[0]),'lon':float(center[1]),'pressure_hpa':p,'valid_time_utc':stamp,'lead_hours':(i+1)*6,
+                      'wind_kt_auxiliary':float(o['vmax'][0]),
+                      'wind_estimation':summarize_members(diagnose_outputs(o,contract))})
     ident=row['id'];note=source+' Single deterministic member. Native detail unavailable and masked; issue-time wind/motion may be missing. No future weather or official forecast route is an input. Research only.'
     doc={'schema_version':'1.0','id':ident,'model':'Trackformer 1.2','checkpoint_sha256':CHECKPOINT,'storm_id':row['storm_id'],'name':row['name'],
          'season':row['season'],'issue_time_utc':row['issue_time_utc'],'members':1,'kind':kind,'route':route,'observed':row.get('observed',[]),
@@ -212,7 +216,9 @@ def infer(model,contract,geo,weather,times,row,out,kind,source,provenance=None):
          'issue_analysis_source':row.get('jma_analysis'),
          'generated_at_utc':utc(datetime.now(timezone.utc)),'run_url':os.environ.get('RUN_URL')}
     field={'model':'Trackformer 1.2','forecast_id':ident,'members':1,'checkpoint_sha256':CHECKPOINT,'latitude':contract['global_lat'],'longitude':contract['global_lon'],
-           'valid_times_utc':valid,'units':'hPa','rounding_hpa':.01,'grid':'2.5 degree model basin','note':note,'pressure_hpa':fields}
+           'valid_times_utc':valid,'units':'hPa','rounding_hpa':.01,'grid':'2.5 degree model basin','note':note,'pressure_hpa':fields,
+           'issue_pressure_hpa':np.round(initial_pressure,2).tolist(),'issue_valid_time_utc':row['issue_time_utc'],
+           'issue_pressure_note':'Causal model initial basin state, not a future forecast field.'}
     # Lossless gzip keeps thousands of independent issue fields out of huge plain JSON blobs.
     field_path=out/'fields'/f'{ident}.json.gz';field_path.parent.mkdir(parents=True,exist_ok=True)
     temp=field_path.with_suffix('.tmp');temp.write_bytes(gzip.compress(json.dumps(field,separators=(',',':'),allow_nan=False).encode(),mtime=0));temp.replace(field_path)
@@ -238,7 +244,8 @@ def infer_live50(model,contract,geo,weather,times,row,out,source,provenance=None
         stamp=utc(parse(row['issue_time_utc'])+timedelta(hours=(i+1)*6));valid.append(stamp)
         center=means['center'][i]
         route.append({'lat':float(center[0]),'lon':float(center[1]),'pressure_hpa':float(means['pressure'][i]),
-                      'valid_time_utc':stamp,'lead_hours':(i+1)*6,'valid_member_count':int(output['track_valid'][:,i].sum())})
+                      'valid_time_utc':stamp,'lead_hours':(i+1)*6,'valid_member_count':int(output['track_valid'][:,i].sum()),
+                      'wind_kt_auxiliary':float(means['vmax'][i]),'wind_estimation':policy['wind_estimation_by_lead'][i]})
     note=source+' Equal-weight mean of 50 distinct seeded input-perturbed forecasts, not latent samples or deterministic duplicates. Actual common-grid model basin pressure; native detail unavailable and masked. No future weather or official forecast route is an input. Experimental transfer; research only.'
     doc={'schema_version':'1.0','id':ident,'model':'Trackformer 1.2','checkpoint_sha256':CHECKPOINT,
          'storm_id':row['storm_id'],'name':row['name'],'season':row['season'],'issue_time_utc':row['issue_time_utc'],
@@ -252,7 +259,9 @@ def infer_live50(model,contract,geo,weather,times,row,out,source,provenance=None
     field={'model':'Trackformer 1.2','forecast_id':ident,'members':50,'checkpoint_sha256':CHECKPOINT,
            'latitude':contract['global_lat'],'longitude':contract['global_lon'],'valid_times_utc':valid,
            'units':'hPa','rounding_hpa':.01,'grid':'2.5 degree model basin; 50-member physical mean',
-           'note':note,'pressure_hpa':np.round(means['basin'],2).tolist()}
+           'note':note,'pressure_hpa':np.round(means['basin'],2).tolist(),
+           'issue_pressure_hpa':np.round(means['initial_basin'],2).tolist(),'issue_valid_time_utc':row['issue_time_utc'],
+           'issue_pressure_note':'Physical mean of 50 causal model initial basin states, not a future forecast field.'}
     folder=destination/'fields';folder.mkdir(parents=True,exist_ok=True)
     p=folder/f'{ident}.json.gz';temp=p.with_suffix('.tmp')
     temp.write_bytes(gzip.compress(json.dumps(field,separators=(',',':'),allow_nan=False).encode(),mtime=0));temp.replace(p)

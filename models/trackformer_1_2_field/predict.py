@@ -48,6 +48,7 @@ def load_packet(path: Path) -> dict[str, np.ndarray]:
 
 
 def forecast(packet: Path, model_dir: Path, device: str = "cpu") -> dict[str, np.ndarray]:
+    from wind_estimation import diagnose_outputs, summarize_members, KEYS
     metadata = json.loads((model_dir / "manifest.json").read_text())
     if metadata["public_version"] != "1.2":
         raise ValueError("Unexpected public model version")
@@ -70,9 +71,19 @@ def forecast(packet: Path, model_dir: Path, device: str = "cpu") -> dict[str, np
         "central_pressure_hpa": torch.stack([o["pressure"][0] for o in outputs]).cpu().numpy(),
         "basin_mslp_hpa": torch.stack([o["global"][0, 0] for o in outputs]).cpu().numpy() * scale + offset,
         "regional_mslp_hpa": torch.stack([o["regional"][0, 0] for o in outputs]).cpu().numpy() * scale + offset,
+        "maximum_wind_auxiliary_kt": torch.stack([o["vmax"][0] for o in outputs]).cpu().numpy(),
     }
+    diagnostics = [summarize_members(diagnose_outputs(o, contract)) for o in outputs]
+    result['maximum_wind_auxiliary_kt_valid'] = np.asarray(
+        [d['estimates']['maximum_wind_auxiliary_kt']['mean'] is not None for d in diagnostics], dtype=bool)
+    for key in KEYS[1:]:
+        values = [d['estimates'][key]['mean'] for d in diagnostics]
+        # Numeric zero is storage padding only. Consumers MUST use this mask.
+        result[key] = np.asarray([0 if v is None else v for v in values], dtype=np.float32)
+        result[key + '_valid'] = np.asarray([v is not None for v in values], dtype=bool)
     if not all(np.isfinite(value).all() for value in result.values()):
         raise ValueError("Non-finite forecast")
+    result['wind_estimation_json'] = np.asarray(json.dumps(diagnostics, allow_nan=False))
     return result
 
 

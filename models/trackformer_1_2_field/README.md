@@ -26,6 +26,19 @@ The `.npz` packet must contain exactly these arrays, with no object/pickle conte
 
 Output `.npz` contains `lead_hours`, `track_lat_lon`, `central_pressure_hpa`, `basin_mslp_hpa` and `regional_mslp_hpa`. Pressure arrays are physical hPa. The regional grid is issue-relative and must be located using the static coordinate channels, not interpreted as a fixed global map.
 
+It also exposes the existing `maximum_wind_auxiliary_kt` scalar and experimental
+pressure-derived `pressure_wind_estimate_kt`, `rmw_estimate_km` and
+`r34_estimate_km` / `r50_estimate_km` / `r64_estimate_km`. Every pressure-derived
+array has a matching `_valid` mask: zero padding where the mask is false is
+**not a zero wind or radius forecast**. `wind_estimation_json` is a JSON string
+with assumptions, member counts and unavailable reasons, not pickled objects.
+The auxiliary wind also has `maximum_wind_auxiliary_kt_valid`, a numerical/domain
+validity mask, not a claim of calibrated wind skill.
+These are uncalibrated circular-equivalent ocean estimates, not resolved
+surface winds, agency-compatible sustained winds or quadrant radii. See
+[the estimation method and validation requirements](WIND_ESTIMATION.md).
+No model weights, learned architecture or existing benchmark results changed.
+
 **Causality:** Never populate arrays from positive-lead analysis, later best track, agency forecast or future pressure field. The wrapper checks timestamp order and shapes, but cannot authenticate the upstream archive. Do not silently replace missing values with future data. This is not a raw-weather downloader or live warning service.
 
 The published 50-member mean is a separate evaluation policy: 50 deterministic seeds perturb only normalized historical basin/regional fields with smooth zero-centred noise, then average routes, central pressures and common-grid fields. `predict.py` computes one clean forecast; do not label it a 50-member mean.

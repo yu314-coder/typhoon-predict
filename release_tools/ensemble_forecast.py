@@ -6,9 +6,13 @@ geography, missing-data flags, motion, or issue intensity. No future inputs.
 """
 import hashlib
 import time
+import sys
+from pathlib import Path
 import numpy as np
 import torch
 from torch.nn import functional as F
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'models/trackformer_1_2_field'))
+from wind_estimation import diagnose_outputs, summarize_members, VERSION as WIND_METHOD
 
 SEED_BASE = 2043
 MEMBERS = 50
@@ -66,6 +70,8 @@ def run_ensemble(model, inputs, contract, device='cpu', chunk=5, progress=None):
     base = {k: v.detach().cpu().numpy() for k, v in inputs.items()}
     arrays = {key: [] for key in ('center','pressure','basin','regional','track_valid','vmax')}
     input_hashes = []
+    initial_fields = []
+    member_diagnostics = [[] for _ in range(20)]
     started = time.monotonic()
     scale, offset = contract['normalization']['std'][0], contract['normalization']['mean'][0]
     model = model.eval().to(device)
@@ -79,8 +85,10 @@ def run_ensemble(model, inputs, contract, device='cpu', chunk=5, progress=None):
         steps = {k: [] for k in arrays}
         with torch.inference_mode():
             state = model.initial(tensors)
+            initial_fields.append((state['g'][:,0]*scale+offset).detach().cpu().numpy())
             for lead in range(20):
                 state, pred = model.step(state)
+                member_diagnostics[lead].extend(diagnose_outputs(pred, contract))
                 values = {'center': pred['center'], 'pressure': pred['pressure'],
                           'basin': pred['global'][:,0]*scale+offset,
                           'regional': pred['regional'][:,0]*scale+offset,
@@ -97,6 +105,7 @@ def run_ensemble(model, inputs, contract, device='cpu', chunk=5, progress=None):
         if progress:
             progress(len(input_hashes), MEMBERS, round(time.monotonic()-started, 2))
     output = {k: np.concatenate(v, axis=0) for k, v in arrays.items()}
+    output['initial_basin'] = np.concatenate(initial_fields, axis=0)
     route_hashes = [array_hash(a) for a in output['center']]
     field_hashes = [array_hash(a) for a in output['basin']]
     if any(len(set(hashes)) != MEMBERS for hashes in (input_hashes, route_hashes, field_hashes)):
@@ -111,10 +120,12 @@ def run_ensemble(model, inputs, contract, device='cpu', chunk=5, progress=None):
               'input_sha256': input_hashes, 'route_sha256': route_hashes,
               'basin_field_sha256': field_hashes,
               'mean_policy': 'Equal-weight physical basin and fixed-issue regional grids; member-mean coordinates and central pressures separately. Moving-core grids are not directly averaged.',
+              'wind_estimation_method': WIND_METHOD,
+              'wind_estimation_by_lead': [summarize_members(m) for m in member_diagnostics],
               'inference_seconds': round(time.monotonic()-started, 3)}
     return output, policy
 
 
 def mean_outputs(output):
-    return {k: output[k].mean(axis=0, dtype=np.float64).astype('float32')
-            for k in ('center','pressure','basin','regional','vmax')}
+    keys = ('center','pressure','basin','regional','vmax') + (('initial_basin',) if 'initial_basin' in output else ())
+    return {k: output[k].mean(axis=0, dtype=np.float64).astype('float32') for k in keys}

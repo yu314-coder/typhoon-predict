@@ -12,10 +12,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import numpy as np
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-from matplotlib.colors import TwoSlopeNorm
 
 REPO = Path(__file__).resolve().parents[1]
 DATA = REPO / 'evaluation/release_data'
@@ -102,6 +98,13 @@ def prepare(root):
 
 
 def build(work, stem='fung_wong', data=DATA):
+    # CPU forecast/archive tests import the data helpers, not this renderer.
+    # Keep optional video dependencies out of those scheduled forecast jobs.
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import TwoSlopeNorm
+
     work.mkdir(parents=True, exist_ok=True)
     meta = json.loads((data/f'{stem}_video.json').read_text())
     assert meta['model'] == 'Trackformer 1.2' and meta['members'] == 50
