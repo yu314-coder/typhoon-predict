@@ -8,6 +8,7 @@ import argparse
 import csv
 import hashlib
 import json
+import re
 from datetime import timedelta
 from pathlib import Path
 
@@ -19,6 +20,7 @@ from ensemble_forecast import array_hash, run_ensemble, mean_outputs
 from build_fung_wong_video import distances
 
 CASES = {
+    'fung_wong': ('FUNG-WONG', '2025308N09144', '2025-11-07T00:00:00Z'),
     'soudelor': ('SOUDELOR', '2015211N13162', '2015-08-05T00:00:00Z'),
     'mangkhut': ('MANGKHUT', '2018250N12170', '2018-09-11T00:00:00Z'),
     'meranti': ('MERANTI', '2016253N13144', '2016-09-10T00:00:00Z'),
@@ -77,13 +79,42 @@ def observations(rows, issue):
     return np.asarray(route), np.asarray(pressure[1:])
 
 
+def requested_cases(storms, custom_cases):
+    """Accept any explicit WP storm issue, not a preselected four-storm list.
+
+    Exact archive availability/domain checks remain mandatory in main. This
+    does not download missing weather or expand the cloud backfill plan.
+    """
+    selected = {slug: CASES[slug] for slug in (storms or [])}
+    for slug, sid, issue in custom_cases or []:
+        if not re.fullmatch(r'[a-z][a-z0-9_-]{0,63}', slug):
+            raise ValueError('Use a safe lowercase output slug')
+        if not re.fullmatch(r'\d{7}[NS]\d{5}', sid):
+            raise ValueError('Use an exact IBTrACS storm SID')
+        if not re.fullmatch(r'\d{4}-\d{2}-\d{2}T(?:00|06|12|18):00:00Z', issue):
+            raise ValueError('Use an exact six-hour UTC issue YYYY-MM-DDTHH:00:00Z')
+        auto.parse(issue)  # reject impossible dates, not just syntax
+        if slug in selected:
+            raise ValueError('Duplicate output slug: '+slug)
+        selected[slug] = (slug.upper(), sid, issue)
+    if not selected:
+        raise ValueError('Choose --storm or provide --case SLUG SID ISSUE_UTC')
+    identities = [(sid, issue) for _, sid, issue in selected.values()]
+    if len(set(identities)) != len(identities):
+        raise ValueError('Do not duplicate a storm issue under a second slug')
+    return selected
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--project', type=Path, required=True)
     ap.add_argument('--output', type=Path, required=True)
-    ap.add_argument('--storm', choices=list(CASES), action='append', required=True)
+    ap.add_argument('--storm', choices=list(CASES), action='append')
+    ap.add_argument('--case', nargs=3, action='append', metavar=('SLUG', 'SID', 'ISSUE_UTC'),
+                    help='Any explicit WP storm issue with nine exact local analyses')
     ap.add_argument('--chunk', type=int, default=5)
     args = ap.parse_args()
+    cases = requested_cases(args.storm, args.case)
     if not str(args.output.resolve()).startswith('/Volumes/D/'):
         raise ValueError('New artifacts must stay on /Volumes/D')
     if not torch.backends.mps.is_available():
@@ -113,8 +144,8 @@ def main():
         # subsets to the hash-verified original encoded source before inference.
         q_mmap = np.load(args.project/'data/v164_reuse/basin_q_verified.npy', mmap_mode='r')
         q_original = z['q']
-        for slug in args.storm:
-            idx = exact_history_indices(times, CASES[slug][2])
+        for slug in cases:
+            idx = exact_history_indices(times, cases[slug][2])
             if not np.array_equal(q_mmap[idx], q_original[idx]):
                 raise ValueError('Decoded weather cache differs from original')
         del q_original
@@ -122,28 +153,37 @@ def main():
     csvpath = args.project/'data/ibtracs/ibtracs.WP.list.v04r01.csv'
     csvhash = sha(csvpath)
     with csvpath.open() as stream:
-        all_rows = [r for r in csv.DictReader(stream) if r['SID'] in {CASES[s][1] for s in args.storm}]
+        all_rows = [r for r in csv.DictReader(stream) if r['SID'] in {cases[s][1] for s in cases}]
     coastpath = args.project/'trackformer-weatherlab-site/public/data/history/coastlines.json'
     coastlines = json.loads(coastpath.read_text())
     geo = np.load(args.project/'output/automatic-forecast-cache/geography.npz', allow_pickle=False)
     torch.set_num_threads(4)
     model = auto.CoreForecaster(contract).eval()
     model.load_state_dict(torch.load(weights, map_location='cpu', weights_only=True), strict=True)
-    for slug in args.storm:
+    for slug in cases:
         dest = args.output/slug
         # A finished issue is immutable, even when rerunning the command.
         if (dest/'verification.json').exists():
             receipt = json.loads((dest/'verification.json').read_text())
+            saved = json.loads((dest/f'{slug}_video.json').read_text())
+            _, requested_sid, requested_issue = cases[slug]
+            if (saved['storm_id'] != requested_sid or saved['issue_time_utc'] != requested_issue
+                    or saved['checkpoint_sha256'] != auto.CHECKPOINT or saved['members'] != 50):
+                raise ValueError('Completed slug belongs to another immutable storm issue: '+slug)
             for filename, expected in receipt['files_sha256'].items():
                 if sha(dest/filename) != expected:
                     raise ValueError('Completed artifact changed: '+filename)
             print(json.dumps({'storm': slug, 'reused_verified_complete': True}), flush=True)
             continue
         dest.mkdir(parents=True, exist_ok=True)
-        name, sid, issue = CASES[slug]
+        name, sid, issue = cases[slug]
         rows = {r['ISO_TIME']: r for r in all_rows if r['SID'] == sid}
         if len(rows) != sum(r['SID'] == sid for r in all_rows):
             raise ValueError('Duplicate storm observation timestamp')
+        stamp = auto.parse(issue).strftime('%Y-%m-%d %H:%M:%S')
+        if stamp not in rows:
+            raise ValueError('Missing exact issue-time storm report: '+sid+' '+issue)
+        name = rows[stamp]['NAME'].strip() or name
         row = issue_row(rows, name, sid, issue)
         idx = exact_history_indices(times, issue)
         weather = np.concatenate((np.asarray(slp[idx], dtype='float32')[:, None],

@@ -1,0 +1,11 @@
+{
+  "status": "complete_verified",
+  "summary_sha256": "d5481b42d72d328ff08b0a9e6204bef2d087bbd418c61bf4827e06a82a051632",
+  "images": {
+    "intensity_error_bars.png": "ee676ceb75f7cf6b065bd2f8c371c8e182302a28536a92343089aa9fa6b83339",
+    "intensity_leads_and_trends.png": "6d449eba8d892e9de4eba37548f75c93bc4283965965d19e6e919cad5583d82f",
+    "native_radius_error_bars.png": "42aeb24e37d2917ae69f8eefc256fc86e7c2fc5df43d7b1b6e8fa86c68e536c3"
+  },
+  "aggregation": "Paired common lead mask -> daily issue mean -> mean of days per storm -> equal storm weights, same as track. Radius quadrants are averaged within the daily issue; no pooling long-lived storms or quadrant counts across storms.",
+  "native_1_2_radius_status": "unavailable, not zero"
+}

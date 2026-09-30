@@ -1,0 +1,2759 @@
+{
+  "model": "frozen Trackformer 1.2 pressure + separate experimental structure candidate",
+  "method": "pressure-scaled-issue-structure-experimental-v1",
+  "storm_id": "2015211N13162",
+  "issue_time_utc": "2015-08-05T00:00:00Z",
+  "actual_members": 50,
+  "checkpoint_sha256": "f194a23d3f91ea76ad776dfad942fabd669eeae8b3fd665815463095367e9ee0",
+  "source_file_sha256": {
+    "weather-history.npz": "d4088aa71e5f9d9b39f160993c312ab2f59a59dd057c2ba0dc27e307a7ffa1b2",
+    "model-inputs.npz": "2cad11d38a54c0ab41c8366793b2bae7febecae89609aeda3e016180df8b1ccd",
+    "ensemble-members.npz": "161e2a5d8def6ef6f555031ba6ba1b21f16ccf4390366d0360c5bbd06edcd31c",
+    "soudelor_video.npz": "bed5425496abde931d81af06e1ef1438504c82468d5577c6bac5dc131a07e91f",
+    "soudelor_video.json": "b5527954d10ba0facd3f3137720910de3c0bae1a055d6896d7cfb54205298ab5",
+    "soudelor_coastlines.json": "2af08a831beff87de1847e3c5e34faf29aabcd3965d81ffc18fedc6f18a4076d"
+  },
+  "observed_csv_sha256": "4348af2679b4be0d53ec630bccda759044663a1f57e2bbd5c1d19428aab562fc",
+  "future_labels_used_for_diagnostics": false,
+  "initial": {
+    "method": "pressure-scaled-issue-structure-experimental-v1",
+    "storm_id": "2015211N13162",
+    "issue_time_utc": "2015-08-05T00:00:00Z",
+    "input_wind_kt": 115.0,
+    "input_model_pressure_hpa": 930.0,
+    "ambient_pressure_hpa": 1004.5,
+    "pressure_deficit_hpa": 74.5,
+    "rmw_persistence_km": 22.224,
+    "native_quadrant_radii_km": {
+      "r34_NE": 268.54,
+      "r34_SE": 287.06,
+      "r34_SW": 287.06,
+      "r34_NW": 231.5,
+      "r50_NE": 148.16,
+      "r50_SE": 157.42000000000002,
+      "r50_SW": 157.42000000000002,
+      "r50_NW": 138.9,
+      "r64_NE": 74.08,
+      "r64_SE": 74.08,
+      "r64_SW": 74.08,
+      "r64_NW": 64.82000000000001
+    },
+    "holland_inspired_tail_b": 2.294714814320773,
+    "source_agency": "jtwc_wp",
+    "source_track_type": "main",
+    "usa_reference_center": [
+      19.5,
+      134.9
+    ],
+    "model_origin": [
+      19.5,
+      134.9
+    ],
+    "definitions": {
+      "units": "km",
+      "quantity_kind": "radius_not_diameter",
+      "thresholds_kt": [
+        34,
+        50,
+        64
+      ],
+      "quadrant_order": [
+        "NE",
+        "SE",
+        "SW",
+        "NW"
+      ],
+      "quadrant_statistic": "maximum_extent_within_quadrant",
+      "target_wind_averaging_seconds": 60,
+      "validated_wind_averaging_seconds": null,
+      "validated_surface_height_m": null,
+      "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+      "official_scoring_allowed": false
+    },
+    "mixed_agency_initialization": "USA 1-minute wind/radii; model TOKYO pressure. No conversion between wind periods.",
+    "calibration": "none; initialization is issue assimilation, not future-target fitting"
+  },
+  "initial_ambient": {
+    "cells": 27,
+    "candidate_cells": 27,
+    "quadrant_cells": {
+      "NE": 9,
+      "SE": 6,
+      "SW": 5,
+      "NW": 7
+    },
+    "annulus_km": [
+      600,
+      1000
+    ],
+    "statistic": "median_available_physical_cells",
+    "value_hpa": 1004.5,
+    "status": "available"
+  },
+  "definitions": {
+    "units": "km",
+    "quantity_kind": "radius_not_diameter",
+    "thresholds_kt": [
+      34,
+      50,
+      64
+    ],
+    "quadrant_order": [
+      "NE",
+      "SE",
+      "SW",
+      "NW"
+    ],
+    "quadrant_statistic": "maximum_extent_within_quadrant",
+    "target_wind_averaging_seconds": 60,
+    "validated_wind_averaging_seconds": null,
+    "validated_surface_height_m": null,
+    "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+    "official_scoring_allowed": false
+  },
+  "points": [
+    {
+      "lead_hours": 6,
+      "valid_time_utc": "2015-08-05T06:00:00Z",
+      "summary": {
+        "method": "pressure-scaled-issue-structure-experimental-v1",
+        "members": 50,
+        "definitions": {
+          "units": "km",
+          "quantity_kind": "radius_not_diameter",
+          "thresholds_kt": [
+            34,
+            50,
+            64
+          ],
+          "quadrant_order": [
+            "NE",
+            "SE",
+            "SW",
+            "NW"
+          ],
+          "quadrant_statistic": "maximum_extent_within_quadrant",
+          "target_wind_averaging_seconds": 60,
+          "validated_wind_averaging_seconds": null,
+          "validated_surface_height_m": null,
+          "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+          "official_scoring_allowed": false
+        },
+        "aggregation": "diagnose each physical forecast member then equal-weight mean",
+        "estimates": {
+          "wind_estimate_kt": {
+            "mean": 113.02866671359301,
+            "p10": 112.77028204361338,
+            "p90": 113.277482029427,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "rmw_persistence_km": {
+            "mean": 22.223999999999997,
+            "p10": 22.224,
+            "p90": 22.224,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NE_estimate_km": {
+            "mean": 261.47487470026556,
+            "p10": 260.55340310729184,
+            "p90": 262.36268200153563,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SE_estimate_km": {
+            "mean": 279.4316237529158,
+            "p10": 278.4368326303303,
+            "p90": 280.3900864895806,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SW_estimate_km": {
+            "mean": 279.4316237529158,
+            "p10": 278.4368326303303,
+            "p90": 280.3900864895806,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NW_estimate_km": {
+            "mean": 226.25853814671638,
+            "p10": 225.57356200686513,
+            "p90": 226.9183518874688,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NE_estimate_km": {
+            "mean": 141.13973770574205,
+            "p10": 140.23464157528548,
+            "p90": 142.01283039302464,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SE_estimate_km": {
+            "mean": 149.32580058406242,
+            "p10": 148.2845885709422,
+            "p90": 150.3304336133633,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SW_estimate_km": {
+            "mean": 149.32580058406242,
+            "p10": 148.2845885709422,
+            "p90": 150.3304336133633,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NW_estimate_km": {
+            "mean": 131.6808874647217,
+            "p10": 130.75253200486964,
+            "p90": 132.5766579454746,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NE_estimate_km": {
+            "mean": 71.49496165461281,
+            "p10": 71.15937939066391,
+            "p90": 71.81844341522724,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SE_estimate_km": {
+            "mean": 71.49496165461281,
+            "p10": 71.15937939066391,
+            "p90": 71.81844341522724,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SW_estimate_km": {
+            "mean": 71.49496165461281,
+            "p10": 71.15937939066391,
+            "p90": 71.81844341522724,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NW_estimate_km": {
+            "mean": 62.804976940855546,
+            "p10": 62.542847868011926,
+            "p90": 63.05759872526072,
+            "valid_members": 50,
+            "total_members": 50
+          }
+        },
+        "official_scoring_allowed": false
+      }
+    },
+    {
+      "lead_hours": 12,
+      "valid_time_utc": "2015-08-05T12:00:00Z",
+      "summary": {
+        "method": "pressure-scaled-issue-structure-experimental-v1",
+        "members": 50,
+        "definitions": {
+          "units": "km",
+          "quantity_kind": "radius_not_diameter",
+          "thresholds_kt": [
+            34,
+            50,
+            64
+          ],
+          "quadrant_order": [
+            "NE",
+            "SE",
+            "SW",
+            "NW"
+          ],
+          "quadrant_statistic": "maximum_extent_within_quadrant",
+          "target_wind_averaging_seconds": 60,
+          "validated_wind_averaging_seconds": null,
+          "validated_surface_height_m": null,
+          "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+          "official_scoring_allowed": false
+        },
+        "aggregation": "diagnose each physical forecast member then equal-weight mean",
+        "estimates": {
+          "wind_estimate_kt": {
+            "mean": 108.8911242341665,
+            "p10": 108.53479451417108,
+            "p90": 109.255718431246,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "rmw_persistence_km": {
+            "mean": 22.223999999999997,
+            "p10": 22.224,
+            "p90": 22.224,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NE_estimate_km": {
+            "mean": 246.8626654854666,
+            "p10": 245.61748618797833,
+            "p90": 248.13780655814276,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SE_estimate_km": {
+            "mean": 263.66121479926386,
+            "p10": 262.31775266461227,
+            "p90": 265.03703750410614,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SW_estimate_km": {
+            "mean": 263.66121479926386,
+            "p10": 262.31775266461227,
+            "p90": 265.03703750410614,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NW_estimate_km": {
+            "mean": 215.3539412038378,
+            "p10": 214.42074998149667,
+            "p90": 216.30926163723723,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NE_estimate_km": {
+            "mean": 127.10895320391761,
+            "p10": 125.94264725231443,
+            "p90": 128.30569304652803,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SE_estimate_km": {
+            "mean": 133.25544001378847,
+            "p10": 131.9260444935722,
+            "p90": 134.62004986910748,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SW_estimate_km": {
+            "mean": 133.25544001378847,
+            "p10": 131.9260444935722,
+            "p90": 134.62004986910748,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NW_estimate_km": {
+            "mean": 117.3610325712651,
+            "p10": 116.17723668547605,
+            "p90": 118.57625051970706,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NE_estimate_km": {
+            "mean": 66.22220851250287,
+            "p10": 65.77737473456607,
+            "p90": 66.67811162393242,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SE_estimate_km": {
+            "mean": 66.22220851250287,
+            "p10": 65.77737473456607,
+            "p90": 66.67811162393242,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SW_estimate_km": {
+            "mean": 66.22220851250287,
+            "p10": 65.77737473456607,
+            "p90": 66.67811162393242,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NW_estimate_km": {
+            "mean": 58.66946937119013,
+            "p10": 58.319017940581254,
+            "p90": 59.028513368724376,
+            "valid_members": 50,
+            "total_members": 50
+          }
+        },
+        "official_scoring_allowed": false
+      }
+    },
+    {
+      "lead_hours": 18,
+      "valid_time_utc": "2015-08-05T18:00:00Z",
+      "summary": {
+        "method": "pressure-scaled-issue-structure-experimental-v1",
+        "members": 50,
+        "definitions": {
+          "units": "km",
+          "quantity_kind": "radius_not_diameter",
+          "thresholds_kt": [
+            34,
+            50,
+            64
+          ],
+          "quadrant_order": [
+            "NE",
+            "SE",
+            "SW",
+            "NW"
+          ],
+          "quadrant_statistic": "maximum_extent_within_quadrant",
+          "target_wind_averaging_seconds": 60,
+          "validated_wind_averaging_seconds": null,
+          "validated_surface_height_m": null,
+          "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+          "official_scoring_allowed": false
+        },
+        "aggregation": "diagnose each physical forecast member then equal-weight mean",
+        "estimates": {
+          "wind_estimate_kt": {
+            "mean": 101.67228308295199,
+            "p10": 101.22948400835662,
+            "p90": 102.09423499404309,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "rmw_persistence_km": {
+            "mean": 22.223999999999997,
+            "p10": 22.224,
+            "p90": 22.224,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NE_estimate_km": {
+            "mean": 222.08484947945917,
+            "p10": 220.59421057325613,
+            "p90": 223.50678410435003,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SE_estimate_km": {
+            "mean": 236.94152526588405,
+            "p10": 235.3349708509011,
+            "p90": 238.47407898073675,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SW_estimate_km": {
+            "mean": 236.94152526588405,
+            "p10": 235.3349708509011,
+            "p90": 238.47407898073675,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NW_estimate_km": {
+            "mean": 196.65059832865055,
+            "p10": 195.51658733178203,
+            "p90": 197.73189158353458,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NE_estimate_km": {
+            "mean": 104.84192912395251,
+            "p10": 103.56228406346904,
+            "p90": 106.06555907504658,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SE_estimate_km": {
+            "mean": 108.07593304439608,
+            "p10": 106.64181330722917,
+            "p90": 109.4479213722312,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SW_estimate_km": {
+            "mean": 108.07593304439608,
+            "p10": 106.64181330722917,
+            "p90": 109.4479213722312,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NW_estimate_km": {
+            "mean": 94.96384362703513,
+            "p10": 93.68977137156024,
+            "p90": 96.18279752913358,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NE_estimate_km": {
+            "mean": 57.518235828903016,
+            "p10": 57.00417727176632,
+            "p90": 58.00908276039814,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SE_estimate_km": {
+            "mean": 57.518235828903016,
+            "p10": 57.00417727176632,
+            "p90": 58.00908276039814,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SW_estimate_km": {
+            "mean": 57.518235828903016,
+            "p10": 57.00417727176632,
+            "p90": 58.00908276039814,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NW_estimate_km": {
+            "mean": 51.76081434670611,
+            "p10": 51.349420058346674,
+            "p90": 52.15346122377093,
+            "valid_members": 50,
+            "total_members": 50
+          }
+        },
+        "official_scoring_allowed": false
+      }
+    },
+    {
+      "lead_hours": 24,
+      "valid_time_utc": "2015-08-06T00:00:00Z",
+      "summary": {
+        "method": "pressure-scaled-issue-structure-experimental-v1",
+        "members": 50,
+        "definitions": {
+          "units": "km",
+          "quantity_kind": "radius_not_diameter",
+          "thresholds_kt": [
+            34,
+            50,
+            64
+          ],
+          "quadrant_order": [
+            "NE",
+            "SE",
+            "SW",
+            "NW"
+          ],
+          "quadrant_statistic": "maximum_extent_within_quadrant",
+          "target_wind_averaging_seconds": 60,
+          "validated_wind_averaging_seconds": null,
+          "validated_surface_height_m": null,
+          "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+          "official_scoring_allowed": false
+        },
+        "aggregation": "diagnose each physical forecast member then equal-weight mean",
+        "estimates": {
+          "wind_estimate_kt": {
+            "mean": 97.4172536550789,
+            "p10": 96.85480169746745,
+            "p90": 97.89064371395327,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "rmw_persistence_km": {
+            "mean": 22.223999999999997,
+            "p10": 22.224,
+            "p90": 22.224,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NE_estimate_km": {
+            "mean": 207.91652069820756,
+            "p10": 206.0671336851711,
+            "p90": 209.47538555618218,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SE_estimate_km": {
+            "mean": 221.6762698531099,
+            "p10": 219.68443145595842,
+            "p90": 223.3552808477937,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SW_estimate_km": {
+            "mean": 221.6762698531099,
+            "p10": 219.68443145595842,
+            "p90": 223.3552808477937,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NW_estimate_km": {
+            "mean": 185.82462721480275,
+            "p10": 184.40434443318557,
+            "p90": 187.02108085606008,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NE_estimate_km": {
+            "mean": 92.9836136936664,
+            "p10": 91.48091561515784,
+            "p90": 94.25466623238627,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SE_estimate_km": {
+            "mean": 94.85095005855732,
+            "p10": 93.18471544371408,
+            "p90": 96.26128134124974,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SW_estimate_km": {
+            "mean": 94.85095005855732,
+            "p10": 93.18471544371408,
+            "p90": 96.26128134124974,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NW_estimate_km": {
+            "mean": 83.22268532410179,
+            "p10": 81.74457958208477,
+            "p90": 84.4738975103466,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NE_estimate_km": {
+            "mean": 52.682217501892055,
+            "p10": 52.05847566307593,
+            "p90": 53.20871598943953,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SE_estimate_km": {
+            "mean": 52.682217501892055,
+            "p10": 52.05847566307593,
+            "p90": 53.20871598943953,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SW_estimate_km": {
+            "mean": 52.682217501892055,
+            "p10": 52.05847566307593,
+            "p90": 53.20871598943953,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NW_estimate_km": {
+            "mean": 47.87287380515676,
+            "p10": 47.36873766099984,
+            "p90": 48.29814708400235,
+            "valid_members": 50,
+            "total_members": 50
+          }
+        },
+        "official_scoring_allowed": false
+      }
+    },
+    {
+      "lead_hours": 30,
+      "valid_time_utc": "2015-08-06T06:00:00Z",
+      "summary": {
+        "method": "pressure-scaled-issue-structure-experimental-v1",
+        "members": 50,
+        "definitions": {
+          "units": "km",
+          "quantity_kind": "radius_not_diameter",
+          "thresholds_kt": [
+            34,
+            50,
+            64
+          ],
+          "quadrant_order": [
+            "NE",
+            "SE",
+            "SW",
+            "NW"
+          ],
+          "quadrant_statistic": "maximum_extent_within_quadrant",
+          "target_wind_averaging_seconds": 60,
+          "validated_wind_averaging_seconds": null,
+          "validated_surface_height_m": null,
+          "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+          "official_scoring_allowed": false
+        },
+        "aggregation": "diagnose each physical forecast member then equal-weight mean",
+        "estimates": {
+          "wind_estimate_kt": {
+            "mean": 95.98270566159148,
+            "p10": 95.34206418170336,
+            "p90": 96.49731772743253,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "rmw_persistence_km": {
+            "mean": 22.223999999999997,
+            "p10": 22.224,
+            "p90": 22.224,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NE_estimate_km": {
+            "mean": 203.214788071585,
+            "p10": 201.12516337227834,
+            "p90": 204.895463674228,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SE_estimate_km": {
+            "mean": 216.61285321880186,
+            "p10": 214.3627971686341,
+            "p90": 218.42262962257533,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SW_estimate_km": {
+            "mean": 216.61285321880186,
+            "p10": 214.3627971686341,
+            "p90": 218.42262962257533,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NW_estimate_km": {
+            "mean": 182.20914625354487,
+            "p10": 180.5991854136628,
+            "p90": 183.5033717238677,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NE_estimate_km": {
+            "mean": 89.19179185963131,
+            "p10": 87.52544339156384,
+            "p90": 90.53600295355103,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SE_estimate_km": {
+            "mean": 90.65255438273081,
+            "p10": 88.81157032939295,
+            "p90": 92.13849407920827,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SW_estimate_km": {
+            "mean": 90.65255438273081,
+            "p10": 88.81157032939295,
+            "p90": 92.13849407920827,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NW_estimate_km": {
+            "mean": 79.49906015880516,
+            "p10": 77.86675534498212,
+            "p90": 80.81667009251439,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NE_estimate_km": {
+            "mean": 51.10127699643301,
+            "p10": 50.40184135577899,
+            "p90": 51.66450455468706,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SE_estimate_km": {
+            "mean": 51.10127699643301,
+            "p10": 50.40184135577899,
+            "p90": 51.66450455468706,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SW_estimate_km": {
+            "mean": 51.10127699643301,
+            "p10": 50.40184135577899,
+            "p90": 51.66450455468706,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NW_estimate_km": {
+            "mean": 46.59336030584631,
+            "p10": 46.0261329448618,
+            "p90": 47.049882417829,
+            "valid_members": 50,
+            "total_members": 50
+          }
+        },
+        "official_scoring_allowed": false
+      }
+    },
+    {
+      "lead_hours": 36,
+      "valid_time_utc": "2015-08-06T12:00:00Z",
+      "summary": {
+        "method": "pressure-scaled-issue-structure-experimental-v1",
+        "members": 50,
+        "definitions": {
+          "units": "km",
+          "quantity_kind": "radius_not_diameter",
+          "thresholds_kt": [
+            34,
+            50,
+            64
+          ],
+          "quadrant_order": [
+            "NE",
+            "SE",
+            "SW",
+            "NW"
+          ],
+          "quadrant_statistic": "maximum_extent_within_quadrant",
+          "target_wind_averaging_seconds": 60,
+          "validated_wind_averaging_seconds": null,
+          "validated_surface_height_m": null,
+          "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+          "official_scoring_allowed": false
+        },
+        "aggregation": "diagnose each physical forecast member then equal-weight mean",
+        "estimates": {
+          "wind_estimate_kt": {
+            "mean": 94.7739882454048,
+            "p10": 94.20472468973468,
+            "p90": 95.26216093028731,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "rmw_persistence_km": {
+            "mean": 22.223999999999997,
+            "p10": 22.224,
+            "p90": 22.224,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NE_estimate_km": {
+            "mean": 199.28212031604863,
+            "p10": 197.43744389002688,
+            "p90": 200.86531113336966,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SE_estimate_km": {
+            "mean": 212.3785622995911,
+            "p10": 210.39263826067406,
+            "p90": 214.08301887731741,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SW_estimate_km": {
+            "mean": 212.3785622995911,
+            "p10": 210.39263826067406,
+            "p90": 214.08301887731741,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NW_estimate_km": {
+            "mean": 179.17615207937865,
+            "p10": 177.7511700415309,
+            "p90": 180.39874201174646,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NE_estimate_km": {
+            "mean": 86.07398009148605,
+            "p10": 84.62530802112954,
+            "p90": 87.31966331101307,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SE_estimate_km": {
+            "mean": 87.21187434004437,
+            "p10": 85.61612566974321,
+            "p90": 88.58453124382108,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SW_estimate_km": {
+            "mean": 87.21187434004437,
+            "p10": 85.61612566974321,
+            "p90": 88.58453124382108,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NW_estimate_km": {
+            "mean": 76.44886263222885,
+            "p10": 75.03457517902044,
+            "p90": 77.66548915326592,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NE_estimate_km": {
+            "mean": 49.78805356448755,
+            "p10": 49.17442007744825,
+            "p90": 50.315108392776246,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SE_estimate_km": {
+            "mean": 49.78805356448755,
+            "p10": 49.17442007744825,
+            "p90": 50.315108392776246,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SW_estimate_km": {
+            "mean": 49.78805356448755,
+            "p10": 49.17442007744825,
+            "p90": 50.315108392776246,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NW_estimate_km": {
+            "mean": 45.527243227879154,
+            "p10": 45.028226575605665,
+            "p90": 45.955706287370234,
+            "valid_members": 50,
+            "total_members": 50
+          }
+        },
+        "official_scoring_allowed": false
+      }
+    },
+    {
+      "lead_hours": 42,
+      "valid_time_utc": "2015-08-06T18:00:00Z",
+      "summary": {
+        "method": "pressure-scaled-issue-structure-experimental-v1",
+        "members": 50,
+        "definitions": {
+          "units": "km",
+          "quantity_kind": "radius_not_diameter",
+          "thresholds_kt": [
+            34,
+            50,
+            64
+          ],
+          "quadrant_order": [
+            "NE",
+            "SE",
+            "SW",
+            "NW"
+          ],
+          "quadrant_statistic": "maximum_extent_within_quadrant",
+          "target_wind_averaging_seconds": 60,
+          "validated_wind_averaging_seconds": null,
+          "validated_surface_height_m": null,
+          "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+          "official_scoring_allowed": false
+        },
+        "aggregation": "diagnose each physical forecast member then equal-weight mean",
+        "estimates": {
+          "wind_estimate_kt": {
+            "mean": 96.70079132004756,
+            "p10": 96.0907720922027,
+            "p90": 97.31973025797151,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "rmw_persistence_km": {
+            "mean": 22.223999999999997,
+            "p10": 22.224,
+            "p90": 22.224,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NE_estimate_km": {
+            "mean": 205.56447529703746,
+            "p10": 203.56584988400368,
+            "p90": 207.59448291346322,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SE_estimate_km": {
+            "mean": 219.14317177702665,
+            "p10": 216.99082326013948,
+            "p90": 221.32938376338987,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SW_estimate_km": {
+            "mean": 219.14317177702665,
+            "p10": 216.99082326013948,
+            "p90": 221.32938376338987,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NW_estimate_km": {
+            "mean": 184.01716456080155,
+            "p10": 182.48006455372942,
+            "p90": 185.57773350722076,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NE_estimate_km": {
+            "mean": 91.0795259444029,
+            "p10": 89.46907692212598,
+            "p90": 92.71933664882678,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SE_estimate_km": {
+            "mean": 92.74114728369177,
+            "p10": 90.95832621741167,
+            "p90": 94.55735021474577,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SW_estimate_km": {
+            "mean": 92.74114728369177,
+            "p10": 90.95832621741167,
+            "p90": 94.55735021474577,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NW_estimate_km": {
+            "mean": 81.3512771477778,
+            "p10": 79.7701019640717,
+            "p90": 82.96216602008779,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NE_estimate_km": {
+            "mean": 51.89013101331463,
+            "p10": 51.21833168462318,
+            "p90": 52.57316590376724,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SE_estimate_km": {
+            "mean": 51.89013101331463,
+            "p10": 51.21833168462318,
+            "p90": 52.57316590376724,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SW_estimate_km": {
+            "mean": 51.89013101331463,
+            "p10": 51.21833168462318,
+            "p90": 52.57316590376724,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NW_estimate_km": {
+            "mean": 47.2322479577632,
+            "p10": 46.68845231481727,
+            "p90": 47.784890905543854,
+            "valid_members": 50,
+            "total_members": 50
+          }
+        },
+        "official_scoring_allowed": false
+      }
+    },
+    {
+      "lead_hours": 48,
+      "valid_time_utc": "2015-08-07T00:00:00Z",
+      "summary": {
+        "method": "pressure-scaled-issue-structure-experimental-v1",
+        "members": 50,
+        "definitions": {
+          "units": "km",
+          "quantity_kind": "radius_not_diameter",
+          "thresholds_kt": [
+            34,
+            50,
+            64
+          ],
+          "quadrant_order": [
+            "NE",
+            "SE",
+            "SW",
+            "NW"
+          ],
+          "quadrant_statistic": "maximum_extent_within_quadrant",
+          "target_wind_averaging_seconds": 60,
+          "validated_wind_averaging_seconds": null,
+          "validated_surface_height_m": null,
+          "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+          "official_scoring_allowed": false
+        },
+        "aggregation": "diagnose each physical forecast member then equal-weight mean",
+        "estimates": {
+          "wind_estimate_kt": {
+            "mean": 98.18701486039059,
+            "p10": 97.57117493407472,
+            "p90": 98.77290412964818,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "rmw_persistence_km": {
+            "mean": 22.223999999999997,
+            "p10": 22.224,
+            "p90": 22.224,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NE_estimate_km": {
+            "mean": 210.4568225477419,
+            "p10": 208.422140020876,
+            "p90": 212.39376940558893,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SE_estimate_km": {
+            "mean": 224.41253206141408,
+            "p10": 222.22081992196294,
+            "p90": 226.49900374584428,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SW_estimate_km": {
+            "mean": 224.41253206141408,
+            "p10": 222.22081992196294,
+            "p90": 226.49900374584428,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NW_estimate_km": {
+            "mean": 187.77265557641596,
+            "p10": 186.2130801345605,
+            "p90": 189.2569421541034,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NE_estimate_km": {
+            "mean": 95.06544083538321,
+            "p10": 93.3935206568057,
+            "p90": 96.65939083496274,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SE_estimate_km": {
+            "mean": 97.16318234608,
+            "p10": 95.3052659191647,
+            "p90": 98.93495943641652,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SW_estimate_km": {
+            "mean": 97.16318234608,
+            "p10": 95.3052659191647,
+            "p90": 98.93495943641652,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NW_estimate_km": {
+            "mean": 85.27432252077466,
+            "p10": 83.62568132938226,
+            "p90": 86.8465889242204,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NE_estimate_km": {
+            "mean": 53.54195256962507,
+            "p10": 52.85259193805116,
+            "p90": 54.19859032589326,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SE_estimate_km": {
+            "mean": 53.54195256962507,
+            "p10": 52.85259193805116,
+            "p90": 54.19859032589326,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SW_estimate_km": {
+            "mean": 53.54195256962507,
+            "p10": 52.85259193805116,
+            "p90": 54.19859032589326,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NW_estimate_km": {
+            "mean": 48.56668173365142,
+            "p10": 48.01063403206128,
+            "p90": 49.09619463884623,
+            "valid_members": 50,
+            "total_members": 50
+          }
+        },
+        "official_scoring_allowed": false
+      }
+    },
+    {
+      "lead_hours": 54,
+      "valid_time_utc": "2015-08-07T06:00:00Z",
+      "summary": {
+        "method": "pressure-scaled-issue-structure-experimental-v1",
+        "members": 50,
+        "definitions": {
+          "units": "km",
+          "quantity_kind": "radius_not_diameter",
+          "thresholds_kt": [
+            34,
+            50,
+            64
+          ],
+          "quadrant_order": [
+            "NE",
+            "SE",
+            "SW",
+            "NW"
+          ],
+          "quadrant_statistic": "maximum_extent_within_quadrant",
+          "target_wind_averaging_seconds": 60,
+          "validated_wind_averaging_seconds": null,
+          "validated_surface_height_m": null,
+          "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+          "official_scoring_allowed": false
+        },
+        "aggregation": "diagnose each physical forecast member then equal-weight mean",
+        "estimates": {
+          "wind_estimate_kt": {
+            "mean": 100.55911727165068,
+            "p10": 99.91917985211082,
+            "p90": 101.23791922591698,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "rmw_persistence_km": {
+            "mean": 22.223999999999997,
+            "p10": 22.224,
+            "p90": 22.224,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NE_estimate_km": {
+            "mean": 218.34927082838774,
+            "p10": 216.20662395587402,
+            "p90": 220.6225683268315,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SE_estimate_km": {
+            "mean": 232.9158269258816,
+            "p10": 230.6069257928789,
+            "p90": 235.36553256257142,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SW_estimate_km": {
+            "mean": 232.9158269258816,
+            "p10": 230.6069257928789,
+            "p90": 235.36553256257142,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NW_estimate_km": {
+            "mean": 193.80514729698842,
+            "p10": 192.17157168063085,
+            "p90": 195.53817240568623,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NE_estimate_km": {
+            "mean": 101.65851036799293,
+            "p10": 99.84224156396418,
+            "p90": 103.58655062396087,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SE_estimate_km": {
+            "mean": 104.51327166398154,
+            "p10": 102.48272753640367,
+            "p90": 106.66899245669534,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SW_estimate_km": {
+            "mean": 104.51327166398154,
+            "p10": 102.48272753640367,
+            "p90": 106.66899245669534,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NW_estimate_km": {
+            "mean": 91.79939289737338,
+            "p10": 89.99606668658531,
+            "p90": 93.71391527414406,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NE_estimate_km": {
+            "mean": 56.23381229841979,
+            "p10": 55.49867492533029,
+            "p90": 57.01394409944749,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SE_estimate_km": {
+            "mean": 56.23381229841979,
+            "p10": 55.49867492533029,
+            "p90": 57.01394409944749,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SW_estimate_km": {
+            "mean": 56.23381229841979,
+            "p10": 55.49867492533029,
+            "p90": 57.01394409944749,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NW_estimate_km": {
+            "mean": 50.73154950424848,
+            "p10": 50.14188871510692,
+            "p90": 51.357240793966334,
+            "valid_members": 50,
+            "total_members": 50
+          }
+        },
+        "official_scoring_allowed": false
+      }
+    },
+    {
+      "lead_hours": 60,
+      "valid_time_utc": "2015-08-07T12:00:00Z",
+      "summary": {
+        "method": "pressure-scaled-issue-structure-experimental-v1",
+        "members": 50,
+        "definitions": {
+          "units": "km",
+          "quantity_kind": "radius_not_diameter",
+          "thresholds_kt": [
+            34,
+            50,
+            64
+          ],
+          "quadrant_order": [
+            "NE",
+            "SE",
+            "SW",
+            "NW"
+          ],
+          "quadrant_statistic": "maximum_extent_within_quadrant",
+          "target_wind_averaging_seconds": 60,
+          "validated_wind_averaging_seconds": null,
+          "validated_surface_height_m": null,
+          "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+          "official_scoring_allowed": false
+        },
+        "aggregation": "diagnose each physical forecast member then equal-weight mean",
+        "estimates": {
+          "wind_estimate_kt": {
+            "mean": 98.62991086829217,
+            "p10": 98.0818516617311,
+            "p90": 99.32937155502148,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "rmw_persistence_km": {
+            "mean": 22.223999999999997,
+            "p10": 22.224,
+            "p90": 22.224,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NE_estimate_km": {
+            "mean": 211.92240515077344,
+            "p10": 210.10666728396373,
+            "p90": 214.24177007003482,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SE_estimate_km": {
+            "mean": 225.9912950049071,
+            "p10": 224.03526847801288,
+            "p90": 228.48992362503841,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SW_estimate_km": {
+            "mean": 225.9912950049071,
+            "p10": 224.03526847801288,
+            "p90": 228.48992362503841,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NW_estimate_km": {
+            "mean": 188.89531227917712,
+            "p10": 187.5050951005098,
+            "p90": 190.67050708610572,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NE_estimate_km": {
+            "mean": 96.27416354972604,
+            "p10": 94.77252170815464,
+            "p90": 98.19624316985069,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SE_estimate_km": {
+            "mean": 98.50733593617758,
+            "p10": 96.83655689036955,
+            "p90": 100.64675937755072,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SW_estimate_km": {
+            "mean": 98.50733593617758,
+            "p10": 96.83655689036955,
+            "p90": 100.64675937755072,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NW_estimate_km": {
+            "mean": 86.46718923008831,
+            "p10": 84.98435088966967,
+            "p90": 88.36605988586464,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NE_estimate_km": {
+            "mean": 54.03923717218822,
+            "p10": 53.42245173228153,
+            "p90": 54.827751647584364,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SE_estimate_km": {
+            "mean": 54.03923717218822,
+            "p10": 53.42245173228153,
+            "p90": 54.827751647584364,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SW_estimate_km": {
+            "mean": 54.03923717218822,
+            "p10": 53.42245173228153,
+            "p90": 54.827751647584364,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NW_estimate_km": {
+            "mean": 48.96753322494579,
+            "p10": 48.47060156483481,
+            "p90": 49.60258956015066,
+            "valid_members": 50,
+            "total_members": 50
+          }
+        },
+        "official_scoring_allowed": false
+      }
+    },
+    {
+      "lead_hours": 66,
+      "valid_time_utc": "2015-08-07T18:00:00Z",
+      "summary": {
+        "method": "pressure-scaled-issue-structure-experimental-v1",
+        "members": 50,
+        "definitions": {
+          "units": "km",
+          "quantity_kind": "radius_not_diameter",
+          "thresholds_kt": [
+            34,
+            50,
+            64
+          ],
+          "quadrant_order": [
+            "NE",
+            "SE",
+            "SW",
+            "NW"
+          ],
+          "quadrant_statistic": "maximum_extent_within_quadrant",
+          "target_wind_averaging_seconds": 60,
+          "validated_wind_averaging_seconds": null,
+          "validated_surface_height_m": null,
+          "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+          "official_scoring_allowed": false
+        },
+        "aggregation": "diagnose each physical forecast member then equal-weight mean",
+        "estimates": {
+          "wind_estimate_kt": {
+            "mean": 96.45994485697648,
+            "p10": 95.84430532852195,
+            "p90": 97.1751516276215,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "rmw_persistence_km": {
+            "mean": 22.223999999999997,
+            "p10": 22.224,
+            "p90": 22.224,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NE_estimate_km": {
+            "mean": 204.77577346246636,
+            "p10": 202.76125836402707,
+            "p90": 207.11908740621573,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SE_estimate_km": {
+            "mean": 218.29381956943286,
+            "p10": 216.12443804021373,
+            "p90": 220.8173700348143,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SW_estimate_km": {
+            "mean": 218.29381956943286,
+            "p10": 216.12443804021373,
+            "p90": 220.8173700348143,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NW_estimate_km": {
+            "mean": 183.41047049860126,
+            "p10": 181.8603715010831,
+            "p90": 185.21264450621769,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NE_estimate_km": {
+            "mean": 90.44473209488142,
+            "p10": 88.82621511996324,
+            "p90": 92.3330447442863,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SE_estimate_km": {
+            "mean": 92.03856296023497,
+            "p10": 90.2478249286074,
+            "p90": 94.12901607874304,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SW_estimate_km": {
+            "mean": 92.03856296023497,
+            "p10": 90.2478249286074,
+            "p90": 94.12901607874304,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NW_estimate_km": {
+            "mean": 80.72817736556611,
+            "p10": 79.14010480645032,
+            "p90": 82.58219332337472,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NE_estimate_km": {
+            "mean": 51.62514730508947,
+            "p10": 50.9488075603307,
+            "p90": 52.41282679966902,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SE_estimate_km": {
+            "mean": 51.62514730508947,
+            "p10": 50.9488075603307,
+            "p90": 52.41282679966902,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SW_estimate_km": {
+            "mean": 51.62514730508947,
+            "p10": 50.9488075603307,
+            "p90": 52.41282679966902,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NW_estimate_km": {
+            "mean": 47.01770962969113,
+            "p10": 46.469950633462425,
+            "p90": 47.655298586818496,
+            "valid_members": 50,
+            "total_members": 50
+          }
+        },
+        "official_scoring_allowed": false
+      }
+    },
+    {
+      "lead_hours": 72,
+      "valid_time_utc": "2015-08-08T00:00:00Z",
+      "summary": {
+        "method": "pressure-scaled-issue-structure-experimental-v1",
+        "members": 50,
+        "definitions": {
+          "units": "km",
+          "quantity_kind": "radius_not_diameter",
+          "thresholds_kt": [
+            34,
+            50,
+            64
+          ],
+          "quadrant_order": [
+            "NE",
+            "SE",
+            "SW",
+            "NW"
+          ],
+          "quadrant_statistic": "maximum_extent_within_quadrant",
+          "target_wind_averaging_seconds": 60,
+          "validated_wind_averaging_seconds": null,
+          "validated_surface_height_m": null,
+          "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+          "official_scoring_allowed": false
+        },
+        "aggregation": "diagnose each physical forecast member then equal-weight mean",
+        "estimates": {
+          "wind_estimate_kt": {
+            "mean": 92.00046860433484,
+            "p10": 91.34736843916494,
+            "p90": 92.8078753819634,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "rmw_persistence_km": {
+            "mean": 22.223999999999997,
+            "p10": 22.224,
+            "p90": 22.224,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NE_estimate_km": {
+            "mean": 190.3619663016812,
+            "p10": 188.27912626939573,
+            "p90": 192.9411961732603,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SE_estimate_km": {
+            "mean": 202.77748003786678,
+            "p10": 200.53619429365787,
+            "p90": 205.55305080744486,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SW_estimate_km": {
+            "mean": 202.77748003786678,
+            "p10": 200.53619429365787,
+            "p90": 205.55305080744486,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NW_estimate_km": {
+            "mean": 172.26468067265952,
+            "p10": 170.6453855688765,
+            "p90": 174.2685555018564,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NE_estimate_km": {
+            "mean": 79.18995745218373,
+            "p10": 77.61407162982557,
+            "p90": 81.14900301071121,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SE_estimate_km": {
+            "mean": 79.65445347877662,
+            "p10": 77.93107568717139,
+            "p90": 81.79846648587137,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SW_estimate_km": {
+            "mean": 79.65445347877662,
+            "p10": 77.93107568717139,
+            "p90": 81.79846648587137,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NW_estimate_km": {
+            "mean": 69.75394802940531,
+            "p10": 68.22806773348098,
+            "p90": 71.6524565334199,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NE_estimate_km": {
+            "mean": 46.841696764496646,
+            "p10": 46.15920931188975,
+            "p90": 47.68816561251565,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SE_estimate_km": {
+            "mean": 46.841696764496646,
+            "p10": 46.15920931188975,
+            "p90": 47.68816561251565,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SW_estimate_km": {
+            "mean": 46.841696764496646,
+            "p10": 46.15920931188975,
+            "p90": 47.68816561251565,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NW_estimate_km": {
+            "mean": 43.1236669896308,
+            "p10": 42.56492220322672,
+            "p90": 43.81617754711553,
+            "valid_members": 50,
+            "total_members": 50
+          }
+        },
+        "official_scoring_allowed": false
+      }
+    },
+    {
+      "lead_hours": 78,
+      "valid_time_utc": "2015-08-08T06:00:00Z",
+      "summary": {
+        "method": "pressure-scaled-issue-structure-experimental-v1",
+        "members": 50,
+        "definitions": {
+          "units": "km",
+          "quantity_kind": "radius_not_diameter",
+          "thresholds_kt": [
+            34,
+            50,
+            64
+          ],
+          "quadrant_order": [
+            "NE",
+            "SE",
+            "SW",
+            "NW"
+          ],
+          "quadrant_statistic": "maximum_extent_within_quadrant",
+          "target_wind_averaging_seconds": 60,
+          "validated_wind_averaging_seconds": null,
+          "validated_surface_height_m": null,
+          "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+          "official_scoring_allowed": false
+        },
+        "aggregation": "diagnose each physical forecast member then equal-weight mean",
+        "estimates": {
+          "wind_estimate_kt": {
+            "mean": 85.38403077166339,
+            "p10": 84.81703916804015,
+            "p90": 86.07590866076339,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "rmw_persistence_km": {
+            "mean": 22.223999999999997,
+            "p10": 22.224,
+            "p90": 22.224,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NE_estimate_km": {
+            "mean": 169.66699866583397,
+            "p10": 167.93009585280555,
+            "p90": 171.78897618295977,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SE_estimate_km": {
+            "mean": 180.52070819234265,
+            "p10": 178.6538573579441,
+            "p90": 182.80152154505717,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SW_estimate_km": {
+            "mean": 180.52070819234265,
+            "p10": 178.6538573579441,
+            "p90": 182.80152154505717,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NW_estimate_km": {
+            "mean": 156.04985442867738,
+            "p10": 154.67752447769962,
+            "p90": 157.72563905321667,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NE_estimate_km": {
+            "mean": 66.72579670426644,
+            "p10": 65.81599787345249,
+            "p90": 67.83853962483845,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SE_estimate_km": {
+            "mean": 66.72579670426644,
+            "p10": 65.81599787345249,
+            "p90": 67.83853962483845,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SW_estimate_km": {
+            "mean": 66.72579670426644,
+            "p10": 65.81599787345249,
+            "p90": 67.83853962483845,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NW_estimate_km": {
+            "mean": 59.065578051146424,
+            "p10": 58.34946258143764,
+            "p90": 59.94099954644901,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NE_estimate_km": {
+            "mean": 40.18303805285049,
+            "p10": 39.63514678972978,
+            "p90": 40.85314456830446,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SE_estimate_km": {
+            "mean": 40.18303805285049,
+            "p10": 39.63514678972978,
+            "p90": 40.85314456830446,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SW_estimate_km": {
+            "mean": 40.18303805285049,
+            "p10": 39.63514678972978,
+            "p90": 40.85314456830446,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NW_estimate_km": {
+            "mean": 37.628011873365395,
+            "p10": 37.171807053468946,
+            "p90": 38.18570336655489,
+            "valid_members": 50,
+            "total_members": 50
+          }
+        },
+        "official_scoring_allowed": false
+      }
+    },
+    {
+      "lead_hours": 84,
+      "valid_time_utc": "2015-08-08T12:00:00Z",
+      "summary": {
+        "method": "pressure-scaled-issue-structure-experimental-v1",
+        "members": 50,
+        "definitions": {
+          "units": "km",
+          "quantity_kind": "radius_not_diameter",
+          "thresholds_kt": [
+            34,
+            50,
+            64
+          ],
+          "quadrant_order": [
+            "NE",
+            "SE",
+            "SW",
+            "NW"
+          ],
+          "quadrant_statistic": "maximum_extent_within_quadrant",
+          "target_wind_averaging_seconds": 60,
+          "validated_wind_averaging_seconds": null,
+          "validated_surface_height_m": null,
+          "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+          "official_scoring_allowed": false
+        },
+        "aggregation": "diagnose each physical forecast member then equal-weight mean",
+        "estimates": {
+          "wind_estimate_kt": {
+            "mean": 79.96418570599208,
+            "p10": 79.27065772170639,
+            "p90": 80.64122469373739,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "rmw_persistence_km": {
+            "mean": 22.223999999999997,
+            "p10": 22.224,
+            "p90": 22.224,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NE_estimate_km": {
+            "mean": 153.3482491787544,
+            "p10": 151.29961059055242,
+            "p90": 155.35232806549664,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SE_estimate_km": {
+            "mean": 162.98981388471736,
+            "p10": 160.7902276482048,
+            "p90": 165.14168651282623,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SW_estimate_km": {
+            "mean": 162.98981388471736,
+            "p10": 160.7902276482048,
+            "p90": 165.14168651282623,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NW_estimate_km": {
+            "mean": 143.06691332657044,
+            "p10": 141.42448198186915,
+            "p90": 144.67228543542555,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NE_estimate_km": {
+            "mean": 58.31546399993611,
+            "p10": 57.27864330600338,
+            "p90": 59.33171987617627,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SE_estimate_km": {
+            "mean": 58.31546399993611,
+            "p10": 57.27864330600338,
+            "p90": 59.33171987617627,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SW_estimate_km": {
+            "mean": 58.31546399993611,
+            "p10": 57.27864330600338,
+            "p90": 59.33171987617627,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NW_estimate_km": {
+            "mean": 52.39784967234895,
+            "p10": 51.56917975364689,
+            "p90": 53.20937684405014,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NE_estimate_km": {
+            "mean": 35.118239492361674,
+            "p10": 34.49385421026554,
+            "p90": 35.730240406002025,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SE_estimate_km": {
+            "mean": 35.118239492361674,
+            "p10": 34.49385421026554,
+            "p90": 35.730240406002025,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SW_estimate_km": {
+            "mean": 35.118239492361674,
+            "p10": 34.49385421026554,
+            "p90": 35.730240406002025,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NW_estimate_km": {
+            "mean": 33.38030329446159,
+            "p10": 32.85239511902613,
+            "p90": 33.89729060009483,
+            "valid_members": 50,
+            "total_members": 50
+          }
+        },
+        "official_scoring_allowed": false
+      }
+    },
+    {
+      "lead_hours": 90,
+      "valid_time_utc": "2015-08-08T18:00:00Z",
+      "summary": {
+        "method": "pressure-scaled-issue-structure-experimental-v1",
+        "members": 50,
+        "definitions": {
+          "units": "km",
+          "quantity_kind": "radius_not_diameter",
+          "thresholds_kt": [
+            34,
+            50,
+            64
+          ],
+          "quadrant_order": [
+            "NE",
+            "SE",
+            "SW",
+            "NW"
+          ],
+          "quadrant_statistic": "maximum_extent_within_quadrant",
+          "target_wind_averaging_seconds": 60,
+          "validated_wind_averaging_seconds": null,
+          "validated_surface_height_m": null,
+          "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+          "official_scoring_allowed": false
+        },
+        "aggregation": "diagnose each physical forecast member then equal-weight mean",
+        "estimates": {
+          "wind_estimate_kt": {
+            "mean": 72.6174667238731,
+            "p10": 71.49620550344962,
+            "p90": 73.62616574176438,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "rmw_persistence_km": {
+            "mean": 22.223999999999997,
+            "p10": 22.224,
+            "p90": 22.224,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NE_estimate_km": {
+            "mean": 120.37668992434651,
+            "p10": 115.19635198621933,
+            "p90": 125.09416770771728,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SE_estimate_km": {
+            "mean": 125.60359721508206,
+            "p10": 119.7315642352516,
+            "p90": 130.9598246172494,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SW_estimate_km": {
+            "mean": 125.60359721508206,
+            "p10": 119.7315642352516,
+            "p90": 130.9598246172494,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NW_estimate_km": {
+            "mean": 110.54991926967524,
+            "p10": 105.32501445138654,
+            "p90": 115.31695162713567,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NE_estimate_km": {
+            "mean": 47.844708142069166,
+            "p10": 46.33354756990774,
+            "p90": 49.21387372426795,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SE_estimate_km": {
+            "mean": 47.844708142069166,
+            "p10": 46.33354756990774,
+            "p90": 49.21387372426795,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SW_estimate_km": {
+            "mean": 47.844708142069166,
+            "p10": 46.33354756990774,
+            "p90": 49.21387372426795,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NW_estimate_km": {
+            "mean": 43.94297310986419,
+            "p10": 42.70782519673443,
+            "p90": 45.06034244466918,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NE_estimate_km": {
+            "mean": 28.812630539597045,
+            "p10": 27.902592356849553,
+            "p90": 29.637157715105904,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SE_estimate_km": {
+            "mean": 28.812630539597045,
+            "p10": 27.902592356849553,
+            "p90": 29.637157715105904,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SW_estimate_km": {
+            "mean": 28.812630539597045,
+            "p10": 27.902592356849553,
+            "p90": 29.637157715105904,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NW_estimate_km": {
+            "mean": 27.99408333051696,
+            "p10": 27.207226384829163,
+            "p90": 28.705908863834676,
+            "valid_members": 50,
+            "total_members": 50
+          }
+        },
+        "official_scoring_allowed": false
+      }
+    },
+    {
+      "lead_hours": 96,
+      "valid_time_utc": "2015-08-09T00:00:00Z",
+      "summary": {
+        "method": "pressure-scaled-issue-structure-experimental-v1",
+        "members": 50,
+        "definitions": {
+          "units": "km",
+          "quantity_kind": "radius_not_diameter",
+          "thresholds_kt": [
+            34,
+            50,
+            64
+          ],
+          "quadrant_order": [
+            "NE",
+            "SE",
+            "SW",
+            "NW"
+          ],
+          "quadrant_statistic": "maximum_extent_within_quadrant",
+          "target_wind_averaging_seconds": 60,
+          "validated_wind_averaging_seconds": null,
+          "validated_surface_height_m": null,
+          "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+          "official_scoring_allowed": false
+        },
+        "aggregation": "diagnose each physical forecast member then equal-weight mean",
+        "estimates": {
+          "wind_estimate_kt": {
+            "mean": 64.70444483413542,
+            "p10": 63.29356202543002,
+            "p90": 66.33251881782722,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "rmw_persistence_km": {
+            "mean": 22.223999999999997,
+            "p10": 22.224,
+            "p90": 22.224,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NE_estimate_km": {
+            "mean": 87.10027526425868,
+            "p10": 81.8158330510499,
+            "p90": 93.33082349168137,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SE_estimate_km": {
+            "mean": 88.35149639922233,
+            "p10": 82.52968511146705,
+            "p90": 95.23569961503206,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SW_estimate_km": {
+            "mean": 88.35149639922233,
+            "p10": 82.52968511146705,
+            "p90": 95.23569961503206,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NW_estimate_km": {
+            "mean": 77.46001124922105,
+            "p10": 72.300120235403,
+            "p90": 83.56396390016515,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NE_estimate_km": {
+            "mean": 37.754370159592234,
+            "p10": 36.07199626712114,
+            "p90": 39.720248011526294,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SE_estimate_km": {
+            "mean": 37.754370159592234,
+            "p10": 36.07199626712114,
+            "p90": 39.720248011526294,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SW_estimate_km": {
+            "mean": 37.754370159592234,
+            "p10": 36.07199626712114,
+            "p90": 39.720248011526294,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NW_estimate_km": {
+            "mean": 35.597347345809645,
+            "p10": 34.18540276497348,
+            "p90": 37.24275686744874,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NE_estimate_km": {
+            "mean": 15.294058015398704,
+            "p10": 0.0,
+            "p90": 23.919987713144337,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SE_estimate_km": {
+            "mean": 15.294058015398704,
+            "p10": 0.0,
+            "p90": 23.919987713144337,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SW_estimate_km": {
+            "mean": 15.294058015398704,
+            "p10": 0.0,
+            "p90": 23.919987713144337,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NW_estimate_km": {
+            "mean": 15.222880636042595,
+            "p10": 0.0,
+            "p90": 23.725678201129913,
+            "valid_members": 50,
+            "total_members": 50
+          }
+        },
+        "official_scoring_allowed": false
+      }
+    },
+    {
+      "lead_hours": 102,
+      "valid_time_utc": "2015-08-09T06:00:00Z",
+      "summary": {
+        "method": "pressure-scaled-issue-structure-experimental-v1",
+        "members": 50,
+        "definitions": {
+          "units": "km",
+          "quantity_kind": "radius_not_diameter",
+          "thresholds_kt": [
+            34,
+            50,
+            64
+          ],
+          "quadrant_order": [
+            "NE",
+            "SE",
+            "SW",
+            "NW"
+          ],
+          "quadrant_statistic": "maximum_extent_within_quadrant",
+          "target_wind_averaging_seconds": 60,
+          "validated_wind_averaging_seconds": null,
+          "validated_surface_height_m": null,
+          "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+          "official_scoring_allowed": false
+        },
+        "aggregation": "diagnose each physical forecast member then equal-weight mean",
+        "estimates": {
+          "wind_estimate_kt": {
+            "mean": 54.08197358509115,
+            "p10": 52.36953883912631,
+            "p90": 56.197356469802514,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "rmw_persistence_km": {
+            "mean": 22.223999999999997,
+            "p10": 22.224,
+            "p90": 22.224,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NE_estimate_km": {
+            "mean": 57.71481502858911,
+            "p10": 53.979058345131754,
+            "p90": 62.39734183314677,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SE_estimate_km": {
+            "mean": 57.71481502858911,
+            "p10": 53.979058345131754,
+            "p90": 62.39734183314677,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SW_estimate_km": {
+            "mean": 57.71481502858911,
+            "p10": 53.979058345131754,
+            "p90": 62.39734183314677,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NW_estimate_km": {
+            "mean": 51.91002379416582,
+            "p10": 48.91934578499617,
+            "p90": 55.646863686861266,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NE_estimate_km": {
+            "mean": 26.133371020094,
+            "p10": 24.44181374140869,
+            "p90": 28.25362749556611,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SE_estimate_km": {
+            "mean": 26.133371020094,
+            "p10": 24.44181374140869,
+            "p90": 28.25362749556611,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SW_estimate_km": {
+            "mean": 26.133371020094,
+            "p10": 24.44181374140869,
+            "p90": 28.25362749556611,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NW_estimate_km": {
+            "mean": 25.66387503924344,
+            "p10": 24.185309222855413,
+            "p90": 27.51133695581021,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NE_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SE_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SW_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NW_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          }
+        },
+        "official_scoring_allowed": false
+      }
+    },
+    {
+      "lead_hours": 108,
+      "valid_time_utc": "2015-08-09T12:00:00Z",
+      "summary": {
+        "method": "pressure-scaled-issue-structure-experimental-v1",
+        "members": 50,
+        "definitions": {
+          "units": "km",
+          "quantity_kind": "radius_not_diameter",
+          "thresholds_kt": [
+            34,
+            50,
+            64
+          ],
+          "quadrant_order": [
+            "NE",
+            "SE",
+            "SW",
+            "NW"
+          ],
+          "quadrant_statistic": "maximum_extent_within_quadrant",
+          "target_wind_averaging_seconds": 60,
+          "validated_wind_averaging_seconds": null,
+          "validated_surface_height_m": null,
+          "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+          "official_scoring_allowed": false
+        },
+        "aggregation": "diagnose each physical forecast member then equal-weight mean",
+        "estimates": {
+          "wind_estimate_kt": {
+            "mean": 43.63975707824105,
+            "p10": 42.117731376028225,
+            "p90": 45.38416307928769,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "rmw_persistence_km": {
+            "mean": 22.223999999999997,
+            "p10": 22.224,
+            "p90": 22.224,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NE_estimate_km": {
+            "mean": 37.15052237512766,
+            "p10": 34.502608553229,
+            "p90": 40.22488814064746,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SE_estimate_km": {
+            "mean": 37.15052237512766,
+            "p10": 34.502608553229,
+            "p90": 40.22488814064746,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SW_estimate_km": {
+            "mean": 37.15052237512766,
+            "p10": 34.502608553229,
+            "p90": 40.22488814064746,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NW_estimate_km": {
+            "mean": 35.08582789452084,
+            "p10": 32.85980566905332,
+            "p90": 37.66314979209932,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NE_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SE_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SW_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NW_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NE_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SE_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SW_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NW_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          }
+        },
+        "official_scoring_allowed": false
+      }
+    },
+    {
+      "lead_hours": 114,
+      "valid_time_utc": "2015-08-09T18:00:00Z",
+      "summary": {
+        "method": "pressure-scaled-issue-structure-experimental-v1",
+        "members": 50,
+        "definitions": {
+          "units": "km",
+          "quantity_kind": "radius_not_diameter",
+          "thresholds_kt": [
+            34,
+            50,
+            64
+          ],
+          "quadrant_order": [
+            "NE",
+            "SE",
+            "SW",
+            "NW"
+          ],
+          "quadrant_statistic": "maximum_extent_within_quadrant",
+          "target_wind_averaging_seconds": 60,
+          "validated_wind_averaging_seconds": null,
+          "validated_surface_height_m": null,
+          "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+          "official_scoring_allowed": false
+        },
+        "aggregation": "diagnose each physical forecast member then equal-weight mean",
+        "estimates": {
+          "wind_estimate_kt": {
+            "mean": 37.78369428158114,
+            "p10": 36.67053460219384,
+            "p90": 38.75127228951492,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "rmw_persistence_km": {
+            "mean": 22.223999999999997,
+            "p10": 22.224,
+            "p90": 22.224,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NE_estimate_km": {
+            "mean": 27.620131820259488,
+            "p10": 25.95885172589214,
+            "p90": 29.07545206201911,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SE_estimate_km": {
+            "mean": 27.620131820259488,
+            "p10": 25.95885172589214,
+            "p90": 29.07545206201911,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SW_estimate_km": {
+            "mean": 27.620131820259488,
+            "p10": 25.95885172589214,
+            "p90": 29.07545206201911,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NW_estimate_km": {
+            "mean": 26.95910743616535,
+            "p10": 25.51544175845661,
+            "p90": 28.221678378578442,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NE_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SE_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SW_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NW_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NE_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SE_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SW_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NW_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          }
+        },
+        "official_scoring_allowed": false
+      }
+    },
+    {
+      "lead_hours": 120,
+      "valid_time_utc": "2015-08-10T00:00:00Z",
+      "summary": {
+        "method": "pressure-scaled-issue-structure-experimental-v1",
+        "members": 50,
+        "definitions": {
+          "units": "km",
+          "quantity_kind": "radius_not_diameter",
+          "thresholds_kt": [
+            34,
+            50,
+            64
+          ],
+          "quadrant_order": [
+            "NE",
+            "SE",
+            "SW",
+            "NW"
+          ],
+          "quadrant_statistic": "maximum_extent_within_quadrant",
+          "target_wind_averaging_seconds": 60,
+          "validated_wind_averaging_seconds": null,
+          "validated_surface_height_m": null,
+          "rmw": "issue-time reported RMW carried forward unchanged; persistence baseline",
+          "official_scoring_allowed": false
+        },
+        "aggregation": "diagnose each physical forecast member then equal-weight mean",
+        "estimates": {
+          "wind_estimate_kt": {
+            "mean": 34.3562894347763,
+            "p10": 33.36315146942052,
+            "p90": 35.34654353724137,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "rmw_persistence_km": {
+            "mean": 22.223999999999997,
+            "p10": 22.224,
+            "p90": 22.224,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NE_estimate_km": {
+            "mean": 15.846698861031065,
+            "p10": 0.0,
+            "p90": 24.07000717123992,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SE_estimate_km": {
+            "mean": 15.846698861031065,
+            "p10": 0.0,
+            "p90": 24.07000717123992,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_SW_estimate_km": {
+            "mean": 15.846698861031065,
+            "p10": 0.0,
+            "p90": 24.07000717123992,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r34_NW_estimate_km": {
+            "mean": 15.762638718330637,
+            "p10": 0.0,
+            "p90": 23.85792603461197,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NE_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SE_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_SW_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r50_NW_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NE_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SE_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_SW_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          },
+          "r64_NW_estimate_km": {
+            "mean": 0.0,
+            "p10": 0.0,
+            "p90": 0.0,
+            "valid_members": 50,
+            "total_members": 50
+          }
+        },
+        "official_scoring_allowed": false
+      }
+    }
+  ],
+  "official_wind_or_radius_skill_score": null,
+  "physical_50_member_means_verified": true,
+  "observed_plus_zero_alignment_verified": true,
+  "coverage": {
+    "wind_estimate_kt": 20,
+    "rmw_persistence_km": 20,
+    "r34_NE_estimate_km": 20,
+    "r34_SE_estimate_km": 20,
+    "r34_SW_estimate_km": 20,
+    "r34_NW_estimate_km": 20,
+    "r50_NE_estimate_km": 20,
+    "r50_SE_estimate_km": 20,
+    "r50_SW_estimate_km": 20,
+    "r50_NW_estimate_km": 20,
+    "r64_NE_estimate_km": 20,
+    "r64_SE_estimate_km": 20,
+    "r64_SW_estimate_km": 20,
+    "r64_NW_estimate_km": 20
+  },
+  "warning": "Retrospective development examples, not untouched tests. RMW is persistence; no validated wind-period calibration.",
+  "chart": "soudelor_wind_radius.png",
+  "source_receipt_sha256": "b772fb329d021af79b4e1cceb67983e720e58d850a09e886b8a8ddc7b436e38f",
+  "source_reference": "Original immutable /Volumes/D member archive; original files unchanged."
+}

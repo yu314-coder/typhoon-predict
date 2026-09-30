@@ -62,13 +62,96 @@ One typhoon on one UTC day is one case. Each issue forecasts **+6 to +120 h**. W
 
 Mean track error is **41.0% lower** for 1.2 on this cohort. Direction, shape and geographic alignment remain separate measures, not a combined score. A shape score near one does not guarantee overlapping routes at matching times. The 1.2 forecasts are means of **50 distinct causal input perturbations**, not 50 independently trained networks. Forecast pipelines differ, so this is not an architecture ablation.
 
-**Pressure coverage:** 1.2 central-pressure MAE is **12.62 hPa over 40 storms with valid labels**; basin-area-weighted MSLP MAE is **2.72 hPa over 270 storms**. There is no matched 1.1 pressure output in this run. Basin-wide error does not establish core-field accuracy.
+**Pressure coverage in the original track run:** 1.2 central-pressure MAE is **12.62 hPa over 40 storms with valid labels**; basin-area-weighted MSLP MAE is **2.72 hPa over 270 storms**. That original run did not save matched 1.1 intensity outputs. The new matched comparison below uses its own common masks; its scores are not interchangeable with this pressure-only score. Basin-wide error does not establish core-field accuracy.
 
 **Limits:** the frozen cohort includes 40 recent storms and 230 historical storms from 1980–1999. It excludes this checkpoint's fitting/validation years, but has not been certified untouched across prior experiments. Historical hindcasts use retrospective analyses and a model trained on later years. Complete five-day labels are required, excluding short remaining lifetimes. No operational or no-overfitting claim follows.
 
 [Final report and all storm scores](evaluation/daily_storm_final.json) · [Protocol](docs/daily_storm_benchmark.md) · [Frozen issues](evaluation/release_data/daily_storm_cohort.json) · [Reproduce chart](release_tools/plot_daily_storm_final.py)
 
 **Reading route similarity:** direction error compares headings of common moving six-hour steps. Centred shape similarity removes translation and scale but preserves orientation; it does not establish geographic overlap. Path similarity also responds to displacement. Predicted and observed routes should align at the same valid times, so these metrics must be read alongside position error and unshifted route overlays.
+
+## Matched wind, intensity and radius benchmark
+
+**The same method as the track benchmark:** one forecast per typhoon-day; average valid +6, +12, …, +120 h errors within that daily issue; average daily scores within each typhoon; then average typhoons with **equal storm weight**. Per-lead charts use the same daily → storm hierarchy. Missing measurements stay missing, not zero error; curve comparisons keep the same valid times and do not shift or stretch either timeline.
+
+The full frozen **270-storm / 1,473-day** plan was checked. The original 1.1 intensity pipeline can run on **134 daily starts from 40 storms** with the required valid current wind and pressure. The other **1,339 starts are explicitly unavailable** to this matched native comparison, not silently filled from later observations or dropped for poor predictions. This is not a 270-storm intensity result. All 134 real **50-member 1.2** replays completed on the Mac GPU; their means reproduce the original saved pressure forecasts exactly (maximum difference **0.0 hPa**), and every member and source hash passed verification. 1.1 retains its frozen primary, structure and gated temporal experts and original calibration; it is not falsely called a 50-member model.
+
+| Equal-storm metric · lower is better | 1.1 | 1.2 · mean of 50 | Valid coverage |
+| --- | ---: | ---: | --- |
+| Wind MAE against USA 1-minute reference | 16.98 kt | 25.03 kt | 40 storms / 134 days |
+| USA central-pressure MAE | 12.84 hPa | 12.55 hPa | 40 storms / 134 days |
+| JMA central-pressure MAE | 13.53 hPa | 12.84 hPa | 40 storms / 134 days |
+| Wind time-curve shape error | 0.271 | 0.385 | 40 storms / 131 days |
+| USA pressure time-curve shape error | 0.276 | 0.336 | 40 storms / 131 days |
+| JMA pressure time-curve shape error | 0.293 | 0.288 | 40 storms / 134 days |
+| Wind six-hour trend-direction mismatch | 56.1% | 60.8% | 40 storms / 134 days |
+
+![Wind and intensity magnitude errors and time-curve shape errors, with whole-storm uncertainty bars](evaluation/intensity/intensity_error_bars.png)
+
+![Intensity MAE by forecast lead and six-hour trend-direction mismatch](evaluation/intensity/intensity_leads_and_trends.png)
+
+**Tradeoffs, not an overall win:** 1.2 has slightly lower mean pressure error, but its auxiliary wind is worse on magnitude and curve alignment. USA pressure at +120 h is also worse (**15.55 vs 13.52 hPa**), whereas JMA pressure at +120 h is better (**12.44 vs 15.95 hPa**). Agencies and forecast leads matter. The wind score is a diagnostic of 1.2's auxiliary scalar against a native one-minute reference, **not validation of a resolved or calibrated surface-wind product**; JMA's ten-minute wind is neither converted nor mixed into that score.
+
+The time-curve shape error is **(1 − centred cosine similarity) / 2**, lower is better, at exact common UTC leads. It removes mean and amplitude, so it must be read with MAE; it does not prove intensity levels align. It requires at least six valid points and non-flat curves in both forecasts and truth. Trend-direction mismatch compares increasing / flat / decreasing changes over **adjacent valid six-hour steps**; no gap is bridged. The [full report](evaluation/intensity/intensity_final.json) also includes six-hour tendency MAE, all per-storm scores, coverage and paired differences. Error bars are 2,000 fixed-seed **whole-storm** bootstrap replicates, not independent resampling of overlapping days. These are development diagnostics, not a newly certified untouched holdout or an architecture ablation; the curve protocol is a versioned post-hoc descriptive addition, not a preregistered hypothesis test.
+
+### Radius errors — matched definitions, not a fabricated 1.2 head
+
+Native 1.1 RMW and **NE / SE / SW / NW maximum-extent R34/R50/R64** predictions are compared only with the same native USA definitions in IBTrACS. Observation radii in nautical miles are multiplied by **1.852** to obtain kilometres; no diameters, eye size, outer-isobar radius or JMA R30 are substituted. Valid reported zero wind-radius extents remain zero; missing reports and non-positive RMW remain unavailable. Radius lead/component errors are averaged within the daily issue, then daily → storm → equal storm, like track.
+
+| Native radius MAE | 1.1 | Native 1.2 | Valid coverage |
+| --- | ---: | --- | --- |
+| RMW | 22.20 km | N/A — no radius head | 40 storms / 134 days |
+| R34 quadrants | 60.93 km | N/A — no radius head | 35 storms / 124 days |
+| R50 quadrants | 36.39 km | N/A — no radius head | 16 storms / 59 days |
+| R64 quadrants | 26.78 km | N/A — no radius head | 12 storms / 45 days |
+
+![Native radius errors and time-curve shape errors: 1.1 scored against matching USA reports, 1.2 explicitly unavailable](evaluation/intensity/native_radius_error_bars.png)
+
+**N/A is not zero error or a model win.** The separate pressure-scaled radius candidate below is not inserted into these native model bars: its surface-wind height and averaging period are not validated, so its strict definition guard rejects an official-equivalent skill claim. USA RMW is not universally best-tracked. [Native field definitions](https://www.ncei.noaa.gov/sites/default/files/2025-09/IBTrACS_v04r01_column_documentation.pdf) · [Protocol and reproduction](docs/intensity_benchmark.md) · [Verification receipt](evaluation/intensity/verification.json).
+
+### Four-storm wind, pressure and radius timelines
+
+The plots retain native **USA one-minute** and **JMA ten-minute** winds as separate curves, plus observed pressure, RMW and each radius quadrant. A separate experimental algorithm uses the exact issue-time structure and each of **50 actual model pressure members**, then averages diagnosed member values—not a diagnosis of the mean map. Dashed RMW is **issue-time persistence**, not a forecast of changing eyewall size. Reference gaps remain gaps; the radius candidate is visibly labeled experimental.
+
+![Four selected storms: native wind references, auxiliary neural wind and separate pressure-scaled experimental wind](evaluation/storm_structure/four_storm_wind_candidate.png)
+
+<details>
+<summary>Fung-wong · issue 7 November 2025, 00 UTC</summary>
+
+![Fung-wong exact-time wind, pressure and quadrant-radius comparisons](evaluation/storm_structure/fung_wong_wind_radius.png)
+
+[Definitions, member proof and source hashes](evaluation/storm_structure/fung_wong_structure.json). This is a separately saved fresh replay; its pressure output is **not substituted into the older Fung-wong MP4**.
+
+</details>
+
+<details>
+<summary>Soudelor · issue 5 August 2015, 00 UTC</summary>
+
+![Soudelor wind, pressure and radius comparisons](evaluation/storm_structure/soudelor_wind_radius.png)
+
+[Definitions and member proof](evaluation/storm_structure/soudelor_structure.json).
+
+</details>
+
+<details>
+<summary>Mangkhut · issue 11 September 2018, 00 UTC</summary>
+
+![Mangkhut wind, pressure and radius comparisons](evaluation/storm_structure/mangkhut_wind_radius.png)
+
+[Definitions and member proof](evaluation/storm_structure/mangkhut_structure.json).
+
+</details>
+
+<details>
+<summary>Meranti · issue 10 September 2016, 00 UTC</summary>
+
+![Meranti wind, pressure and radius comparisons](evaluation/storm_structure/meranti_wind_radius.png)
+
+[Definitions and member proof](evaluation/storm_structure/meranti_structure.json).
+
+</details>
+
+[Experimental algorithm and limitations](release_tools/STORM_STRUCTURE_DIAGNOSTICS.md) · [Audit index](evaluation/storm_structure/index.json) · [History wind/intensity/radius graphs](https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/history). These selected examples are illustrations, not typical-skill or untouched-test claims. The History tab shows available observations for every browsable storm; forecasts and radius estimates are never invented to fill missing inputs.
 
 ## Fung-wong pressure forecast — MP4
 
