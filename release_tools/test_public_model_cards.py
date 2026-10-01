@@ -1,7 +1,7 @@
 """Portable regression checks for complete shared README publication."""
 import re
 import unittest
-from sync_public_model_cards import MEDIA_REVISION, ROOT, media_url, render_card
+from sync_public_model_cards import CURRENT_FIGURES, SYNC_FILES, MEDIA_REVISION, ROOT, media_url, render_card
 
 
 class PublicModelCardsTest(unittest.TestCase):
@@ -46,6 +46,22 @@ class PublicModelCardsTest(unittest.TestCase):
     def test_relative_paths_cannot_escape_public_repository(self):
         with self.assertRaisesRegex(ValueError, 'relative public link'):
             render_card(self.original, self.source + '\n[No secrets](../../private-file.txt)\n')
+
+    def test_updated_pressure_graph_and_paper_are_published_together(self):
+        revision = 'a' * 40
+        rendered = render_card(self.original, self.source, revision)
+        for text in ('Pressure graph similarity', '0.7074', '0.7118', '0.7237', '0.6637', '131 days', 'time-warped', 'slight mean improvement', '13.53 to 12.84'):
+            self.assertIn(text, rendered)
+        for path in CURRENT_FIGURES:
+            self.assertIn('/resolve/' + revision + '/' + path, rendered)
+            self.assertIn(path, SYNC_FILES)
+        for path in ('paper/trackformer.tex', 'paper/trackformer.pdf',
+                     'evaluation/released_daily/released_daily_benchmark.json',
+                     'evaluation/released_daily/released_daily_verification.json'):
+            self.assertIn(path, SYNC_FILES)
+        self.assertNotIn('models/trackformer_1_2_field/weights.pt', SYNC_FILES)
+        for path in SYNC_FILES:
+            self.assertTrue((ROOT / path).is_file(), path)
 
 
 if __name__ == '__main__':

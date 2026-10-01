@@ -39,7 +39,7 @@
 \begin{document}
 \fontsize{10.3}{13}\selectfont
 \thispagestyle{empty}
-{\sffamily\small\color{modelteal}RESEARCH TECHNICAL REPORT\hfill 29 SEPTEMBER 2026\par}
+{\sffamily\small\color{modelteal}RESEARCH TECHNICAL REPORT\hfill REVISED 1 OCTOBER 2026\par}
 \vspace{13pt}
 {\sffamily\bfseries\color{ink}\fontsize{26}{29}\selectfont Trackformer 1.2\par}
 \vspace{4pt}
@@ -62,6 +62,9 @@ This report specifies the released architecture, state updates, learning
 objectives and 50-member input-perturbation policy. Across 1,473 daily forecasts
 from 270 storms, equal-storm mean track error is 471.2 km for the 1.2 ensemble
 and 798.4 km for the causal 1.1 route pipeline.
+On 134 matched daily starts from 40 storms, same-time JMA pressure MAE
+is 13.53 and 12.84 hPa for 1.1 and 1.2, respectively; paired
+whole-storm uncertainty includes zero improvement.
 The pipelines differ; this is not an architecture ablation or an untouched-test
 result. A selected Fung-wong case illustrates actual geographic alignment,
 intensity evolution and model-generated pressure contours, including their
@@ -460,10 +463,171 @@ look similar; the shape score cannot replace geographic error or an unshifted
 overlay. Path similarity responds to displacement but is not a strict
 same-time distance.
 
-\keyline{Pressure coverage.}{The 1.2 central-pressure MAE is 12.62 hPa on
-40 storms with valid labels; basin MSLP MAE is 2.72 hPa on 270 storms.
-No matched 1.1 pressure comparison is available. The SHA-256 hashes of all
-1,473 saved daily forecasts were verified.}
+\keyline{Verified same benchmark.}{All 1,473 original daily forecasts were
+hash-checked again on 1 October. Absolute routes were converted to the same
+issue-centred kilometre projection, and every daily and equal-storm route score
+was reproduced. The native-pressure comparison below uses a common subset of
+this same frozen plan, not a different storm sample. DeepMind Mini has not been
+run on this daily plan; its older scores are not transferred.}
+\reportpage
+\section{Matched central-pressure comparison}
+\subsection{Common starts, agency labels and missing inputs}
+The frozen 1.1 intensity ensemble requires valid issue-time wind and central
+pressure. These inputs are present in \textbf{134 daily starts from 40 storms}
+within the 1,473-start plan. The remaining \textbf{1,339 starts are unavailable},
+not zero-scored and not replaced with later observations. The 1.1 primary,
+structure and gated temporal experts retain their released calibration.
+For 1.2, all 134 fifty-member causal replays reproduce the originally saved
+central-pressure means exactly (maximum difference 0.0 hPa).
+
+JMA pressure uses \texttt{TOKYO\_PRES}; USA pressure uses \texttt{USA\_PRES}
+from the same IBTrACS storm identifiers at issue time plus the exact forecast
+lead. Agencies remain separate. Each comparison uses the intersection of valid
+truth and both model outputs: lead errors average within a day, days within a
+storm, then storms equally. Missing observations remain missing. This preserves
+the track benchmark's hierarchy without claiming 270-storm intensity coverage.
+
+The default pressure chart uses same-time central-pressure MAE in hPa.
+JMA mean error decreases by approximately 5.1\%; USA decreases by 2.2\%.
+These are slight descriptive differences, not established universal gains.
+A secondary graph metric is same-time pressure-curve similarity,
+$S=(1+\rho_c)/2$, where $\rho_c$ is the centred cosine between the forecast
+and observed pressure sequences on the common valid leads. No lag is optimized;
+there is no time shift, warping or fitting to truth. At least six common points
+and non-flat truth and both forecasts are required. JMA has 134 eligible
+starts, USA 131; undefined shape scores are unavailable, not zero. Removing
+level and amplitude makes this a shape diagnostic, not proof of correct
+absolute pressure. Physical hPa curves and MAE remain separate checks.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm,font=\scriptsize]
+\foreach \offset/\title/\old/\new/\oldlo/\oldhi/\newlo/\newhi in {
+0/JMA/13.5323/12.8371/11.6118/15.5213/10.5684/15.3174,
+7.2/USA/12.8356/12.5529/11.0010/14.6486/10.5056/14.7379}{
+\begin{scope}[shift={(\offset,0)}]
+\node[font=\small\bfseries] at (2.5,4.2) {\title\ central-pressure MAE};
+\foreach \tick in {0,5,10,15,20}{
+\draw[black!10] (0,\tick*3.5/20)--(5,\tick*3.5/20);
+\node[left] at (0,\tick*3.5/20) {\tick};}
+\fill[baselinegray] (1.05,0) rectangle (1.75,\old*3.5/20);
+\fill[modelteal] (3.25,0) rectangle (3.95,\new*3.5/20);
+\draw[ink,thick] (1.4,\oldlo*3.5/20)--(1.4,\oldhi*3.5/20);
+\draw[ink,thick] (1.25,\oldlo*3.5/20)--(1.55,\oldlo*3.5/20);
+\draw[ink,thick] (1.25,\oldhi*3.5/20)--(1.55,\oldhi*3.5/20);
+\draw[ink,thick] (3.6,\newlo*3.5/20)--(3.6,\newhi*3.5/20);
+\draw[ink,thick] (3.45,\newlo*3.5/20)--(3.75,\newlo*3.5/20);
+\draw[ink,thick] (3.45,\newhi*3.5/20)--(3.75,\newhi*3.5/20);
+\node[above=4pt] at (1.4,\oldhi*3.5/20) {\pgfmathprintnumber[fixed,precision=2]{\old}};
+\node[above=4pt] at (3.6,\newhi*3.5/20) {\pgfmathprintnumber[fixed,precision=2]{\new}};
+\node[below=3pt] at (1.4,0) {1.1};
+\node[below=3pt] at (3.6,0) {1.2 mean of 50};
+\draw[black!55] (0,3.5)--(0,0)--(5,0);
+\node[rotate=90] at (-.75,1.75) {MAE (hPa); lower is better};
+\end{scope}}
+\end{tikzpicture}
+\caption{Central-pressure MAE at exact common times, 40 equal-weight
+storms and 134 shared starts. Error bars are 95\% whole-storm bootstrap intervals
+(2,000 replicates, fixed seed 4712). They are development uncertainty, not an
+untouched-test certification. Each agency uses its own common label mask.}
+\label{fig:matchedpressure}
+\end{figure}
+
+\reportpage
+\subsection{Physical pressure levels and same-time overlays}
+The following overlay shows the first input-eligible frozen daily case,
+not a selected best case. Forecast and observed pressure share the same
+physical hPa axis and exact +6--120 h leads. No translation, normalization or
+temporal adjustment is applied to the drawing. It demonstrates why a shape
+score must be read with actual levels and timing, including poor predictions.
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm,font=\scriptsize]
+\begin{scope}[shift={(0,0)}]
+\node[font=\small\bfseries] at (2.5,4.1) {JMA pressure: EWINIAR};
+\draw[black!10] (0,0)--(5,0);
+\node[left] at (0,0) {965};
+\draw[black!10] (0,1.75)--(5,1.75);
+\node[left] at (0,1.75) {990};
+\draw[black!10] (0,3.5)--(5,3.5);
+\node[left] at (0,3.5) {1015};
+\node[below=3pt] at (0,0) {6};
+\node[below=3pt] at (1.8421052631578947,0) {48};
+\node[below=3pt] at (3.9473684210526314,0) {96};
+\node[below=3pt] at (5,0) {120};
+\draw[ink,solid,thick] (1.5789,2.7300)--(1.8421,2.8700)--(2.1053,2.7300)--(2.3684,2.8700)--(2.6316,2.7300)--(2.8947,2.8700)--(3.1579,2.7300)--(3.4211,2.5900)--(3.6842,2.3100)--(3.9474,2.0300)--(4.2105,1.7500)--(4.4737,1.0500)--(4.7368,0.7000)--(5.0000,0.3500);
+\draw[baselinegray,dashed,thick] (0.0000,2.8399)--(0.2632,2.9400)--(0.5263,2.9680)--(0.7895,2.9456)--(1.0526,2.8945)--(1.3158,2.8329)--(1.5789,2.7629)--(1.8421,2.6740)--(2.1053,2.5809)--(2.3684,2.4920)--(2.6316,2.4010)--(2.8947,2.2834)--(3.1579,2.1756)--(3.4211,2.0678)--(3.6842,1.9943)--(3.9474,1.9264)--(4.2105,1.8753)--(4.4737,1.8193)--(4.7368,1.7850)--(5.0000,1.8067);
+\draw[modelteal,solid,thick] (0.0000,2.4672)--(0.2632,2.4474)--(0.5263,2.4338)--(0.7895,2.4479)--(1.0526,2.3913)--(1.3158,2.3234)--(1.5789,2.1839)--(1.8421,1.9551)--(2.1053,1.6817)--(2.3684,1.3776)--(2.6316,1.1448)--(2.8947,0.9760)--(3.1579,0.9345)--(3.4211,0.8983)--(3.6842,0.8637)--(3.9474,0.8436)--(4.2105,0.8260)--(4.4737,0.8174)--(4.7368,0.8217)--(5.0000,0.8158);
+\draw[black!55] (0,3.5)--(0,0)--(5,0);
+\node[rotate=90] at (-.75,1.75) {Central pressure (hPa)};
+\node at (2.5,-.65) {Forecast lead (hours)};
+\end{scope}
+\begin{scope}[shift={(7.2,0)}]
+\node[font=\small\bfseries] at (2.5,4.1) {USA pressure: EWINIAR};
+\draw[black!10] (0,0)--(5,0);
+\node[left] at (0,0) {955};
+\draw[black!10] (0,1.75)--(5,1.75);
+\node[left] at (0,1.75) {985};
+\draw[black!10] (0,3.5)--(5,3.5);
+\node[left] at (0,3.5) {1015};
+\node[below=3pt] at (0,0) {6};
+\node[below=3pt] at (1.8421052631578947,0) {48};
+\node[below=3pt] at (3.9473684210526314,0) {96};
+\node[below=3pt] at (5,0) {120};
+\draw[ink,solid,thick] (0.0000,2.6250)--(0.2632,2.6833)--(0.5263,2.6833)--(0.7895,2.6833)--(1.0526,2.6833)--(1.3158,2.6833)--(1.5789,2.5667)--(1.8421,2.6833)--(2.1053,2.6250)--(2.3684,2.5083)--(2.6316,2.4500)--(2.8947,2.3917)--(3.1579,2.8000)--(3.4211,2.2167)--(3.6842,2.1583)--(3.9474,2.0417)--(4.2105,1.9250)--(4.4737,0.8167)--(4.7368,0.5833)--(5.0000,0.4083);
+\draw[baselinegray,dashed,thick] (0.0000,2.9499)--(0.2632,3.0333)--(0.5263,3.0567)--(0.7895,3.0380)--(1.0526,2.9954)--(1.3158,2.9441)--(1.5789,2.8858)--(1.8421,2.8117)--(2.1053,2.7341)--(2.3684,2.6600)--(2.6316,2.5842)--(2.8947,2.4862)--(3.1579,2.3963)--(3.4211,2.3065)--(3.6842,2.2453)--(3.9474,2.1887)--(4.2105,2.1461)--(4.4737,2.0994)--(4.7368,2.0708)--(5.0000,2.0889);
+\draw[modelteal,solid,thick] (0.0000,2.6393)--(0.2632,2.6229)--(0.5263,2.6115)--(0.7895,2.6232)--(1.0526,2.5761)--(1.3158,2.5195)--(1.5789,2.4033)--(1.8421,2.2126)--(2.1053,1.9848)--(2.3684,1.7313)--(2.6316,1.5374)--(2.8947,1.3966)--(3.1579,1.3621)--(3.4211,1.3319)--(3.6842,1.3031)--(3.9474,1.2864)--(4.2105,1.2717)--(4.4737,1.2645)--(4.7368,1.2680)--(5.0000,1.2632);
+\draw[black!55] (0,3.5)--(0,0)--(5,0);
+\node[rotate=90] at (-.75,1.75) {Central pressure (hPa)};
+\node at (2.5,-.65) {Forecast lead (hours)};
+\end{scope}
+\end{tikzpicture}\par\vspace{4pt}
+{\small Black: best track; gray dashed: 1.1; teal: 1.2 mean of 50.}
+\caption{EWINIAR, issue 2024-05-22 00:00 UTC. Observations are verification only, not model inputs. Agencies remain separate and gaps are not filled.}
+\label{fig:pressurecurves}
+\end{figure}
+
+\begin{table}[H]
+\centering\small
+\caption{Same-time pressure errors. Values are hPa; each lead retains the
+daily-to-storm weighting and exact common labels.}
+\begin{tabular}{lrrrr}
+\toprule
+& \multicolumn{2}{c}{JMA best track} & \multicolumn{2}{c}{USA best track}\\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Measure & 1.1 & 1.2 & 1.1 & 1.2\\
+\midrule
+All valid +6--120 h & 13.53 & 12.84 & 12.84 & 12.55\\
+At +120 h & 15.95 & 12.44 & 13.52 & 15.55\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Modest mean differences, not an all-metric win}
+JMA pressure-curve similarity changes only from 0.7074 to 0.7118;
+USA similarity worsens from 0.7237 to 0.6637. Both paired whole-storm
+similarity-difference intervals include zero. These numbers are not accuracy
+percentages or a proof that the pressure graphs align in hPa.
+The paired 1.2 minus 1.1 pressure difference is $-0.70$ hPa for JMA
+(95\% interval $[-2.68,1.20]$ hPa) and $-0.28$ hPa for USA
+($[-2.10,1.45]$ hPa). Both include zero. The USA +120 h comparison worsens,
+whereas JMA improves at that lead; aggregate route gains do not imply
+universally improved intensity. The separate auxiliary-wind diagnostic is
+also worse for 1.2 (25.03 versus 16.98 kt against USA one-minute wind).
+Its surface averaging period remains unvalidated; JMA ten-minute wind is not
+pooled with USA wind. The released 1.2 network has no native wind-radius head.
+
+The original 1.2-only pressure score, 12.62 hPa, uses a different label mask
+and is not substituted into these paired bars. Its basin MSLP error is
+2.72 hPa on 270 storms, a separate field diagnostic with no matched 1.1
+field result. A basin mean does not establish central-core accuracy.
+
+\keyline{Reproducible publication.}{The shared daily snapshot and audit
+receipt preserve source hashes, checkpoint identity, 20 exact leads, common
+pressure coverage and all storm scores. A read-only public endpoint,
+\href{https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/api/benchmarks/released}{\texttt{/api/benchmarks/released}},
+serves the same verified values as the Site charts and documentation.
+No forecasts, model weights or calibration were changed for this update.}
 \reportpage
 \section{Fung-wong: route alignment and intensity}
 The selected forecast begins at 00 UTC on 7 November 2025 and uses the saved
@@ -676,32 +840,30 @@ animates the saved fields; no additional inference or route adjustment is used.
 \label{fig:pressuremap}
 \end{figure}
 \subsection{Intensity labels and map coverage}
-Pressure truth is JMA best track from IBTrACS \texttt{TOKYO\_PRES}, not a JMA
-forecast. Native-detail history was unavailable; $0.25^\circ$ output sampling
-does not establish native resolution. From +66 h the centre leaves the fixed
-regional patch. The video then shows only the saved coarse basin field there,
-while the moving-core readout supplies central pressure. No detailed core is
-invented beyond coverage.
+Pressure truth is IBTrACS \texttt{TOKYO\_PRES} (JMA best track), not a JMA
+forecast. Native-detail history was unavailable; $0.25^\circ$ sampling is not
+native resolution. Beyond +66 h, the fixed patch no longer covers the centre:
+the film displays only coarse basin pressure there, while the moving-core
+readout supplies central pressure. No detailed core is invented.
 
-There is no verified matched 1.1 pressure array for this benchmark. On the
+The native-pressure follow-up in Figure~\ref{fig:matchedpressure} is restricted
+to its common 40-storm support. On the
 repeatedly inspected TIP ten-start diagnostic, 1.2 pressure MAE is worse
 (30.7 versus 20.1 hPa). Those overlapping starts are not independent tests;
 route gains do not establish an all-metric improvement.
 
 \subsection{What remains unverified}
-The completed cohort includes 40 recent and 230 historical storms (1980--1999),
-outside this checkpoint's fitting and validation years but not certified unused
-across prior experiments. Complete five-day truth excludes short remaining
-lifetimes. Historical hindcasts use a model trained on later years and
-retrospective analyses. Generalization still requires an unused whole-storm
-holdout, training-only preprocessing and whole-storm uncertainty resampling.
+The cohort's 40 recent and 230 historical storms (1980--1999) are outside this
+checkpoint's fitting/validation years, but not certified unused across prior
+experiments. Five-day eligibility excludes short lifetimes; historical
+hindcasts use retrospective analyses and later-year training. Generalization
+requires an unused whole-storm holdout and training-only preprocessing.
 
 \subsection{Conclusion}
-Trackformer 1.2 links recurrent environmental evolution to a translating
-pressure anomaly and coupled geographic readout. Its development results
-improve aggregate route measures over the archived 1.1 pipeline, but leave
-large absolute errors and intensity failures; the older cohort also showed
-a short-lead regression. The
-released model is a reproducible research artifact, not a substitute for
+Trackformer 1.2 couples recurrent environmental evolution, a moving pressure
+anomaly and geographic readout. Aggregate route scores improve, but absolute
+errors and intensity failures remain. Pressure-curve results are mixed, with
+paired uncertainty including zero; auxiliary-wind errors are large and native
+radius skill is unavailable. This reproducible research model does not replace
 official warnings.
 \end{document}

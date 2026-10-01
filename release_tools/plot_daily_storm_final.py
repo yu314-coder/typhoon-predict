@@ -30,6 +30,6 @@ for ax, (key, title, unit, digits) in zip(axes.flat, panels):
     ax.grid(axis='y', alpha=.16)
 fig.suptitle('Trackformer 1.2 vs 1.1 | 270 storms · 1,473 daily forecasts', x=.07, ha='left', fontsize=17, fontweight='bold')
 fig.text(.07, .922, 'Complete +6 to +120 h rollouts · each storm has equal weight · broader development evidence', color='#526174')
-fig.text(.07, .022, 'Different input pipelines; not an architecture ablation or certified untouched test. No matched 1.1 pressure comparison.', fontsize=9, color='#526174')
+fig.text(.07, .022, 'Different input pipelines; development evidence, not an untouched test. Matched pressure uses a separate 40-storm / 134-day support.', fontsize=9, color='#526174')
 fig.subplots_adjust(top=.84, bottom=.11, left=.07, right=.98, hspace=.42, wspace=.35)
 fig.savefig(ROOT / 'evaluation/trackformer_1_2_vs_1_1_270_storms_bars.png', dpi=180, facecolor='white')

@@ -22,6 +22,10 @@ CACHE = '/Volumes/D/typhoon_predict/.cache/huggingface-intensity'
 HF = 'https://huggingface.co/' + REPO
 GALLERY = '| Soudelor (2015) | Mangkhut (2018) | Meranti (2016) |\n'
 FILMS = ('mangkhut', 'fung_wong', 'soudelor', 'meranti')
+CURRENT_FIGURES = frozenset((
+    'evaluation/trackformer_1_2_vs_1_1_270_storms_bars.png',
+    'evaluation/released_daily/pressure_comparison.png',
+))
 SYNC_FILES = (
     'models/trackformer_1_2_field/README.md',
     'models/trackformer_1_2_field/WIND_ESTIMATION.md',
@@ -29,6 +33,21 @@ SYNC_FILES = (
     'models/trackformer_1_2_field/wind_estimation.py',
     'release_tools/sync_public_model_cards.py',
     'release_tools/test_public_model_cards.py',
+    'release_tools/build_release_benchmark.py',
+    'release_tools/plot_release_pressure_benchmark.py',
+    'release_tools/plot_daily_storm_final.py',
+    'docs/daily_storm_benchmark.md',
+    'docs/intensity_benchmark.md',
+    'docs/trackformer_1_2_evaluation.md',
+    'evaluation/daily_storm_final.json',
+    'evaluation/released_daily/released_daily_benchmark.json',
+    'evaluation/released_daily/released_daily_verification.json',
+    'evaluation/intensity/intensity_final.json',
+    'evaluation/intensity/verification.json',
+    'evaluation/trackformer_1_2_vs_1_1_270_storms_bars.png',
+    'evaluation/released_daily/pressure_comparison.png',
+    'paper/trackformer.tex',
+    'paper/trackformer.pdf',
 )
 
 
@@ -50,7 +69,7 @@ def player(stem, title):
             'src="' + media_url(stem) + '"></video>')
 
 
-def render_card(original, github):
+def render_card(original, github, figure_revision='main'):
     metadata = re.match(r'\A---\n.*?\n---\n', original, re.S)
     if not metadata:
         raise ValueError('Preserve existing HF YAML metadata; missing header')
@@ -96,7 +115,8 @@ def render_card(original, github):
         resolved = (ROOT / path).resolve()
         if not resolved.is_relative_to(ROOT) or not resolved.exists():
             raise ValueError('Invalid or missing relative public link: ' + path)
-        kind = 'resolve/' + MEDIA_REVISION if image else ('tree/main' if resolved.is_dir() else 'blob/main')
+        revision = figure_revision if path in CURRENT_FIGURES else MEDIA_REVISION
+        kind = 'resolve/' + revision if image else ('tree/main' if resolved.is_dir() else 'blob/main')
         target = HF + '/' + kind + '/' + path + ('#' + fragment if fragment else '')
         return image + '[' + label + '](' + target + ')'
     card = re.sub(r'(!?)\[([^\[\]\n]*)\]\(([^)\s]+)\)', link, card)
@@ -160,9 +180,18 @@ def run(output, publish=False):
         dirty = subprocess.check_output(['git', 'status', '--porcelain', '--', 'README.md', *SYNC_FILES], cwd=ROOT, text=True)
         if dirty:
             raise ValueError('Commit canonical README and matching source files before publishing')
-        committed = api.create_commit(repo_id=REPO, repo_type='model', parent_commit=parent,
-            commit_message='Refresh complete model card, pin corrected pressure movie, and sync inference documentation',
-            operations=[CommitOperationAdd(path_in_repo=name, path_or_fileobj=str(path)) for name, path in files.items()])
+        # Publish scientific assets first, then pin the new figures to that
+        # immutable commit in the card. Never pin new bytes to the old movie
+        # revision or let a missing future image render as a stale figure.
+        assets = api.create_commit(repo_id=REPO, repo_type='model', parent_commit=parent,
+            commit_message='Publish verified matched pressure-curve benchmark and revised technical paper',
+            operations=[CommitOperationAdd(path_in_repo=name, path_or_fileobj=str(ROOT/name)) for name in SYNC_FILES])
+        card_path.write_text(render_card(original.read_text(), github, assets.oid))
+        receipt['files']['README.md'] = sha(card_path)
+        receipt['figure_revision'] = assets.oid
+        committed = api.create_commit(repo_id=REPO, repo_type='model', parent_commit=assets.oid,
+            commit_message='Refresh model card with exact-time pressure graph similarity and pinned figures',
+            operations=[CommitOperationAdd(path_in_repo='README.md', path_or_fileobj=str(card_path))])
         for name, expected in receipt['files'].items():
             saved = hf_hub_download(REPO, name, revision=committed.oid, cache_dir=CACHE)
             if sha(saved) != expected:

@@ -63,6 +63,8 @@ all counts are printed. Observational RMW has reporting/provisional limitations.
 
 ## Curve comparison, analogous to route direction and shape
 
+The released Site defaults to **central-pressure MAE**, with slight descriptive mean improvements (JMA 13.53 / 12.84 hPa; USA 12.84 / 12.55 hPa, for 1.1 / 1.2) and paired uncertainty including zero. Its secondary **similarity** view is the exact complement of the shape-error metric below: `(1 + centred cosine) / 2 = 1 − shape_error`. This is a presentation transform, not a new fit or score. JMA similarity is 0.7074 / 0.7118 on 40 storms and 134 starts; USA similarity is 0.7237 / 0.6637 on 40 storms and 131 non-flat starts. Unshifted physical hPa timelines remain visible separately. The public snapshot includes every input-eligible pressure timeline.
+
 Magnitude MAE is retained alongside time-curve diagnostics, without optimizing
 time lag, warping time, shifting observations or adjusting forecasts to truth.
 These are separate, versioned post-hoc descriptive metrics, not a preregistered

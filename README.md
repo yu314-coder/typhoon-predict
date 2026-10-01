@@ -65,6 +65,8 @@ One typhoon on one UTC day is one case. Each issue forecasts **+6 to +120 h**. W
 
 This is the completed **1,473-daily-issue** evaluation, not the superseded one-start-per-storm 270-case benchmark. The October pressure-display repair does not change these frozen predictions or scores.
 
+**Now shown on the [released Site benchmark](https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/benchmarks).** The same frozen plan, all 1,473 forecast hashes, absolute-to-local coordinate conversions and daily/equal-storm route scores were rechecked on 1 October. The 1.1 pressure-graph similarity results below are the default pressure chart, with physical hPa overlays for all 134 shared starts and smaller common support displayed beside each metric. The daily chart is fixed to the verified 1.2 **50-member mean**; there is no one-member daily score to substitute. DeepMind Mini remains **not evaluated** on these daily starts—its older scores are not mixed into this larger benchmark.
+
 | Equal-storm metric | 1.1 | 1.2 · mean of 50 | Preferred |
 | --- | ---: | ---: | --- |
 | Mean track error, +6 to +120 h | 798.4 km | **471.2 km** | Lower |
@@ -78,11 +80,13 @@ This is the completed **1,473-daily-issue** evaluation, not the superseded one-s
 
 Mean track error is **41.0% lower** for 1.2 on this cohort. Direction, shape and geographic alignment remain separate measures, not a combined score. A shape score near one does not guarantee overlapping routes at matching times. The 1.2 forecasts are means of **50 distinct causal input perturbations**, not 50 independently trained networks. Forecast pipelines differ, so this is not an architecture ablation.
 
-**Pressure coverage in the original track run:** 1.2 central-pressure MAE is **12.62 hPa over 40 storms with valid labels**; basin-area-weighted MSLP MAE is **2.72 hPa over 270 storms**. That original run did not save matched 1.1 intensity outputs. The new matched comparison below uses its own common masks; its scores are not interchangeable with this pressure-only score. Basin-wide error does not establish core-field accuracy.
+**Pressure coverage in the original track run:** 1.2 central-pressure MAE is **12.62 hPa over 40 storms with valid labels**; basin-area-weighted MSLP MAE is **2.72 hPa over 270 storms**. That original run did not save matched 1.1 intensity outputs. The completed native 1.1 comparison below now fills that gap on **134 common starts / 40 storms** with agency-specific masks; its scores are not interchangeable with the original pressure-only score. Basin-wide error does not establish core-field accuracy, and no missing 1.1 field score is manufactured.
 
 **Limits:** the frozen cohort includes 40 recent storms and 230 historical storms from 1980–1999. It excludes this checkpoint's fitting/validation years, but has not been certified untouched across prior experiments. Historical hindcasts use retrospective analyses and a model trained on later years. Complete five-day labels are required, excluding short remaining lifetimes. No operational or no-overfitting claim follows.
 
 [Final report and all storm scores](evaluation/daily_storm_final.json) · [Protocol](docs/daily_storm_benchmark.md) · [Frozen issues](evaluation/release_data/daily_storm_cohort.json) · [Reproduce chart](release_tools/plot_daily_storm_final.py)
+
+[Public benchmark API](https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/api/benchmarks/released) · [Verified shared snapshot](evaluation/released_daily/released_daily_benchmark.json) · [Full forecast/hash audit](evaluation/released_daily/released_daily_verification.json). The API returns exact values, metric-specific coverage, member/checkpoint identity, pressure intervals and per-lead series, plus public download links to the full reports. Missing reference scores remain `null`.
 
 **Reading route similarity:** direction error compares headings of common moving six-hour steps. Centred shape similarity removes translation and scale but preserves orientation; it does not establish geographic overlap. Path similarity also responds to displacement. Predicted and observed routes should align at the same valid times, so these metrics must be read alongside position error and unshifted route overlays.
 
@@ -101,6 +105,25 @@ The full frozen **270-storm / 1,473-day** plan was checked. The original 1.1 int
 | USA pressure time-curve shape error | 0.276 | 0.336 | 40 storms / 131 days |
 | JMA pressure time-curve shape error | 0.293 | 0.288 | 40 storms / 134 days |
 | Wind six-hour trend-direction mismatch | 56.1% | 60.8% | 40 storms / 134 days |
+
+### Pressure comparison — slight mean improvement
+
+The Site defaults to the previous **central-pressure MAE in hPa**, using the same valid times, agency labels and daily → storm → equal-storm method. JMA mean error falls from **13.53 to 12.84 hPa** (about 5.1%); USA mean error falls from **12.84 to 12.55 hPa** (about 2.2%). These are slight descriptive improvements on the 134-start / 40-storm matched subset, not established universal gains: both paired whole-storm uncertainty intervals include zero. Actual pressure-versus-time curves remain selectable below the bars.
+
+![Matched central-pressure errors and real hPa overlays at the same times, keeping JMA and USA separate](evaluation/released_daily/pressure_comparison.png)
+
+### Pressure graph similarity — secondary exact-time diagnostic
+
+The optional **pressure-versus-time curve similarity** view complements the default hPa error chart. It uses **(1 + centred cosine similarity) / 2**, higher is better, on the exact same valid leads for both models and observations. No forecast is shifted, time-warped, lag-optimized or fitted to truth. Scores are averaged daily → storm → equal storm, using the same frozen large plan as track.
+
+| Pressure time-curve similarity · higher is better | 1.1 | 1.2 · mean of 50 | Paired support |
+| --- | ---: | ---: | --- |
+| JMA central-pressure curve | 0.7074 | 0.7118 | 40 storms / 134 days |
+| USA central-pressure curve | 0.7237 | 0.6637 | 40 storms / 131 days |
+
+USA shape uses 131 rather than 134 starts because similarity requires at least six common points and non-flat observed and model curves. Those three undefined cases do not become zero similarity. The metric removes mean pressure and amplitude, so **it does not prove the actual pressure levels align**; read it with the unshifted hPa overlay and MAE. JMA shape improves only slightly, USA shape worsens, and both paired whole-storm similarity-difference intervals include zero. The [public API](https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/api/benchmarks/released) includes all 134 matched native pressure timelines for inspection, not just the displayed example.
+
+The paired pressure differences (1.2 minus 1.1) are **−0.70 hPa for JMA**, with a whole-storm 95% interval **[−2.68, 1.20] hPa**, and **−0.28 hPa for USA**, interval **[−2.10, 1.45] hPa**. Both intervals include zero. This supports a modest descriptive mean difference, not a reliable universal pressure improvement. The Site main chart shows track and central pressure only; wind/radius diagnostics below remain separate.
 
 ![Wind and intensity magnitude errors and time-curve shape errors, with whole-storm uncertainty bars](evaluation/intensity/intensity_error_bars.png)
 
@@ -213,7 +236,7 @@ The historical plan covers six-hour starts from 1996 onward, Wayne's explicitly 
 
 ### Illustrated technical paper
 
-The **[Trackformer 1.2 technical paper (PDF)](paper/trackformer.pdf)** explains the input tensors, multiscale attention, recurrent basin transport, moving pressure core, centre association, objectives and 50-member means. It includes a **model-structure diagram**, **1.2-versus-1.1 benchmark bars and lead-error curves**, and the selected **Fung-wong route, central-pressure timeline and model-generated isobar map**. Development-data limitations, short-lead regressions and pressure failures are reported alongside improvements. [Editable, self-contained LaTeX source](paper/trackformer.tex) · [Figure reproduction utility](release_tools/build_paper_figures.py). Historical material is recoverable from Git history and the [1.1 release](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.1).
+The **[Trackformer 1.2 technical paper (PDF)](paper/trackformer.pdf)** explains the input tensors, multiscale attention, recurrent basin transport, moving pressure core, centre association, objectives and 50-member means. It includes a **model-structure diagram**, **1.2-versus-1.1 route benchmark bars and lead-error curves**, **matched pressure-error bars with whole-storm uncertainty**, **unshifted physical pressure timelines**, and the selected **Fung-wong route and model-generated isobar map**. Pressure-curve similarity remains a separate diagnostic. The pressure comparison explicitly reports its common 134-start / 40-storm subset, agency-specific masks and mixed results; it is not a completed 270-storm intensity result. [Editable, self-contained LaTeX source](paper/trackformer.tex) · [Figure reproduction utility](release_tools/build_paper_figures.py). Historical material is recoverable from Git history and the [1.1 release](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.1).
 
 ## Recent pressure forecast with isobars
 
