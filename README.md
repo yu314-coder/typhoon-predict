@@ -1,12 +1,26 @@
 # Trackformer 1.2
 
-**[Download 1.2: weights + code](https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.2/trackformer_1_2_field_20260929.tar.gz)** · **[Read the illustrated paper](paper/trackformer.pdf)** · **[Watch Fung-wong](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_fung_wong.mp4)** · **[Hugging Face model](https://huggingface.co/euler314/typhoon-predict)**
+**[Download 1.2: weights + code](https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.2/trackformer_1_2_field_20260929.tar.gz)** · **[Watch corrected Mangkhut · 20 s](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_mangkhut.mp4)** · **[Live History](https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/history)** · **[Public data API](https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/history-api)** · **[Read the illustrated paper](paper/trackformer.pdf)**
 
-Release status: **1.2 research release**, not operational certification. The package contains the released 1.2 weights, inference code, input contract, completed 270-storm evaluation and illustrated paper. The original 1.1 release remains separate.
+**README revision: 1 October 2026 (Taipei).** The corrected Mangkhut preview and film below use revision-pinned media URLs. This is a documentation and pressure-display correction, **not new weights or improved forecast scores**. GitHub and the [Hugging Face model card](https://huggingface.co/euler314/typhoon-predict) share this documentation source; Hugging Face additionally provides inline video players.
+
+Release status: **1.2 research release**, not operational certification. The downloadable package remains the 29 September release snapshot of weights, inference code, input contract, daily-issue evaluation and paper. The updated cards, corrected film and live API are linked separately; refreshing this README does not replace that package. The original 1.1 release remains separate.
 
 Trackformer 1.2 is a **research-only Western Pacific tropical-cyclone forecast model**. It evolves a sea-level-pressure (MSLP) field and a moving storm-centred pressure core every six hours through +120 h. A track and central-pressure estimate are extracted from the evolving core, not independently drawn on top of a pressure image. The prior [Trackformer 1.1 release](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.1) remains available and unchanged.
 
 **Not an operational warning system.** Do not use these forecasts for evacuation, aviation, maritime, or other safety-critical decisions. The public 1.2 name identifies one selected development checkpoint; a genuinely untouched storm-level holdout has not yet established generalization.
+
+## Corrected pressure forecast — Mangkhut (2018)
+
+[![Corrected Mangkhut moving-core pressure forecast — 1 October 2026 revision](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/evaluation/trackformer_1_2_mangkhut_video_poster.png)](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_mangkhut.mp4)
+
+**[Play the corrected Mangkhut MP4](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_mangkhut.mp4)** · issue **11 September 2018, 00 UTC** · **50-member mean** · **20 seconds** · +6 to +120 h. Twenty distinct forecast states are shown for one second each; **no extra frozen ending** is appended. GitHub shows a clickable preview, while Hugging Face supports inline playback.
+
+The corrected map uses the **actual evolving model pressure core**, registered on geographic coordinates separately for each of the 50 members before averaging. The Western Pacific overview and close-up use the same physical mean: basin pressure plus the model's tapered moving anomaly, never a vortex inserted from a pressure number. Blue is low pressure; red is high pressure. Isobars are **2 hPa**, with major labels every **4 hPa**. Routes, member central pressures, causal input histories and released weights are unchanged. Sampling at 0.1°/0.25° is interpolation, not new native resolution; the core information spacing is approximately 20 km.
+
+[Pressure arrays and provenance](evaluation/release_data/pressure_core/mangkhut/common-pressure.npz) · [Core-field replay verification](evaluation/release_data/pressure_core/mangkhut/verification.json) · [20-state playback audit](evaluation/release_data/mangkhut_playback_verification.json). Video SHA-256: `220e09eea71af88c9622131f4248be9b9914adae16785c5caee349b1e10abc20`.
+
+**Scope of this repair:** Mangkhut is the corrected 50-member film. Fung-wong, Soudelor and Meranti below retain their older fixed-patch films and 23-second playback; they are **not** presented as regenerated moving-core videos. The separate live History core recovery preserves existing historical routes and pressure readouts; those automatic historical issues are **one member**, not this 50-member example. [Original archive audit](https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/api/history/v1/verification) · [Continuing core-field recovery](https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/api/history/core-status).
 
 ## What changed from 1.1
 
@@ -45,9 +59,11 @@ The implementation is in [`models/trackformer_1_2_field/`](models/trackformer_1_
 
 Grid spacing describes the representation, not independently demonstrated effective resolution. A mean of member centres is not necessarily the minimum of the displayed mean pressure field.
 
-## Completed benchmark: 270 storms · 1,473 daily forecasts
+## Daily-issue benchmark: 1,473 forecasts · 270 storm scores
 
 One typhoon on one UTC day is one case. Each issue forecasts **+6 to +120 h**. We average lead errors within each issue, daily scores within each storm, then the **270 storm scores equally**. This prevents long-lived storms dominating the benchmark. All 1,473 cases finished on **29 September 2026, 08:22 UTC**, with every saved forecast SHA-256 verified.
+
+This is the completed **1,473-daily-issue** evaluation, not the superseded one-start-per-storm 270-case benchmark. The October pressure-display repair does not change these frozen predictions or scores.
 
 | Equal-storm metric | 1.1 | 1.2 · mean of 50 | Preferred |
 | --- | ---: | ---: | --- |
@@ -155,11 +171,11 @@ The plots retain native **USA one-minute** and **JMA ten-minute** winds as separ
 
 ## Fung-wong pressure forecast — MP4
 
-[![Play the Trackformer 1.2 Fung-wong pressure forecast MP4](evaluation/trackformer_1_2_fung_wong_video_poster.png)](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_fung_wong.mp4)
+[![Play the Trackformer 1.2 Fung-wong pressure forecast MP4](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/evaluation/trackformer_1_2_fung_wong_video_poster.png)](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_fung_wong.mp4)
 
-**[Play or download the Fung-wong MP4](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_fung_wong.mp4)** · 23 seconds · +6 to +120 h · **50-member mean**. Click the preview above to play it; inline video playback depends on the Markdown host.
+**Original fixed-patch film — not regenerated in the October moving-core repair.** **[Play or download the Fung-wong MP4](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_fung_wong.mp4)** · 23 seconds · +6 to +120 h · **50-member mean**. Click the preview above to play it; inline video playback depends on the Markdown host. Its older 23-second playback retains an additional held ending; use the corrected Mangkhut film above for the new 20-state playback.
 
-The forecast starts **7 November 2025 at 00 UTC**. The updated MP4 uses **blue for low pressure and red for high pressure**, with the unnecessary map grid and faint future-path overlays removed. Actual saved model-generated pressure with **4 hPa isobars** is shown alongside the mean forecast route and observed best track, at matching valid times and on the same geographic map. Neither route nor field is shifted or rescaled to improve alignment. The central-pressure timeline compares the forecast to **JMA best-track pressure from IBTrACS TOKYO_PRES**, not a JMA forecast.
+The forecast starts **7 November 2025 at 00 UTC**. This earlier MP4 uses **blue for low pressure and red for high pressure**, with the unnecessary map grid and faint future-path overlays removed. Actual saved model-generated pressure with **4 hPa isobars** is shown alongside the mean forecast route and observed best track, at matching valid times and on the same geographic map. Neither route nor field is shifted or rescaled to improve alignment. The central-pressure timeline compares the forecast to **JMA best-track pressure from IBTrACS TOKYO_PRES**, not a JMA forecast.
 
 This is the user-selected **Fung-wong route-and-pressure example**, not a claim of typical or untouched-test performance. The curves follow a similar broad path but do not perfectly overlap; timing and position differences remain. Central-pressure MAE is **7.36 hPa** across 20 valid labels, with an imperfect intensification and weakening cycle. For context, mean geographic position error is 130.9 km and +120 h error is 142.3 km; those distances alone do not establish route overlap. These scores use exact observed coordinates and great-circle distances, separately from the saved local-coordinate benchmark scores above.
 
@@ -173,9 +189,9 @@ Each film shows a **Western Pacific pressure overview**, a larger **unshifted fo
 
 | Soudelor (2015) | Mangkhut (2018) | Meranti (2016) |
 | --- | --- | --- |
-| [![Soudelor forecast video](evaluation/trackformer_1_2_soudelor_video_poster.png)](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_soudelor.mp4) | [![Mangkhut forecast video](evaluation/trackformer_1_2_mangkhut_video_poster.png)](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_mangkhut.mp4) | [![Meranti forecast video](evaluation/trackformer_1_2_meranti_video_poster.png)](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_meranti.mp4) |
+| [![Soudelor forecast video](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/evaluation/trackformer_1_2_soudelor_video_poster.png)](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_soudelor.mp4) | [![Mangkhut forecast video](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/evaluation/trackformer_1_2_mangkhut_video_poster.png)](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_mangkhut.mp4) | [![Meranti forecast video](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/evaluation/trackformer_1_2_meranti_video_poster.png)](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_meranti.mp4) |
 | Issue: **5 Aug 2015, 00 UTC** | Issue: **11 Sep 2018, 00 UTC** | Issue: **10 Sep 2016, 00 UTC** |
-| [Play / download MP4](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_soudelor.mp4) · [Provenance](evaluation/release_data/soudelor_video.json) | [Play / download MP4](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_mangkhut.mp4) · [Provenance](evaluation/release_data/mangkhut_video.json) | [Play / download MP4](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_meranti.mp4) · [Provenance](evaluation/release_data/meranti_video.json) |
+| [Play / download MP4](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_soudelor.mp4) · [Provenance](evaluation/release_data/soudelor_video.json) | [Play corrected 20 s MP4](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_mangkhut.mp4) · [Provenance](evaluation/release_data/mangkhut_video.json) | [Play / download MP4](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_meranti.mp4) · [Provenance](evaluation/release_data/meranti_video.json) |
 
 **These are calendar-selected historical development examples, not untouched tests or representative skill claims.** Their dates were fixed before inference, without choosing the lowest-error starts, but may overlap the checkpoint's fitting/validation years. Inputs are nine exact six-hour retrospective NCEP analyses through issue time, current intensity and past motion. Future observations are comparison labels only. Native-detail input history is not supplied and remains masked. Soudelor and Meranti retain a fixed regional reconstruction; beyond its coverage they show the 2.5° basin field only. Mangkhut uses the actual moving-core reconstruction: 0.1° close-up and 0.25° overview are interpolation/sampling, not additional native information; the core's information spacing is 20 km. Meranti's issue-time wind was missing and remains masked, not filled from future data. No validated wind-radii forecast is implied.
 
@@ -184,6 +200,16 @@ Each film shows a **Western Pacific pressure overview**, a larger **unshifted fo
 ### Public forecast and observation API
 
 [API guide](https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/history-api) · [Machine-readable resources](https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/api/history/v1/resources) · [All published data assets](https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/api/data/v1/catalog). Cross-origin, read-only JSON exposes routes, actual basin/core pressure fields, separate observed winds/radii and provenance for external pages. The original 32,230-issue Western Pacific archive and the still-progressing moving-core recovery have separate verification endpoints; missing core/wind/radius data remain unavailable, never zero. One-member historical issues are not relabelled 50-member ensembles.
+
+API contract **1.1** supports cross-origin GET/HEAD/OPTIONS without a token. Use `/api/history/v1/catalog` to discover exact issues, `/api/history/v1/issues/{id}` for forecast plus decoded physical fields, and `/api/history/v1/observations/storms/{storm_id}` for separately sourced observations. Field documents include `core_reconstruction` only when a matching export is available; `core_availability` records unavailable or pending cores. `/api/data/v1/catalog` provides paginated already-public assets and file URLs, with separate served/original SHA-256 values. No private credentials or server environment data are exposed.
+
+| Archive product | Member count and coverage | Verification |
+| --- | --- | --- |
+| Original historical tick forecasts | One member; all 32,230 planned Western Pacific issues verified | [Original receipt](https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/api/history/v1/verification) |
+| Moving-core field recovery | Same original issues and identities; **still partial**, not a completed second forecast archive | [Live status](https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/api/history/core-status) · [Core receipt](https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/api/history/v1/core-verification) |
+| This corrected Mangkhut film | 50 distinct causal input-perturbed members on a common geographic grid | [Film and member audit](evaluation/release_data/historical_video50_verification.json) |
+
+The historical plan covers six-hour starts from 1996 onward, Wayne's explicitly requested 1986 sequence, and older first issues since 1970—not all global storms or every pre-1996 tick. Reanalysis hindcasts are retrospective; later 2026 archived GFS analyses are explicitly experimental transfer. Automatic cloud inference and core recovery run in the existing GitHub repository, not on visitors' devices or this Mac. Follow the status endpoints for current counts rather than treating a README snapshot as a live progress meter.
 
 ### Illustrated technical paper
 
@@ -230,3 +256,5 @@ Only issue-time and earlier analyses are permitted. The prediction wrapper rejec
 | [`release_tools/`](release_tools/) | Reproduction scripts and weight-export utility |
 
 The older 1.1 implementation, obsolete Colab notebook, withdrawn candidate, and superseded comparison assets are no longer mixed into the current source tree. Their history and the existing release tags remain intact; the current 1.1-versus-1.2 comparison data are retained. See the [cleanup record](docs/repository_layout.md).
+
+[Shared README publisher](release_tools/sync_public_model_cards.py) · [Publication regression tests](release_tools/test_public_model_cards.py). The publisher renders the entire Hugging Face card from this README, preserves its metadata and four inline players, and checks the frozen weight and neural-source identities before and after upload. Documentation synchronization does not regenerate forecasts or modify scientific scores.

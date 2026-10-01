@@ -1,5 +1,7 @@
 # Trackformer 1.2 field-model inference
 
+**Documentation revision: 1 October 2026.** This describes the current GitHub/Hugging Face wrapper. The 29 September release tarball remains an earlier snapshot; its optional wind/radius diagnostics may differ. Released neural weights, architecture, causal input schema and route/pressure predictions are unchanged.
+
 This folder contains the exact source, input contract and inference-only weights for the research model in the [main README](../../README.md). `model.py`, `baseline_model.py` and `v165_base.py` are source-identical to the selected training implementation. The weight file is distributed via the [GitHub release](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.2) and [Hugging Face](https://huggingface.co/euler314/typhoon-predict/tree/main/models/trackformer_1_2_field), not Git.
 
 Use Python with PyTorch and NumPy. The export environment used PyTorch 2.13.0; the source was evaluated on macOS MPS. Example:
@@ -42,3 +44,5 @@ No model weights, learned architecture or existing benchmark results changed.
 **Causality:** Never populate arrays from positive-lead analysis, later best track, agency forecast or future pressure field. The wrapper checks timestamp order and shapes, but cannot authenticate the upstream archive. Do not silently replace missing values with future data. This is not a raw-weather downloader or live warning service.
 
 The published 50-member mean is a separate evaluation policy: 50 deterministic seeds perturb only normalized historical basin/regional fields with smooth zero-centred noise, then average routes, central pressures and common-grid fields. `predict.py` computes one clean forecast; do not label it a 50-member mean.
+
+**Pressure-display coverage:** `regional_mslp_hpa` is the original fixed issue-relative composite, not an automatically extended moving-core map. When the forecast centre leaves that patch, a scalar central-pressure readout must not be inserted into the image to make it appear consistent. The corrected Mangkhut film separately exports the actual moving model cores and registers member fields before averaging; [the current model card](https://huggingface.co/euler314/typhoon-predict) links the verified pressure arrays and shows which other films retain their older fixed patches. The automatic History archive and its separate core recovery expose exact geography and coverage through [the public API](https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/history-api).
