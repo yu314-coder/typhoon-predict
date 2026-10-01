@@ -110,7 +110,7 @@ def main():
     dest=args.output/'pressure-cores';dest.mkdir(parents=True,exist_ok=True)
     old=json.loads((dest/'status.json').read_text()) if (dest/'status.json').exists() else {}
     errors=old.get('errors',{});attempted=0;success=0
-    priority=['auto-tick-2025308N09144-20251107T0000']
+    priority=['auto-tick-2025308N09144-20251107T0000','auto-tick-2025308N09144-20251107T1200']
     queue=sorted(plan['queue'],key=lambda r:(r['id'] not in priority,r['storm_id']!='2018250N12170',r['id']))
     for row in queue:
         if attempted>=args.limit or time.monotonic()-start>args.minutes*60:break
