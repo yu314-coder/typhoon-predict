@@ -23,6 +23,33 @@ def sha(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
+def encode_video(work, output, forecast_states=20):
+    """One second per actual six-hour state, with no appended frozen tail."""
+    frames = sorted(work.glob('frame_*.png'))
+    expected = [work/f'frame_{i:03d}.png' for i in range(forecast_states)]
+    if frames != expected:
+        raise ValueError('Missing or unexpected forecast video frames')
+    subprocess.run(['ffmpeg', '-y', '-hide_banner', '-loglevel', 'warning',
+        '-framerate', '1', '-i', str(work/'frame_%03d.png'), '-vf', 'fps=30',
+        '-frames:v', str(forecast_states*30), '-c:v', 'h264_videotoolbox',
+        '-b:v', '4M', '-pix_fmt', 'yuv420p', '-movflags', '+faststart',
+        '-an', str(output)], check=True)
+    probe = json.loads(subprocess.check_output(['ffprobe', '-v', 'error',
+        '-select_streams', 'v:0', '-show_entries',
+        'stream=codec_name,width,height,nb_frames:format=duration',
+        '-of', 'json', str(output)]))
+    stream = probe['streams'][0]
+    if (stream['codec_name'], stream['width'], stream['height'], int(stream['nb_frames'])) != ('h264', 1600, 1000, forecast_states*30):
+        raise ValueError('Unexpected encoded video dimensions or frame count')
+    if abs(float(probe['format']['duration'])-forecast_states) > .05:
+        raise ValueError('Unexpected video duration or frozen tail')
+    return {'duration_seconds': float(probe['format']['duration']),
+        'forecast_states': forecast_states, 'encoded_frames': int(stream['nb_frames']),
+        'state_duration_seconds': 1, 'extra_final_hold_seconds': 0,
+        'codec': 'H.264', 'encoder': 'h264_videotoolbox', 'sha256': sha(output),
+        'playback': 'Each genuine six-hour state held for 1 second; no extra final hold and no interpolated forecast states.'}
+
+
 def distances(a, b):
     a, b = np.deg2rad(a), np.deg2rad(b)
     d = b - a
@@ -218,11 +245,7 @@ def build(work, stem='fung_wong', data=DATA, core_export=None, output=None):
         print(f'Rendered +{lead:03d}h', flush=True)
         plt.close(fig)
     output = output or REPO/f'docs/trackformer_1_2_{stem}.mp4'
-    subprocess.run(['ffmpeg', '-y', '-hide_banner', '-loglevel', 'warning', '-framerate', '1', '-i', str(work/'frame_%03d.png'),
-        '-vf', 'fps=30,tpad=stop_mode=clone:stop_duration=3', '-c:v', 'h264_videotoolbox', '-b:v', '4M', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-an', str(output)], check=True)
-    meta['video'] = {'file': f'docs/trackformer_1_2_{stem}.mp4', 'duration_seconds': 23, 'forecast_states': 20,
-        'codec': 'H.264', 'encoder': 'h264_videotoolbox', 'sha256': sha(output),
-        'playback': 'Each six-hour state held for 1 second; final frame held 3 seconds extra. No interpolated forecast states.'}
+    meta['video'] = {'file': f'docs/trackformer_1_2_{stem}.mp4', **encode_video(work, output)}
     (data/f'{stem}_video.json').write_text(json.dumps(meta, indent=2)+'\n')
     print('Saved', output, output.stat().st_size, 'bytes', flush=True)
 

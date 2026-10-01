@@ -11,9 +11,11 @@ from ensemble_forecast import array_hash
 from forecast_historical_video50_mac import CASES, sha
 
 
-def verify(forecasts, repo):
+def verify(forecasts, repo, stems=None):
     report = {}
     for slug, (name, sid, issue) in CASES.items():
+        if stems is not None and slug not in stems:
+            continue
         saved = forecasts/slug
         data = repo/'evaluation/release_data'
         meta = json.loads((data/f'{slug}_video.json').read_text())
@@ -52,8 +54,10 @@ def verify(forecasts, repo):
         probe = json.loads(subprocess.check_output(['ffprobe', '-v', 'error', '-select_streams', 'v:0',
             '-show_entries', 'stream=codec_name,width,height,nb_frames:format=duration', '-of', 'json', str(movie)]))
         stream = probe['streams'][0]
-        assert (stream['codec_name'], stream['width'], stream['height'], int(stream['nb_frames'])) == ('h264', 1600, 1000, 690)
-        assert abs(float(probe['format']['duration'])-23) < .1
+        duration = meta['video']['duration_seconds']
+        assert duration in (20, 23)  # Preserve older published films; new encodes have no extra hold.
+        assert (stream['codec_name'], stream['width'], stream['height'], int(stream['nb_frames'])) == ('h264', 1600, 1000, int(duration*30))
+        assert abs(float(probe['format']['duration'])-duration) < .1
         report[slug] = {'storm_id': sid, 'issue_time_utc': issue, 'model': 'Trackformer 1.2',
             'checkpoint_sha256': meta['checkpoint_sha256'], 'members': 50,
             'distinct_inputs': len(set(meta['ensemble_policy']['input_sha256'])),
@@ -74,10 +78,14 @@ if __name__ == '__main__':
     ap.add_argument('--forecasts', type=Path, required=True)
     ap.add_argument('--repo', type=Path, default=Path(__file__).resolve().parents[1])
     ap.add_argument('--receipt', type=Path, required=True)
+    ap.add_argument('--stems', nargs='+', choices=list(CASES))
+    ap.add_argument('--merge-receipt', action='store_true', help='Preserve previously verified unselected storms')
     args = ap.parse_args()
     if not str(args.receipt.resolve()).startswith('/Volumes/D/'):
         raise ValueError('Verification receipt must stay on /Volumes/D')
-    report = verify(args.forecasts, args.repo)
-    auto.write(args.receipt, {'verified': True, 'storms': report})
+    report = verify(args.forecasts, args.repo, args.stems)
+    previous = json.loads(args.receipt.read_text()) if args.merge_receipt and args.receipt.exists() else {'verified':True,'storms':{}}
+    previous['storms'].update(report)
+    auto.write(args.receipt, previous)
     print(json.dumps({'verified': list(report), 'members_per_storm': 50, 'mean_differences': 0,
                       'receipt': str(args.receipt)}))
