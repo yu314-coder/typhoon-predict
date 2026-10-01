@@ -1,0 +1,28 @@
+{
+  "source": "evaluation/released_daily/released_daily_benchmark.json",
+  "source_sha256": "79f67a5f4490150cf0ab24d73e5d3cdedb4884d37e86560cbadde1d4ecdafc43",
+  "chart": "evaluation/released_daily/model_1_2_benchmark.png",
+  "chart_sha256": "3bd866eede33fc93d36a0a5373a3b1637bf0f56860938c3d5691b9b7dfe770b4",
+  "metrics": [
+    "pressure_JMA_hpa",
+    "mean_track_error_km",
+    "direction_error_deg"
+  ],
+  "values": {
+    "pressure_JMA_hpa": {
+      "1.1": 13.53233861138585,
+      "1.2": 12.837077366789085
+    },
+    "mean_track_error_km": {
+      "1.1": 798.4143395733709,
+      "1.2": 471.2045276140213
+    },
+    "direction_error_deg": {
+      "1.1": 51.58419207122625,
+      "1.2": 34.95994745459279
+    }
+  },
+  "deepmind_score": null,
+  "zero_fill": false,
+  "model_forecasts_modified": false
+}

@@ -1,6 +1,6 @@
 """Render the complete HF card from the canonical GitHub README.
 
-Preserve remote metadata, four inline films and frozen neural weights. Default
+Preserve remote metadata, the featured film and frozen neural weights. Default
 mode only prepares artifacts on D; --publish explicitly updates the HF card,
 matching existing inference wrapper/docs and this small reproduction utility.
 No forecasts are rerun, no media are regenerated and no neural modules change.
@@ -20,11 +20,10 @@ REPO = 'euler314/typhoon-predict'
 MEDIA_REVISION = '87a6e366b42bb4cc0edc95d2c50c55fca21a2c93'
 CACHE = '/Volumes/D/typhoon_predict/.cache/huggingface-intensity'
 HF = 'https://huggingface.co/' + REPO
-GALLERY = '| Soudelor (2015) | Mangkhut (2018) | Meranti (2016) |\n'
-FILMS = ('mangkhut', 'fung_wong', 'soudelor', 'meranti')
+FILMS = ('mangkhut',)
 CURRENT_FIGURES = frozenset((
-    'evaluation/trackformer_1_2_vs_1_1_270_storms_bars.png',
-    'evaluation/released_daily/pressure_comparison.png',
+    'evaluation/released_daily/model_1_2_benchmark.png',
+    'docs/trackformer_1_2_architecture.svg',
 ))
 SYNC_FILES = (
     'models/trackformer_1_2_field/README.md',
@@ -36,9 +35,15 @@ SYNC_FILES = (
     'release_tools/build_release_benchmark.py',
     'release_tools/plot_release_pressure_benchmark.py',
     'release_tools/plot_daily_storm_final.py',
+    'release_tools/plot_model_announcement.py',
+    'release_tools/deepmind_daily_benchmark.py',
+    'release_tools/test_deepmind_daily_benchmark.py',
     'docs/daily_storm_benchmark.md',
     'docs/intensity_benchmark.md',
     'docs/trackformer_1_2_evaluation.md',
+    'docs/deepmind_daily_benchmark.md',
+    'docs/showcase_archive.md',
+    'docs/trackformer_1_2_architecture.svg',
     'evaluation/daily_storm_final.json',
     'evaluation/released_daily/released_daily_benchmark.json',
     'evaluation/released_daily/released_daily_verification.json',
@@ -46,8 +51,8 @@ SYNC_FILES = (
     'evaluation/intensity/verification.json',
     'evaluation/trackformer_1_2_vs_1_1_270_storms_bars.png',
     'evaluation/released_daily/pressure_comparison.png',
-    'paper/trackformer.tex',
-    'paper/trackformer.pdf',
+    'evaluation/released_daily/model_1_2_benchmark.png',
+    'evaluation/released_daily/model_1_2_benchmark.json',
 )
 
 
@@ -73,38 +78,14 @@ def render_card(original, github, figure_revision='main'):
     metadata = re.match(r'\A---\n.*?\n---\n', original, re.S)
     if not metadata:
         raise ValueError('Preserve existing HF YAML metadata; missing header')
-    if github.count('## Corrected pressure forecast — Mangkhut (2018)\n') != 1:
-        raise ValueError('Missing or ambiguous corrected-film section')
-    if github.count(GALLERY) != 1:
-        raise ValueError('Missing or ambiguous historical video gallery')
+    if github.count('## See the forecast: Mangkhut (2018)\n') != 1:
+        raise ValueError('Missing or ambiguous featured-film section')
     card = github
-    for stem, alt in (
-        ('mangkhut', 'Corrected Mangkhut moving-core pressure forecast — 1 October 2026 revision'),
-        ('fung_wong', 'Play the Trackformer 1.2 Fung-wong pressure forecast MP4'),
-    ):
+    for stem, alt in (('mangkhut', 'Trackformer 1.2 Mangkhut pressure and route forecast'),):
         old = '[![' + alt + '](' + media_url(stem, True) + ')](' + media_url(stem) + ')'
         if card.count(old) != 1:
             raise ValueError('Missing or ambiguous primary preview: ' + stem)
         card = card.replace(old, player(stem, alt), 1)
-    start = card.index(GALLERY)
-    end = card.index('\n\n', start)
-    original_gallery = card[start:end]
-    if len(original_gallery.splitlines()) != 5:
-        raise ValueError('Unexpected gallery; preserve existing documentation')
-    replacements = []
-    for stem, name, issue in (
-        ('soudelor', 'Soudelor (2015)', '5 August 2015, 00 UTC'),
-        ('mangkhut', 'Mangkhut (2018)', '11 September 2018, 00 UTC'),
-        ('meranti', 'Meranti (2016)', '10 September 2016, 00 UTC'),
-    ):
-        replacements.append('### ' + name + ' — issue ' + issue)
-        if stem == 'mangkhut':
-            replacements.append('The corrected 20-second player appears near the top of this card; its moving-core repair and audit are described there.')
-        else:
-            replacements.append(player(stem, name + ' original fixed-patch film'))
-        replacements.append('[Play / download ' + name.split(' (')[0] + ' MP4](' + media_url(stem) + ') · [Provenance](evaluation/release_data/' + stem + '_video.json)')
-    card = card[:start] + '\n\n'.join(replacements) + card[end:]
-
     # Relative GitHub links need HF-specific URLs. Keep evolving documentation
     # on main; pin unchanged scientific image bytes to the verified asset commit.
     def link(match):
@@ -121,12 +102,12 @@ def render_card(original, github, figure_revision='main'):
         return image + '[' + label + '](' + target + ')'
     card = re.sub(r'(!?)\[([^\[\]\n]*)\]\(([^)\s]+)\)', link, card)
     card = metadata.group(0) + '\n' + card
-    if card.count('<video ') != 4:
-        raise ValueError('Expected exactly one native player for each of four films')
+    if card.count('<video ') != 1:
+        raise ValueError('Expected exactly one featured native player')
     for stem in FILMS:
         if card.count('src="' + media_url(stem) + '"') != 1:
             raise ValueError('Missing, repeated or stale player: ' + stem)
-    if '/resolve/main/docs/trackformer_1_2_' in card:
+    if re.search(r'/resolve/main/docs/trackformer_1_2_[^"\s)]+\.mp4', card):
         raise ValueError('Unversioned movie source')
     return card
 
@@ -171,7 +152,7 @@ def run(output, publish=False):
         'github_readme_sha256': sha(ROOT / 'README.md'),
         'original_hf_readme_sha256': sha(original),
         'files': {name: sha(path) for name, path in files.items()},
-        'media_revision': MEDIA_REVISION, 'native_video_players': 4,
+        'media_revision': MEDIA_REVISION, 'native_video_players': 1,
         'inference_weights_sha256': weights_before,
         'weights_changed': False, 'neural_modules_changed': False,
         'forecast_arrays_changed': False, 'videos_changed': False,
@@ -184,13 +165,13 @@ def run(output, publish=False):
         # immutable commit in the card. Never pin new bytes to the old movie
         # revision or let a missing future image render as a stale figure.
         assets = api.create_commit(repo_id=REPO, repo_type='model', parent_commit=parent,
-            commit_message='Publish verified matched pressure-curve benchmark and revised technical paper',
+            commit_message='Publish Trackformer 1.2 announcement assets and matched DeepMind benchmark protocol',
             operations=[CommitOperationAdd(path_in_repo=name, path_or_fileobj=str(ROOT/name)) for name in SYNC_FILES])
         card_path.write_text(render_card(original.read_text(), github, assets.oid))
         receipt['files']['README.md'] = sha(card_path)
         receipt['figure_revision'] = assets.oid
         committed = api.create_commit(repo_id=REPO, repo_type='model', parent_commit=assets.oid,
-            commit_message='Refresh model card with exact-time pressure graph similarity and pinned figures',
+            commit_message='Introduce Trackformer 1.2 with a focused showcase and verified daily metrics',
             operations=[CommitOperationAdd(path_in_repo='README.md', path_or_fileobj=str(card_path))])
         for name, expected in receipt['files'].items():
             saved = hf_hub_download(REPO, name, revision=committed.oid, cache_dir=CACHE)
