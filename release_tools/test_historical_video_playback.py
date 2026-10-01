@@ -1,5 +1,7 @@
 """Regression: never add an extra frozen forecast tail to new encodes."""
 import json
+import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -7,10 +9,14 @@ from unittest.mock import patch
 
 from build_fung_wong_video import encode_video
 
+# Keep local scratch on D; GitHub's Linux runner uses its own temporary directory.
+TEST_TEMP_ROOT = os.environ.get('RUNNER_TEMP') or (
+    '/Volumes/D/typhoon_predict/output' if sys.platform == 'darwin' else None)
+
 
 class VideoPlaybackTest(unittest.TestCase):
     def test_all_twenty_states_without_padding(self):
-        with tempfile.TemporaryDirectory(dir='/Volumes/D/typhoon_predict/output') as name:
+        with tempfile.TemporaryDirectory(dir=TEST_TEMP_ROOT) as name:
             work = Path(name)
             for i in range(20):
                 (work/f'frame_{i:03d}.png').touch()
@@ -28,7 +34,7 @@ class VideoPlaybackTest(unittest.TestCase):
                 self.assertEqual(result['duration_seconds'], 20)
 
     def test_missing_state_is_not_repeated(self):
-        with tempfile.TemporaryDirectory(dir='/Volumes/D/typhoon_predict/output') as name:
+        with tempfile.TemporaryDirectory(dir=TEST_TEMP_ROOT) as name:
             with self.assertRaisesRegex(ValueError, 'Missing or unexpected'):
                 encode_video(Path(name), Path(name)/'video.mp4')
 
