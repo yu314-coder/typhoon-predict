@@ -4,11 +4,18 @@ import copy
 import torch
 import automatic_forecasts as a
 import numpy as np
-from pressure_core_backfill import core_queue_order,encoded_grid,verify_replay
+from pressure_core_backfill import core_batch_queue,core_queue_order,encoded_grid,verify_replay
 from recover_pressure_core import reconstruct
 from verify_pressure_core_archive import verify_grid
 
 class CoreQueuePriority(unittest.TestCase):
+    def test_urgent_batch_publishes_without_waiting_for_unrelated_500_issues(self):
+        rows=[{'id':'old','storm_id':'1996001'},{'id':'fung','storm_id':'2025308N09144'}]
+        self.assertEqual(core_batch_queue(rows,set(),set()),[rows[1]])
+        self.assertEqual(core_batch_queue(rows,{'fung'},set()),[rows[1],rows[0]])
+    def test_cooling_priority_issue_does_not_stall_runnable_older_exports(self):
+        rows=[{'id':'old','storm_id':'1996001'},{'id':'fung','storm_id':'2025308N09144'}]
+        self.assertEqual(core_batch_queue(rows,set(),{'fung'}),[rows[1],rows[0]])
     def test_all_fung_wong_issues_are_prioritized_without_mutating_plan(self):
         rows = [
             {'id':'auto-tick-1996001-19960101T0000','storm_id':'1996001'},

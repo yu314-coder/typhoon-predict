@@ -26,6 +26,13 @@ def core_queue_order(row):
     storm = row['storm_id']
     return (priority.index(storm) if storm in priority else len(priority), row['id'])
 
+def core_batch_queue(rows, completed, cooling):
+    """Publish the reported storm promptly, then resume normal bounded batches."""
+    ordered = sorted(rows, key=core_queue_order)
+    urgent = [r for r in ordered if r['storm_id']=='2025308N09144'
+              and r['id'] not in completed and r['id'] not in cooling]
+    return urgent or ordered
+
 def sha(path):
     with Path(path).open('rb') as f:
         return hashlib.file_digest(f, 'sha256').hexdigest()
@@ -124,7 +131,10 @@ def main():
     dest=args.output/'pressure-cores';dest.mkdir(parents=True,exist_ok=True)
     old=json.loads((dest/'status.json').read_text()) if (dest/'status.json').exists() else {}
     errors=old.get('errors',{});attempted=0;success=0
-    queue=sorted(plan['queue'],key=core_queue_order)
+    batch_now=datetime.now(timezone.utc)
+    completed={p.name[:-8] for p in dest.glob('*.json.gz')}
+    cooling={ident for ident,e in errors.items() if batch_now-a.parse(e['at'])<timedelta(hours=6)}
+    queue=core_batch_queue(plan['queue'],completed,cooling)
     for row in queue:
         if attempted>=args.limit or time.monotonic()-start>args.minutes*60:break
         ident=row['id'];target=dest/f'{ident}.json.gz'
