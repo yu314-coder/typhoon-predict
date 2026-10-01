@@ -63,5 +63,14 @@ class ImmutableReplayChecks(unittest.TestCase):
     def test_missing_lead_is_not_accepted_as_complete(self):
         with self.assertRaisesRegex(ValueError,'lead count'):
             verify_replay(self.reference,self.inputs,self.predictions[:-1],self.blocks,self.field)
+    def test_cross_backend_tolerance_is_bounded_and_cpu_stays_stricter(self):
+        predictions=copy.deepcopy(self.predictions)
+        predictions[19]['center']=torch.tensor([[20.0015,125.]])
+        with self.assertRaisesRegex(ValueError,'does not reproduce'):
+            verify_replay(self.reference,self.inputs,predictions,self.blocks,self.field)
+        self.assertLess(verify_replay(self.reference,self.inputs,predictions,self.blocks,self.field,backend='mps')['route_degrees'],.002)
+        predictions[19]['center']=torch.tensor([[20.003,125.]])
+        with self.assertRaisesRegex(ValueError,'does not reproduce'):
+            verify_replay(self.reference,self.inputs,predictions,self.blocks,self.field,backend='mps')
 
 if __name__=='__main__':unittest.main()

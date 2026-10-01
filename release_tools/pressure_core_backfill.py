@@ -41,8 +41,8 @@ def encoded_grid(block, contract):
         pressure_encoding={'format':'delta-int16-le-base64','shape':list(field.shape),'scale_hpa':.01,'offset_hpa':1000},
         pressure_delta_base64=base64.b64encode(delta.astype('<i2').tobytes()).decode())
 
-def verify_replay(reference, inputs, predictions, blocks, source_field):
-    identity=a.digest(b''.join(inputs[k].numpy().tobytes() for k in sorted(inputs)))
+def verify_replay(reference, inputs, predictions, blocks, source_field, *, backend='cpu'):
+    identity=a.digest(b''.join(inputs[k].detach().cpu().numpy().tobytes() for k in sorted(inputs)))
     if identity!=reference['input_tensor_sha256']:
         raise ValueError('Original causal input tensor hash mismatch')
     if reference['members']!=1 or reference['checkpoint_sha256']!=a.CHECKPOINT or len(reference['route'])!=21:
@@ -56,21 +56,25 @@ def verify_replay(reference, inputs, predictions, blocks, source_field):
         raise ValueError('Wrong immutable basin field identity or lead count')
     initial=reference['route'][0]
     if (initial['lead_hours']!=0 or a.ns(initial['valid_time_utc'])!=a.ns(reference['issue_time_utc'])
-            or not np.allclose(inputs['center'][0].numpy(),[initial['lat'],initial['lon']],atol=1e-4,rtol=0)):
+            or not np.allclose(inputs['center'][0].detach().cpu().numpy(),[initial['lat'],initial['lon']],atol=1e-4,rtol=0)):
         raise ValueError('Original issue-time position does not align')
     maximum={'route_degrees':0.,'core_pressure_hpa':0.,'basin_pressure_hpa':0.}
     for i,pred in enumerate(predictions):
         old=reference['route'][i+1]
         if a.ns(old['valid_time_utc']) != a.ns(reference['issue_time_utc'])+(i+1)*6*a.HOUR or old['lead_hours']!=(i+1)*6:
             raise ValueError('Original lead time mismatch')
-        maximum['route_degrees']=max(maximum['route_degrees'],float(np.max(np.abs(pred['center'][0].numpy()-[old['lat'],old['lon']]))))
+        maximum['route_degrees']=max(maximum['route_degrees'],float(np.max(np.abs(pred['center'][0].detach().cpu().numpy()-[old['lat'],old['lon']]))))
         maximum['core_pressure_hpa']=max(maximum['core_pressure_hpa'],abs(float(pred['pressure'][0])-old['pressure_hpa']))
         maximum['basin_pressure_hpa']=max(maximum['basin_pressure_hpa'],float(np.max(np.abs(blocks[i+1]['basin'][0]-source_field['pressure_hpa'][i]))))
-    if maximum['route_degrees']>.001 or maximum['core_pressure_hpa']>.05 or maximum['basin_pressure_hpa']>.006:
+    # A cross-backend MPS float32 rollout may accumulate sub-lattice sampling
+    # differences. 0.002 degrees is at most 223 m, ~1% of the 20-km core grid.
+    # Cloud replay retains its original stricter pinned-CPU threshold.
+    route_limit=.002 if backend=='mps' else .001
+    if maximum['route_degrees']>route_limit or maximum['core_pressure_hpa']>.05 or maximum['basin_pressure_hpa']>.006:
         raise ValueError('Replay does not reproduce immutable outputs: '+str(maximum))
     return maximum
 
-def export_core(model, contract, inputs, row, reference, source_field, source_hashes):
+def export_core(model, contract, inputs, row, reference, source_field, source_hashes, *, backend='cpu'):
     if (reference['id']!=row['id'] or reference['storm_id']!=row['storm_id']
             or a.ns(reference['issue_time_utc'])!=a.ns(row['issue_time_utc'])):
         raise ValueError('Pinned plan and original issue identity mismatch')
@@ -80,7 +84,7 @@ def export_core(model, contract, inputs, row, reference, source_field, source_ha
         for _ in range(20):
             state,pred=model.step(state);predictions.append(pred)
     blocks=model.blocks[0]
-    difference=verify_replay(reference,inputs,predictions,blocks,source_field)
+    difference=verify_replay(reference,inputs,predictions,blocks,source_field,backend=backend)
     issue=encoded_grid(blocks[0],contract)
     frames=[dict(**encoded_grid(block,contract),lead_hours=(i+1)*6,
         valid_time_utc=reference['route'][i+1]['valid_time_utc']) for i,block in enumerate(blocks[1:])]
@@ -90,12 +94,14 @@ def export_core(model, contract, inputs, row, reference, source_field, source_ha
         method=METHOD,units='hPa',rounding_hpa=.01,model_core_information_spacing_km=20,
         native_detail_history_available=False,scalar_pressure_inserted=False,route_or_truth_alignment=False,
         note='Original basin + original geographically registered tapered moving anomaly; no scalar insertion, route shift, or verification inputs. Internal reconstruction, not resolved observations.',
-        source_hashes=source_hashes,replay_max_difference=difference,issue=issue,frames=frames)
+        execution_backend=backend,source_hashes=source_hashes,replay_max_difference=difference,
+        replay_tolerance={'route_degrees':.002 if backend=='mps' else .001,'core_pressure_hpa':.05,'basin_pressure_hpa':.006},issue=issue,frames=frames)
 
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--output',type=Path,required=True);ap.add_argument('--cache',type=Path,required=True)
     ap.add_argument('--limit',type=int,default=500);ap.add_argument('--minutes',type=int,default=40)
+    ap.add_argument('--device',choices=['cpu','mps'],default='cpu',help='Cloud keeps pinned CPU; MPS is optional for local reproduction checks')
     ap.add_argument('--only-id');args=ap.parse_args()
     start=time.monotonic();torch.set_num_threads(2)
     config=json.loads((a.ROOT/'release_tools/history_inputs.json').read_text());base=config['base_url']
@@ -107,6 +113,8 @@ def main():
     weight=a.asset(args.cache,'weights.pt',a.HF+'/models/trackformer_1_2_field/weights.pt',manifest['inference_weights_sha256'])
     geo=np.load(a.asset(args.cache,'geography.npz',base+'/geography.npz',plan['geography']['sha256']),allow_pickle=False)
     model=CaptureModel(contract).eval();model.load_state_dict(torch.load(weight,map_location='cpu',weights_only=True),strict=True)
+    if args.device=='mps' and not torch.backends.mps.is_available():raise RuntimeError('MPS is unavailable')
+    model=model.to(args.device)
     dest=args.output/'pressure-cores';dest.mkdir(parents=True,exist_ok=True)
     old=json.loads((dest/'status.json').read_text()) if (dest/'status.json').exists() else {}
     errors=old.get('errors',{});attempted=0;success=0
@@ -131,10 +139,10 @@ def main():
                     if np.any(idx>=len(z['time'])) or not np.array_equal(z['time'][idx],wanted):raise ValueError('Missing exact causal bundled history')
                     weather=np.concatenate([z['slp'][idx,None].astype('float32'),z['q'][idx].astype('float32')*z['scale'][None,:,None,None]+z['offset'][None,:,None,None]],axis=1);times=wanted
             else:weather,times,_,_=a.remote_history(row,args.cache,contract)
-            inputs=a.inputs(weather,times,row,contract,geo)
+            inputs={k:v.to(args.device) for k,v in a.inputs(weather,times,row,contract,geo).items()}
             result=export_core(model,contract,inputs,row,reference,field,
                 {'forecast_sha256':sha(original),'basin_field_gzip_sha256':sha(original_field),
-                 'input_manifest_sha256':config['manifest_sha256'],'weights_sha256':manifest['inference_weights_sha256']})
+                 'input_manifest_sha256':config['manifest_sha256'],'weights_sha256':manifest['inference_weights_sha256']},backend=args.device)
             blob=gzip.compress(json.dumps(result,separators=(',',':'),allow_nan=False).encode(),mtime=0)
             tmp=target.with_suffix('.tmp');tmp.write_bytes(blob);tmp.replace(target)
             errors.pop(ident,None);success+=1

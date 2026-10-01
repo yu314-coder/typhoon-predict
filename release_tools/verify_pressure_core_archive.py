@@ -32,6 +32,10 @@ def verify_issue(p,output,planned):
     ident=p['forecast_id']
     if ident not in planned or p['members']!=1 or p['checkpoint_sha256']!=CHECKPOINT or p['method']!=METHOD:raise ValueError('Wrong planned issue identity')
     if p['scalar_pressure_inserted'] is not False or p['route_or_truth_alignment'] is not False:raise ValueError('Artificial correction detected')
+    backend=p.get('execution_backend','cpu')
+    if backend not in ['cpu','mps']:raise ValueError('Unknown replay backend')
+    limits={'route_degrees':.002 if backend=='mps' else .001,'core_pressure_hpa':.05,'basin_pressure_hpa':.006}
+    if p.get('replay_tolerance',limits)!=limits or any(p['replay_max_difference'][k]>v for k,v in limits.items()):raise ValueError('Replay exceeded declared numeric tolerances')
     f=output/'forecasts'/f'{ident}.json';b=output/'fields'/f'{ident}.json.gz'
     if sha(f)!=p['source_hashes']['forecast_sha256'] or sha(b)!=p['source_hashes']['basin_field_gzip_sha256']:raise ValueError('Immutable forecast/field changed')
     reference=json.loads(f.read_text())
