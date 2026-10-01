@@ -193,6 +193,10 @@ def live_rows():
 
 def infer(model,contract,geo,weather,times,row,out,kind,source,provenance=None):
     x=inputs(weather,times,row,contract,geo)
+    live_core = kind.startswith('live-')
+    if live_core:
+        from live_pressure_export import capturing_model, core_export
+        model = capturing_model(model, contract)
     with torch.inference_mode():
         state=model.initial(x);outputs=[]
         initial_pressure=(state['g'][0,0]*contract['normalization']['std'][0]+contract['normalization']['mean'][0]).numpy()
@@ -219,6 +223,8 @@ def infer(model,contract,geo,weather,times,row,out,kind,source,provenance=None):
            'valid_times_utc':valid,'units':'hPa','rounding_hpa':.01,'grid':'2.5 degree model basin','note':note,'pressure_hpa':fields,
            'issue_pressure_hpa':np.round(initial_pressure,2).tolist(),'issue_valid_time_utc':row['issue_time_utc'],
            'issue_pressure_note':'Causal model initial basin state, not a future forecast field.'}
+    if live_core:
+        field['core_reconstruction'] = core_export(model.blocks, doc, contract)
     # Lossless gzip keeps thousands of independent issue fields out of huge plain JSON blobs.
     field_path=out/'fields'/f'{ident}.json.gz';field_path.parent.mkdir(parents=True,exist_ok=True)
     temp=field_path.with_suffix('.tmp');temp.write_bytes(gzip.compress(json.dumps(field,separators=(',',':'),allow_nan=False).encode(),mtime=0));temp.replace(field_path)
@@ -234,6 +240,8 @@ def infer_live50(model,contract,geo,weather,times,row,out,source,provenance=None
         return
     initial=dict(row,motion=row.get('ensemble_motion',row.get('motion',[0.,0.])))
     x=inputs(weather,times,initial,contract,geo)
+    from live_pressure_export import capturing_model, core_export
+    model = capturing_model(model, contract)
     output,policy=run_ensemble(model,x,contract,'cpu',chunk=2,
         progress=lambda done,total,elapsed:print(json.dumps({'live50_members':done,'total':total,'elapsed_seconds':elapsed}),flush=True))
     means=mean_outputs(output)
@@ -262,6 +270,10 @@ def infer_live50(model,contract,geo,weather,times,row,out,source,provenance=None
            'note':note,'pressure_hpa':np.round(means['basin'],2).tolist(),
            'issue_pressure_hpa':np.round(means['initial_basin'],2).tolist(),'issue_valid_time_utc':row['issue_time_utc'],
            'issue_pressure_note':'Physical mean of 50 causal model initial basin states, not a future forecast field.'}
+    field['core_reconstruction'] = core_export(model.blocks, doc, contract)
+    policy['core_mean_policy'] = field['core_reconstruction']['common_grid_policy']
+    doc['pressure_note'] = ('Mean of 50 member central-pressure readouts, not the minimum of the mean map. '
+        'The displayed physical map is each member basin plus geographically registered moving anomaly, averaged on a common grid.')
     folder=destination/'fields';folder.mkdir(parents=True,exist_ok=True)
     p=folder/f'{ident}.json.gz';temp=p.with_suffix('.tmp')
     temp.write_bytes(gzip.compress(json.dumps(field,separators=(',',':'),allow_nan=False).encode(),mtime=0));temp.replace(p)
@@ -355,6 +367,7 @@ def main():
     done={i['id'] for s in storms.values() for i in s['issues'] if i['id'] in planned}
     historical_done=len(done)
     status={'updated_at_utc':utc(datetime.now(timezone.utc)),'model':'Trackformer 1.2','members':1,'checkpoint_sha256':CHECKPOINT,'runner':'GitHub-hosted CPU; not the visitor or owner Mac',
+            'live_checked_at_utc':utc(datetime.now(timezone.utc)) if not a.skip_live else old.get('live_checked_at_utc'),
             'historical_start_year':1970,'historical_total':len(plan['queue']),'historical_completed':historical_done,'errors':errors,
             'retired_source_errors':retired_errors,
             'historical_count_unit':'forecast issues','historical_storm_total':len({r['storm_id'] for r in plan['queue']}),

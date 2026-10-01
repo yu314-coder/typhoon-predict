@@ -53,9 +53,30 @@ jobs:
           git config credential.helper '!f() { echo username=x-access-token; echo "password=$GITHUB_TOKEN"; }; f'
           git fetch --depth=1 origin forecast-data
           git switch --create forecast-data FETCH_HEAD
+      - name: Prioritize and publish fresh live forecasts inside the archive lock
+        # First give live updates a turn inside the SAME output-branch lock.
+        # This prevents a perpetual history chain from starving the live job.
+        id: live_priority
+        run: |
+          due=$(python release_tools/cloud_continuation.py --output "$RUNNER_TEMP/forecast-data/data" --check-live)
+          if [ "$due" = true ]; then
+            python release_tools/automatic_forecasts.py --output "$RUNNER_TEMP/forecast-data/data" --cache .forecast-cache --historical-limit 0 --minutes 12
+            python release_tools/verify_forecast_archive.py --output "$RUNNER_TEMP/forecast-data/data" --manifest .forecast-cache/input-manifest.json
+            cd "$RUNNER_TEMP/forecast-data"
+            git config user.name 'Trackformer forecast automation'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add data/forecasts data/fields data/live50 data/catalog.json data/status.json data/coverage.json data/verification.json
+            if ! git diff --cached --quiet; then
+              git commit -m "Publish fresh causal live issues before history recovery ($GITHUB_RUN_ID)"
+              git push origin HEAD:forecast-data
+            fi
+            echo 'core_minutes=25' >> "$GITHUB_OUTPUT"
+          else
+            echo 'core_minutes=40' >> "$GITHUB_OUTPUT"
+          fi
       - name: Replay causal inputs once and append missing core fields and learned wind
         run: |
-          python release_tools/pressure_core_backfill.py --output "$RUNNER_TEMP/forecast-data/data" --cache .forecast-cache --limit "$CORE_LIMIT" --minutes 40
+          python release_tools/pressure_core_backfill.py --output "$RUNNER_TEMP/forecast-data/data" --cache .forecast-cache --limit "$CORE_LIMIT" --minutes "${{ steps.live_priority.outputs.core_minutes }}"
       - name: Audit recovered exports before publishing
         run: |
           python release_tools/verify_pressure_core_archive.py --output "$RUNNER_TEMP/forecast-data/data" --manifest .forecast-cache/input-manifest.json
@@ -74,7 +95,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          ready=$(python -c "import json,os; from pathlib import Path; d=json.loads((Path(os.environ['RUNNER_TEMP'])/'forecast-data/data/pressure-cores/status.json').read_text()); print(str(d['continue_ready']).lower())")
-          if [ "$ready" = true ]; then
-            gh workflow run pressure-core-backfill.yml --repo "$GITHUB_REPOSITORY" --ref main -f limit=500
-          fi
+          python release_tools/cloud_continuation.py --output "$RUNNER_TEMP/forecast-data/data"

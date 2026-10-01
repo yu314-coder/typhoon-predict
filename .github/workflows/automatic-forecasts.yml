@@ -103,8 +103,8 @@ jobs:
                 'cooling down:', status.get('historical_cooling_down'))
           PY
       - name: Queue the next batch immediately
-        if: steps.continuation.outputs.ready == 'true'
+        if: success() && inputs.only_id == ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh workflow run automatic-forecasts.yml --repo "$GITHUB_REPOSITORY" --ref main -f historical_limit=500
+          python release_tools/cloud_continuation.py --output "$RUNNER_TEMP/forecast-data/data"
