@@ -19,9 +19,11 @@ This is a **research release**, not an operational warning service. Follow offic
 
 ## See the forecast: Mangkhut (2018)
 
-[![Trackformer 1.2 Mangkhut pressure and route forecast](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/evaluation/trackformer_1_2_mangkhut_video_poster.png)](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_mangkhut.mp4)
+[![Trackformer 1.2 Mangkhut pressure and route forecast](docs/trackformer_1_2_mangkhut.gif)](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_mangkhut.mp4)
 
 [Watch / download MP4](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_mangkhut.mp4) · **11 September 2018, 00 UTC** · **50-member mean** · **20 seconds**
+
+GitHub plays the lightweight animated GIF inline; click it for the full-quality MP4. Hugging Face provides a native video player. The GIF preserves all twenty forecast states, one second each, and loops without adding a frozen ending.
 
 The animation shows twenty actual six-hour forecasts through +120 h. The Western Pacific overview and close-up use the same geographic mean of the model's basin and moving-core pressure fields. Blue denotes low pressure and red high pressure, with 2 hPa isobars and 4 hPa labels. Forecast and observed routes share the same coordinates and valid times—neither is shifted to make them overlap.
 

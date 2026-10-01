@@ -36,6 +36,7 @@ SYNC_FILES = (
     'release_tools/plot_release_pressure_benchmark.py',
     'release_tools/plot_daily_storm_final.py',
     'release_tools/plot_model_announcement.py',
+    'release_tools/build_mangkhut_gif.py',
     'release_tools/deepmind_daily_benchmark.py',
     'release_tools/test_deepmind_daily_benchmark.py',
     'docs/daily_storm_benchmark.md',
@@ -44,6 +45,8 @@ SYNC_FILES = (
     'docs/deepmind_daily_benchmark.md',
     'docs/showcase_archive.md',
     'docs/trackformer_1_2_architecture.svg',
+    'docs/trackformer_1_2_mangkhut.gif',
+    'docs/trackformer_1_2_mangkhut.gif.json',
     'evaluation/daily_storm_final.json',
     'evaluation/released_daily/released_daily_benchmark.json',
     'evaluation/released_daily/released_daily_verification.json',
@@ -82,7 +85,7 @@ def render_card(original, github, figure_revision='main'):
         raise ValueError('Missing or ambiguous featured-film section')
     card = github
     for stem, alt in (('mangkhut', 'Trackformer 1.2 Mangkhut pressure and route forecast'),):
-        old = '[![' + alt + '](' + media_url(stem, True) + ')](' + media_url(stem) + ')'
+        old = '[![' + alt + '](docs/trackformer_1_2_' + stem + '.gif)](' + media_url(stem) + ')'
         if card.count(old) != 1:
             raise ValueError('Missing or ambiguous primary preview: ' + stem)
         card = card.replace(old, player(stem, alt), 1)

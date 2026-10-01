@@ -30,6 +30,13 @@ class PublicModelCardsTest(unittest.TestCase):
         self.assertIn(MEDIA_REVISION, rendered)
         self.assertIn('docs/showcase_archive.md', rendered)
 
+    def test_github_animates_gif_while_hf_preserves_native_mp4(self):
+        self.assertIn('](docs/trackformer_1_2_mangkhut.gif)](', self.source)
+        rendered = render_card(self.original, self.source)
+        self.assertNotIn('](docs/trackformer_1_2_mangkhut.gif)', rendered)
+        self.assertEqual(rendered.count('src="' + media_url('mangkhut') + '"'), 1)
+        self.assertIn('docs/trackformer_1_2_mangkhut.gif', SYNC_FILES)
+
     def test_no_github_relative_links_survive(self):
         rendered = render_card(self.original, self.source)
         for url in re.findall(r'\]\(([^)\s]+)\)', rendered):
