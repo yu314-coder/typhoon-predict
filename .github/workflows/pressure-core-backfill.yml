@@ -1,9 +1,9 @@
-name: Backfill verified Trackformer 1.2 pressure cores
+name: Backfill verified Trackformer 1.2 pressure cores and model wind
 on:
   workflow_dispatch:
     inputs:
       limit:
-        description: Maximum immutable issue core exports in this batch
+        description: Maximum immutable issue core/wind exports in this batch
         default: '500'
         type: string
   schedule:
@@ -53,20 +53,21 @@ jobs:
           git config credential.helper '!f() { echo username=x-access-token; echo "password=$GITHUB_TOKEN"; }; f'
           git fetch --depth=1 origin forecast-data
           git switch --create forecast-data FETCH_HEAD
-      - name: Replay causal inputs and append missing core fields only
+      - name: Replay causal inputs once and append missing core fields and learned wind
         run: |
           python release_tools/pressure_core_backfill.py --output "$RUNNER_TEMP/forecast-data/data" --cache .forecast-cache --limit "$CORE_LIMIT" --minutes 40
       - name: Audit recovered exports before publishing
         run: |
           python release_tools/verify_pressure_core_archive.py --output "$RUNNER_TEMP/forecast-data/data" --manifest .forecast-cache/input-manifest.json
-      - name: Publish only the separate core-field namespace
+          python release_tools/verify_auxiliary_wind_archive.py --output "$RUNNER_TEMP/forecast-data/data" --manifest .forecast-cache/input-manifest.json
+      - name: Publish only the separate core-field and model-wind namespaces
         run: |
           cd "$RUNNER_TEMP/forecast-data"
           git config user.name 'Trackformer forecast automation'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add data/pressure-cores
+          git add data/pressure-cores data/model-wind
           if ! git diff --cached --quiet; then
-            git commit -m "Append verified geographic pressure cores ($GITHUB_RUN_ID)"
+            git commit -m "Append verified pressure cores and auxiliary wind ($GITHUB_RUN_ID)"
             git push origin HEAD:forecast-data
           fi
       - name: Continue only after productive verified publication
