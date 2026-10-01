@@ -4,9 +4,22 @@ import copy
 import torch
 import automatic_forecasts as a
 import numpy as np
-from pressure_core_backfill import encoded_grid,verify_replay
+from pressure_core_backfill import core_queue_order,encoded_grid,verify_replay
 from recover_pressure_core import reconstruct
 from verify_pressure_core_archive import verify_grid
+
+class CoreQueuePriority(unittest.TestCase):
+    def test_all_fung_wong_issues_are_prioritized_without_mutating_plan(self):
+        rows = [
+            {'id':'auto-tick-1996001-19960101T0000','storm_id':'1996001'},
+            {'id':'auto-tick-2018250N12170-20180911T0000','storm_id':'2018250N12170'},
+            {'id':'auto-tick-2025308N09144-20251107T1200','storm_id':'2025308N09144'},
+            {'id':'auto-tick-2025308N09144-20251106T0000','storm_id':'2025308N09144'},
+        ]
+        original = copy.deepcopy(rows)
+        self.assertEqual([r['id'] for r in sorted(rows,key=core_queue_order)],
+                         [rows[3]['id'],rows[2]['id'],rows[1]['id'],rows[0]['id']])
+        self.assertEqual(rows,original)
 
 class GeographicCoreExport(unittest.TestCase):
     def setUp(self):
