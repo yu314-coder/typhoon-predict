@@ -3,13 +3,13 @@
   "model": "Trackformer 1.2",
   "checkpoint_sha256": "f194a23d3f91ea76ad776dfad942fabd669eeae8b3fd665815463095367e9ee0",
   "members": 1,
-  "verified": 12466,
+  "verified": 12958,
   "planned": 32230,
-  "resolved_points": 231484,
-  "storms_with_wind": 555,
+  "resolved_points": 240506,
+  "storms_with_wind": 569,
   "state": "partial",
   "input_manifest_sha256": "d9dbf5c94c25eb6e86fc854f9095ac239d0db11cc2bdbc09e2aeee93bb24493f",
   "source_archive_preserved": true,
   "wind_averaging_period": "unvalidated",
-  "verified_at_utc": "2026-10-02T00:01:12.736351+00:00"
+  "verified_at_utc": "2026-10-02T00:23:26.732301+00:00"
 }
