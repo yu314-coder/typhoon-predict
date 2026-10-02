@@ -1,31 +1,41 @@
-# Trackformer 1.2 — research release
+# Trackformer 1.2 — pressure-field research model
 
-**[Download weights + code](https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.2/trackformer_1_2_field_20260929.tar.gz)** · **[Download the illustrated PDF](https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.2/trackformer.pdf)** · **[Hugging Face model card](https://huggingface.co/euler314/typhoon-predict)**
+**[Download weights + complete inference code](https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.2/trackformer_1_2_field_pressure_export_v2.tar.gz)** · **[Hugging Face](https://huggingface.co/euler314/typhoon-predict)** · **[Technical paper](https://github.com/yu314-coder/typhoon-predict/blob/main/paper/trackformer.pdf)**
 
-This release packages a verified moving-pressure-core model as **Trackformer 1.2**. It supersedes the withdrawn, unrelated route/scalar 1.2 candidate. Use `models/trackformer_1_2_field/predict.py`; the incompatible root-level candidate and example are no longer in the current source tree. Trackformer 1.1 remains available as a separate release.
+Trackformer 1.2 forecasts Western Pacific storm tracks, central pressure and evolving sea-level-pressure fields through +120 hours. A multiscale environmental-attention network conditions the moving pressure core; track and central pressure are read from that evolving field.
 
-The attached archive includes inference-only weights, exact source modules, an input wrapper, a data-contract/provenance manifest, detailed documentation, **1,473-daily-forecast / 270-storm benchmark bars**, the selected Fung-wong route-and-pressure example and recent **Surigae pressure maps with labelled isobars**. The training checkpoint was internally labelled version `1.2.73`, epoch 4; its SHA-256 is `f194a23d3f91ea76ad776dfad942fabd669eeae8b3fd665815463095367e9ee0`. The exported inference weights SHA-256 is `db49f36e85a3766defc4c172746897a1f783705d1ce8e6f9dfb8e87ae1d902cb`.
+## Direct detailed pressure-map output
 
-The README shows the user-selected **Fung-wong MP4** in place of Yagi; the interactive PRAPIROON showcase remains removed. The forecast starts 7 November 2025 at 00 UTC and uses actual saved 50-member mean pressure fields and routes through +120 h. Central-pressure MAE is 7.36 hPa against JMA best track from IBTrACS. The broad route is similar but not perfectly overlapping: mean geographic error is 130.9 km and +120 h error is 142.3 km. This is a selected development example, not typical skill. From +66 h the forecast centre leaves the regional patch; the video explicitly labels that only the saved coarse basin field is shown there. No detailed core is invented outside coverage.
+The current package exports all twenty six-hour leads with:
 
-The upgraded **illustrated technical paper** includes the detailed model architecture and equations, a module diagram, 1.2-versus-1.1 benchmark bars and lead-error curves, Fung-wong route and central-pressure curves, and the unmodified model-mean pressure field with 4 hPa isobars at +48 h. Its self-contained LaTeX embeds the saved figure data; `release_tools/build_paper_figures.py` reproduces the figure source from the published arrays. Selected examples are not representative performance, and the paper reports short-lead and pressure regressions. Model weights and implementation are unchanged.
+- Whole-WP basin pressure, the original fixed regional composite, and the actual **65×65 moving-core pressure field in physical hPa**.
+- Basin, regional and per-lead core latitude/longitude grids, coverage masks, issue time and exact valid times.
+- Original track/central-pressure outputs and an explicit **one-member** count.
+- Frozen weight/checkpoint identity and an optional PNG renderer: blue low pressure, red high pressure, labelled isobars.
 
-The Surigae illustration is a single forecast issued 2026-09-27 12 UTC, with 4 hPa isobars at +6/+24/+36 h. It is separate from the 50-member historical benchmark. Reproduction data and metric definitions are included. The model weights are unchanged in this documentation revision.
+```bash
+python models/trackformer_1_2_field/predict.py causal_issue_packet.npz forecast.npz --device cpu --pressure-map pressure_120h.png --map-lead 120
+python models/trackformer_1_2_field/plot_pressure.py forecast.npz pressure_24h.png --lead 24 --interval 2
+```
 
-This is not an operational warning service. Do not use for safety-critical decisions. A genuinely untouched storm-level holdout is still required before generalization claims.
+NumPy and PyTorch are required for inference; Matplotlib is optional for images. Use `--device mps` or `--device cuda` on a compatible system. Prepare the nine-analysis causal input packet using the [published schema](https://github.com/yu314-coder/typhoon-predict/blob/main/models/trackformer_1_2_field/README.md); this package does not fetch live weather automatically.
 
-## Completed daily benchmark and revised paper
+The core's 20-km spacing is a learned computational reconstruction, not new native observations. Invalid coverage remains masked. Fields are not shifted onto a route, and central pressure is not inserted as a display vortex. Ensemble members require geographic registration before physical-field averaging; this command is not the separate 50-member benchmark policy.
 
-All **1,473 daily forecasts across 270 distinct storms** completed at 2026-09-29T08:22:39Z. Every saved forecast SHA-256 was verified. Each storm has equal weight after its daily issues are averaged; all leads +6 through +120 h are included.
+**The learned modules, inference weights and forecast equations are unchanged.** The added export captures fields already produced by the released model. The original September 29 package remains available separately; use the pressure-export-v2 archive for the complete default output.
 
-| Equal-storm measure | 1.1 | 1.2 mean of 50 |
-| --- | ---: | ---: |
-| Mean track error | 798.4 km | 471.2 km |
-| +120 h track error | 1,646.4 km | 1,031.6 km |
-| Direction error | 51.58° | 34.96° |
-| Centred shape similarity | 0.7544 | 0.8837 |
-| Geographic path similarity | 0.5345 | 0.6560 |
+Inference weight SHA-256: `db49f36e85a3766defc4c172746897a1f783705d1ce8e6f9dfb8e87ae1d902cb`.
 
-This is a **41.0% reduction in mean track error** on a broader development cohort, not a certified untouched test. The 1.2-only central-pressure MAE is 12.62 hPa over 40 pressure-labelled storms; basin MSLP MAE is 2.72 hPa over 270 storms. There is no matched 1.1 pressure comparison. Retrospective analyses, different input pipelines, prior model selection and complete-five-day eligibility limit interpretation.
+## Matched development results
 
-The main README chart and redesigned eight-page paper now use these final equal-storm results. `evaluation/daily_storm_final.json` includes all storm scores; `release_tools/plot_daily_storm_final.py` reproduces the new bars. The paper includes the architecture, equations, lead-error chart, selected route/pressure curves and model isobars. **Weights and inference implementation are unchanged.**
+| Measure | 1.1 | 1.2 mean of 50 | Matched coverage |
+| --- | ---: | ---: | --- |
+| Mean track error | 798.4 km | 471.2 km | 1,473 daily starts / 270 storms |
+| Direction error | 51.58° | 34.96° | Same daily starts |
+| Central-pressure MAE against JMA | 13.53 hPa | 12.84 hPa | 134 common starts / 40 storms |
+
+Storms receive equal weight after valid leads and daily starts are averaged. The mean pressure reduction is small and its paired whole-storm uncertainty includes no improvement. These repeatedly inspected results are development evidence, not a certified untouched holdout. [Verified common-support metrics](https://github.com/yu314-coder/typhoon-predict/blob/main/evaluation/released_daily/released_daily_benchmark.json).
+
+The [model announcement](https://github.com/yu314-coder/typhoon-predict) includes the selected Mangkhut pressure-map animation and architecture. Selected examples are not representative skill. Auxiliary wind and pressure-derived radius diagnostics remain unvalidated; there is no native wind-radius forecast head in 1.2.
+
+This is a research model, not an operational warning service or a safety-critical forecast. Trackformer 1.1 remains a separate release. No historical archive, media, benchmark predictions or training run is modified by this exporter update.

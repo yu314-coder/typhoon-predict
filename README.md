@@ -77,7 +77,7 @@ The cohort contains 40 recent storms and 230 storms from 1980–1999. It lies ou
 
 ## Get started
 
-[Download the release package](https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.2/trackformer_1_2_field_20260929.tar.gz), or use this repository with the [Hugging Face weights](https://huggingface.co/euler314/typhoon-predict/resolve/main/models/trackformer_1_2_field/weights.pt). Put `weights.pt` in `models/trackformer_1_2_field/`. The package is a frozen release snapshot; the repository and model card carry the current documentation.
+[Download weights and the complete pressure-map exporter](https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.2/trackformer_1_2_field_pressure_export_v2.tar.gz), or use this repository with the [Hugging Face weights](https://huggingface.co/euler314/typhoon-predict/resolve/main/models/trackformer_1_2_field/weights.pt). Put `weights.pt` in `models/trackformer_1_2_field/`. The inference weights and learned model equations are unchanged; the package includes the moving-core output and map renderer.
 
 Prepare a normalized causal issue packet following the [input schema](models/trackformer_1_2_field/README.md), then run with PyTorch and NumPy:
 
@@ -85,7 +85,15 @@ Prepare a normalized causal issue packet following the [input schema](models/tra
 python models/trackformer_1_2_field/predict.py causal_issue_packet.npz forecast.npz --device mps
 ```
 
-Use `--device cuda` on a compatible NVIDIA setup or `--device cpu` for CPU inference. The packet is user-prepared, not a bundled live downloader. This command produces **one clean forecast**, not the benchmark's 50-member mean. Outputs include track coordinates, central pressure and basin/regional MSLP in physical hPa through +120 h. Use recorded geographic coordinates and coverage when drawing a regional field.
+Use `--device cuda` on a compatible NVIDIA setup or `--device cpu` for CPU inference. The packet is user-prepared, not a bundled live downloader. This command produces **one clean forecast**, not the benchmark's 50-member mean. Outputs include track coordinates, central pressure and basin, fixed regional and **moving-core MSLP grids in physical hPa through +120 h**, with geographic coordinates, coverage masks and exact valid times. The 20-km core is learned reconstruction, not native high-resolution observations.
+
+For an immediate whole-WP and detailed-core PNG, add `--pressure-map pressure_120h.png --map-lead 120` to the command (Matplotlib required). To render another saved lead without rerunning the model:
+
+```bash
+python models/trackformer_1_2_field/plot_pressure.py forecast.npz pressure_24h.png --lead 24 --interval 2
+```
+
+Blue denotes low pressure and red high pressure. The renderer uses the actual saved moving field, coordinates and masks; it never draws a replacement vortex around a scalar pressure or observed track. See the [pressure-output schema](models/trackformer_1_2_field/README.md#render-a-pressure-map-directly).
 
 The inference weight SHA-256 is `db49f36e85a3766defc4c172746897a1f783705d1ce8e6f9dfb8e87ae1d902cb`.
 
