@@ -215,15 +215,45 @@ def run_session(output, cache, minutes):
             time.sleep(min(30, max(0, (wake-datetime.now(timezone.utc)).total_seconds())))
 
 
-def workflow_busy(runs, current_id):
-    return any(str(r['id']) != str(current_id) and r['status'] != 'completed'
+def handoff_ready(jobs):
+    """A finished inference session may hand off while its cache upload ends.
+
+    The job-level concurrency lock still prevents simultaneous inference. Do
+    not ignore a running parent until its successful compute step has ended
+    and its explicit handoff step has started.
+    """
+    for job in jobs:
+        if job.get('name') != 'hourly':
+            continue
+        steps = {s.get('name'): s for s in job.get('steps', [])}
+        compute = steps.get('Recompute fifty members every hour and publish each verified run', {})
+        handoff = steps.get('Hand off to the next bounded cloud session', {})
+        if (compute.get('status') == 'completed' and compute.get('conclusion') == 'success'
+                and (handoff.get('status') == 'in_progress'
+                     or handoff.get('status') == 'completed' and handoff.get('conclusion') == 'success')):
+            return True
+    return False
+
+
+def workflow_busy(runs, current_id, finished_sessions=()):
+    ignored = {str(current_id), *(str(i) for i in finished_sessions)}
+    return any(str(r['id']) not in ignored and r['status'] != 'completed'
                and r.get('path','').split('@')[0].split('/')[-1] == WORKFLOW for r in runs)
 
 
 def cloud_gate(chain=False):
     repo = os.environ['GITHUB_REPOSITORY']
     runs = json.loads(subprocess.check_output(['gh','api',f'repos/{repo}/actions/runs?per_page=100'], text=True))['workflow_runs']
-    free = not workflow_busy(runs, os.environ['GITHUB_RUN_ID'])
+    finished_sessions = []
+    if not chain:
+        for r in runs:
+            if (str(r['id']) != os.environ['GITHUB_RUN_ID'] and r['status'] == 'in_progress'
+                    and r.get('path','').split('@')[0].split('/')[-1] == WORKFLOW):
+                jobs = json.loads(subprocess.check_output(
+                    ['gh','api',f"repos/{repo}/actions/runs/{r['id']}/jobs?per_page=100"], text=True))['jobs']
+                if handoff_ready(jobs):
+                    finished_sessions.append(r['id'])
+    free = not workflow_busy(runs, os.environ['GITHUB_RUN_ID'], finished_sessions)
     if chain:
         if free:
             subprocess.run(['gh','workflow','run',WORKFLOW,'--repo',repo,'--ref','main'], check=True)

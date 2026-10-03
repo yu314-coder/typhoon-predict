@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime, timezone
-from hourly_live import hourly_row, workflow_busy
+from hourly_live import hourly_row, workflow_busy, handoff_ready
 
 
 class HourlyLiveTests(unittest.TestCase):
@@ -32,6 +32,26 @@ class HourlyLiveTests(unittest.TestCase):
             self.assertTrue(workflow_busy([dict(id=2,status=state,path='.github/workflows/hourly-live.yml')], 1))
         self.assertFalse(workflow_busy([dict(id=1,status='in_progress',path='.github/workflows/hourly-live.yml')], 1))
         self.assertFalse(workflow_busy([dict(id=2,status='in_progress',path='.github/workflows/pressure-core-backfill.yml')], 1))
+
+    def test_parent_handoff_does_not_suppress_its_successor(self):
+        jobs = [dict(name='hourly', steps=[
+            dict(name='Recompute fifty members every hour and publish each verified run', status='completed', conclusion='success'),
+            dict(name='Hand off to the next bounded cloud session', status='in_progress', conclusion=None),
+        ])]
+        self.assertTrue(handoff_ready(jobs))
+        runs = [dict(id=2,status='in_progress',path='.github/workflows/hourly-live.yml')]
+        self.assertTrue(workflow_busy(runs, 1))
+        self.assertFalse(workflow_busy(runs, 1, finished_sessions=[2]))
+        runs.append(dict(id=3,status='queued',path='.github/workflows/hourly-live.yml'))
+        self.assertTrue(workflow_busy(runs, 1, finished_sessions=[2]))
+        jobs[0]['steps'][1]['status'] = 'pending'
+        self.assertFalse(handoff_ready(jobs))
+        jobs[0]['steps'][1]['status'] = 'in_progress'
+        jobs[0]['steps'][0]['conclusion'] = 'failure'
+        self.assertFalse(handoff_ready(jobs))
+        jobs[0]['steps'][0]['status'] = 'in_progress'
+        jobs[0]['steps'][0]['conclusion'] = None
+        self.assertFalse(handoff_ready(jobs))
 
 
 if __name__ == '__main__':
