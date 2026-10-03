@@ -1,22 +1,35 @@
 # Automatic 1.2 forecast archive
 
 The existing repository runs the released Python checkpoint on **GitHub-hosted
-CPU runners**, not on a visitor's browser or the owner's Mac. Every six hours
-(00:17, 06:17, 12:17, 18:17 UTC), the workflow first checks all current in-domain
+CPU runners**, not on a visitor's browser or the owner's Mac. Every hour at
+minute 17 (UTC and Asia/Taipei), the workflow first checks all current in-domain
 JMA storms, then processes a bounded historical batch. GitHub may delay schedules;
 public-repository schedules can be disabled after 60 days of inactivity.
+
+The existing `automatic-forecasts.yml` schedule is the only live inference
+scheduler; no second Sites or Mac automation is required. A new, validated JMA
+analysis produces a new +120-hour issue and a separate **50-member live ensemble**
+with genuine common-grid pressure means. Already completed issue IDs are skipped.
+An hourly check does not imply that JMA or the six-hour GFS analysis grid supplies
+new input every hour; unavailable sources remain explicit. The Live and History
+views check their public APIs every five minutes and follow the latest completed
+issue unless the viewer deliberately selects an archive. Updates continue with
+the browser and Mac closed. `status.json` exposes the last check, requested
+3600-second interval, ensemble member count, source errors and cloud run URL.
 
 Historical backfill now continues in **back-to-back serialized batches**: after
 successfully publishing a productive batch, the workflow immediately dispatches
 the next batch if uncomputed issues are ready. The same concurrency group permits
 only one runner at a time. There can still be GitHub queue and environment setup
-gaps; this is not a permanently running server. The six-hour schedule remains
+gaps; this is not a permanently running server. The hourly schedule remains
 for live updates and delayed source retries. Continuation stops when all work is
 complete, only cooling-down failures remain, a batch makes no successful progress,
 or inference/publishing fails. A targeted single-issue retry does not start a chain.
 No model, input boundary, membership, or forecast values are changed by this policy.
 
-New outputs are **one deterministic member**, never labelled as 50-member means.
+Historical outputs are **one deterministic member**, never labelled as the
+separate 50-member live means. Recovery shares the same publication lock and
+checks for overdue live input at an hourly threshold before starting a batch.
 The historical target starts in **1970**. Recent playback takes priority:
 **4,015 independent six-hour issues from all 135 eligible Western Pacific storms
 in 2022–2026** in the current observed snapshot. Each tick initializes a new

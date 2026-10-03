@@ -1,7 +1,8 @@
 name: Automatic Trackformer 1.2 forecasts
 on:
   schedule:
-    - cron: '17 */6 * * *'
+    # Hourly freshness checks; unchanged JMA issue IDs are not inferred again.
+    - cron: '17 * * * *'
   workflow_dispatch:
     inputs:
       historical_limit:

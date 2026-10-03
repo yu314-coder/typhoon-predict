@@ -76,8 +76,18 @@ class FairContinuation(unittest.TestCase):
 
     def test_fresh_live_check_is_not_repeated_in_every_core_batch(self):
         now = datetime(2026,10,1,10,tzinfo=timezone.utc)
-        self.assertFalse(live_refresh_due({'live_checked_at_utc':'2026-10-01T09:00:00Z'},now))
+        self.assertFalse(live_refresh_due({'live_checked_at_utc':'2026-10-01T09:00:01Z'},now))
+        self.assertTrue(live_refresh_due({'live_checked_at_utc':'2026-10-01T09:00:00Z'},now))
+        self.assertTrue(live_refresh_due({'live_checked_at_utc':'2026-10-01T08:59:59Z'},now))
         self.assertTrue(live_refresh_due({'live_issues':[{'issue_time_utc':'2026-09-30T21:00:00Z'}]},now))
+        self.assertTrue(live_refresh_due({},now))
+
+    def test_hourly_schedule_keeps_the_shared_non_canceling_archive_lock(self):
+        from pathlib import Path
+        workflow=(Path(__file__).resolve().parents[1]/'.github/workflows/automatic-forecasts.yml').read_text()
+        self.assertIn("cron: '17 * * * *'",workflow)
+        self.assertIn('group: trackformer-1-2-automatic-forecast-archive',workflow)
+        self.assertIn('cancel-in-progress: false',workflow)
 
 
 if __name__ == '__main__':unittest.main()

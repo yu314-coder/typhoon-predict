@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 WORKFLOWS = {'automatic-forecasts.yml', 'pressure-core-backfill.yml'}
+LIVE_REFRESH_INTERVAL_SECONDS = 3600
 
 
 def live_refresh_due(status, now):
@@ -17,7 +18,7 @@ def live_refresh_due(status, now):
     if not stamp:
         return True
     checked = datetime.fromisoformat(stamp.replace('Z', '+00:00'))
-    return (now-checked).total_seconds() >= 3*3600
+    return (now-checked).total_seconds() >= LIVE_REFRESH_INTERVAL_SECONDS
 
 
 def continuation_target(historical, core, wind, busy):

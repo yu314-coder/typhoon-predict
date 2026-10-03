@@ -14,6 +14,7 @@ import requests
 import torch
 from scipy.interpolate import RegularGridInterpolator
 from backfill_queue import queue_state, retry_is_cooling
+from cloud_continuation import LIVE_REFRESH_INTERVAL_SECONDS
 from gfs_archive import download_analysis
 from ensemble_forecast import analysis_motion, run_ensemble, mean_outputs
 
@@ -368,6 +369,9 @@ def main():
     historical_done=len(done)
     status={'updated_at_utc':utc(datetime.now(timezone.utc)),'model':'Trackformer 1.2','members':1,'checkpoint_sha256':CHECKPOINT,'runner':'GitHub-hosted CPU; not the visitor or owner Mac',
             'live_checked_at_utc':utc(datetime.now(timezone.utc)) if not a.skip_live else old.get('live_checked_at_utc'),
+            'live_refresh_interval_seconds':LIVE_REFRESH_INTERVAL_SECONDS,
+            'live_refresh_policy':'Hourly cloud check; new inference only for a new valid JMA analysis. Existing issues are immutable. Scheduler/source delays are possible.',
+            'live_ensemble_members':50,
             'historical_start_year':1970,'historical_total':len(plan['queue']),'historical_completed':historical_done,'errors':errors,
             'retired_source_errors':retired_errors,
             'historical_count_unit':'forecast issues','historical_storm_total':len({r['storm_id'] for r in plan['queue']}),
