@@ -3,6 +3,8 @@ on:
   schedule:
     # Hourly freshness checks; unchanged JMA issue IDs are not inferred again.
     - cron: '17 * * * *'
+    # Lightweight overdue checks recover a missed/delayed hourly invocation.
+    - cron: '32,47,57 * * * *'
   workflow_dispatch:
     inputs:
       historical_limit:
@@ -16,17 +18,36 @@ on:
 permissions:
   contents: write
   actions: write # Dispatch the next serialized archive batch after publishing.
-concurrency:
-  group: trackformer-1-2-automatic-forecast-archive
-  cancel-in-progress: false
 jobs:
+  live_gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Check freshness without starting a duplicate archive writer
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SCHEDULE: ${{ github.event.schedule }}
+        run: python release_tools/live_schedule_gate.py
   forecast:
+    needs: live_gate
+    if: needs.live_gate.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    concurrency:
+      group: trackformer-1-2-automatic-forecast-archive
+      cancel-in-progress: false
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      HISTORICAL_LIMIT: ${{ inputs.historical_limit || '500' }}
+      # Scheduled live checks must never restart the completed historical plan.
+      HISTORICAL_LIMIT: ${{ github.event_name == 'schedule' && '0' || inputs.historical_limit || '500' }}
       ONLY_ID: ${{ inputs.only_id }}
       PYTHONUNBUFFERED: '1'
       OMP_NUM_THREADS: '2'

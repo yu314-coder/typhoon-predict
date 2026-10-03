@@ -2,9 +2,14 @@
 
 The existing repository runs the released Python checkpoint on **GitHub-hosted
 CPU runners**, not on a visitor's browser or the owner's Mac. Every hour at
-minute 17 (UTC and Asia/Taipei), the workflow first checks all current in-domain
-JMA storms, then processes a bounded historical batch. GitHub may delay schedules;
-public-repository schedules can be disabled after 60 days of inactivity.
+minute 17 (UTC and Asia/Taipei), the workflow checks all current in-domain
+JMA storms. Lightweight backup checks at minutes 32, 47 and 57 start the same
+writer only when the last published live check is at least one hour old.
+The gate skips active or queued archive writers; the shared non-cancelling
+publication lock remains on the inference job. Scheduled runs use
+`historical_limit=0`; historical batches remain explicit or existing continuations.
+GitHub may delay or drop schedules; this is not an exact wall-clock guarantee.
+Public-repository schedules can be disabled after 60 days of inactivity.
 
 The existing `automatic-forecasts.yml` schedule is the only live inference
 scheduler; no second Sites or Mac automation is required. A new, validated JMA
@@ -12,9 +17,10 @@ analysis produces a new +120-hour issue and a separate **50-member live ensemble
 with genuine common-grid pressure means. Already completed issue IDs are skipped.
 An hourly check does not imply that JMA or the six-hour GFS analysis grid supplies
 new input every hour; unavailable sources remain explicit. The Live and History
-views check their public APIs every five minutes and follow the latest completed
+views follow the latest completed
 issue unless the viewer deliberately selects an archive. Updates continue with
-the browser and Mac closed. `status.json` exposes the last check, requested
+the browser and Mac closed. The Live page polls every minute while visible and
+again on focus or reconnect; History retains its five-minute poll. `status.json` exposes the last check, requested
 3600-second interval, ensemble member count, source errors and cloud run URL.
 
 Historical backfill now continues in **back-to-back serialized batches**: after
