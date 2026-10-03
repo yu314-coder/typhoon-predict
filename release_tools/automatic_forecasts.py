@@ -265,6 +265,10 @@ def infer_live50(model,contract,geo,weather,times,row,out,source,provenance=None
          'input_weather_source':provenance,'issue_analysis_source':row.get('jma_analysis'),
          'motion_input':row.get('ensemble_motion_source'), 'generated_at_utc':utc(datetime.now(timezone.utc)),
          'run_url':os.environ.get('RUN_URL')}
+    if row.get('run_slot_utc'):
+        doc.update(run_slot_utc=row['run_slot_utc'], initialization_time_utc=row['issue_time_utc'],
+                   refresh_policy='Fresh 50-member inference every UTC hour, even with unchanged JMA analysis. Initialization and valid times are not relabelled.',
+                   source_analysis_age_seconds=(parse(row['run_slot_utc'])-parse(row['issue_time_utc'])).total_seconds())
     field={'model':'Trackformer 1.2','forecast_id':ident,'members':50,'checkpoint_sha256':CHECKPOINT,
            'latitude':contract['global_lat'],'longitude':contract['global_lon'],'valid_times_utc':valid,
            'units':'hPa','rounding_hpa':.01,'grid':'2.5 degree model basin; 50-member physical mean',
@@ -285,8 +289,8 @@ def live50_catalog(out):
     storms={}
     for p in sorted((out/'live50/forecasts').glob('*.json')):
         f=json.loads(p.read_text());s=storms.setdefault(f['storm_id'],{'id':f['storm_id'],'name':f['name'],'issues':[]})
-        s['issues'].append({k:f[k] for k in ('id','issue_time_utc','members','kind')})
-    for s in storms.values():s['issues'].sort(key=lambda i:i['issue_time_utc'],reverse=True)
+        s['issues'].append({k:f[k] for k in ('id','issue_time_utc','members','kind','run_slot_utc','generated_at_utc') if k in f})
+    for s in storms.values():s['issues'].sort(key=lambda i:(i.get('run_slot_utc',i['issue_time_utc']),i['issue_time_utc']),reverse=True)
     write(out/'live50/catalog.json',{'model':'Trackformer 1.2','members':50,'checkpoint_sha256':CHECKPOINT,
           'storms':list(storms.values()),'updated_at_utc':utc(datetime.now(timezone.utc))})
 
