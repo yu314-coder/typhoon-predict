@@ -9,7 +9,7 @@ class ReadOnlyReplayProbe(unittest.TestCase):
     def test_fixed_bounded_cases_and_profiles(self):
         self.assertEqual(len(probe.CASES), 4)
         self.assertEqual(len(set(probe.CASES)), 4)
-        self.assertEqual(len(probe.PROFILES), 8)
+        self.assertEqual(len(probe.PROFILES), 14)
         self.assertIn('original-reader', probe.PROFILES)
         self.assertIn('capture-default', probe.PROFILES)
         self.assertTrue(all(name.startswith(('auto-tick-', 'auto-hist-')) for name in probe.CASES))

@@ -8,11 +8,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   diagnose:
-    strategy:
-      fail-fast: false
-      matrix:
-        runner: [ubuntu-24.04, ubuntu-22.04]
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       OMP_NUM_THREADS: '2'
@@ -43,7 +39,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: immutable-replay-diagnosis-${{ matrix.runner }}
+          name: immutable-replay-diagnosis
           path: ${{ runner.temp }}/replay-diagnosis/diagnosis.json
           if-no-files-found: error
           retention-days: 7

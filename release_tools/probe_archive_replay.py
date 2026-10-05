@@ -28,7 +28,15 @@ PROFILES = {
     'avx2': {'ATEN_CPU_CAPABILITY': 'avx2', 'DNNL_MAX_CPU_ISA': 'AVX2', 'MKL_ENABLE_INSTRUCTIONS': 'AVX2'},
     'mkl-compatible': {'ATEN_CPU_CAPABILITY': 'avx2', 'DNNL_MAX_CPU_ISA': 'AVX2', 'MKL_CBWR': 'COMPATIBLE'},
     'sdpa-math': {},
+    'legacy-vector': {'ATEN_CPU_CAPABILITY': 'default', 'DNNL_MAX_CPU_ISA': 'SSE41', 'MKL_CBWR': 'SSE4_2'},
+    'unfused-onednn-disabled': {},
+    'math-onednn-disabled': {},
+    'four-thread': {'OMP_NUM_THREADS': '4', 'MKL_NUM_THREADS': '4'},
+    'four-thread-unfused': {'OMP_NUM_THREADS': '4', 'MKL_NUM_THREADS': '4'},
+    'unfused-mkl-compatible': {'ATEN_CPU_CAPABILITY': 'avx2', 'DNNL_MAX_CPU_ISA': 'AVX2', 'MKL_CBWR': 'COMPATIBLE'},
 }
+UNFUSED_PROFILES = {'unfused-attention','sdpa-math','unfused-onednn-disabled',
+                   'math-onednn-disabled','four-thread-unfused','unfused-mkl-compatible'}
 
 
 def child(root, profile):
@@ -38,10 +46,10 @@ def child(root, profile):
     import automatic_forecasts as a
     from pressure_core_backfill import CaptureModel, verify_replay
 
-    torch.set_num_threads(1 if profile == 'single-thread' else 2)
-    if profile == 'unfused-attention':
+    torch.set_num_threads(1 if profile == 'single-thread' else 4 if profile.startswith('four-thread') else 2)
+    if profile in UNFUSED_PROFILES:
         torch.backends.mha.set_fastpath_enabled(False)
-    if profile == 'onednn-disabled':
+    if profile in ('onednn-disabled','unfused-onednn-disabled','math-onednn-disabled'):
         torch.backends.mkldnn.enabled = False
     config = json.loads((a.MODEL/'manifest.json').read_text())
     contract = config['data_contract']
@@ -52,7 +60,7 @@ def child(root, profile):
     reference = json.loads((root/'reference.json').read_text())
     field = json.loads((root/'field.json').read_text())
     context = contextlib.nullcontext()
-    if profile == 'sdpa-math':
+    if profile in ('sdpa-math','math-onednn-disabled'):
         from torch.nn.attention import sdpa_kernel, SDPBackend
         torch.backends.mha.set_fastpath_enabled(False)
         context = sdpa_kernel(SDPBackend.MATH)
