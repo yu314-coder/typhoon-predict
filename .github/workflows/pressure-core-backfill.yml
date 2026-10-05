@@ -51,7 +51,7 @@ jobs:
           cd "$RUNNER_TEMP/forecast-data"
           git remote add origin "https://github.com/$GITHUB_REPOSITORY.git"
           git config credential.helper '!f() { echo username=x-access-token; echo "password=$GITHUB_TOKEN"; }; f'
-          git fetch --depth=1 origin forecast-data
+          python "$GITHUB_WORKSPACE/release_tools/fetch_forecast_archive.py" --checkout "$RUNNER_TEMP/forecast-data"
           git switch --create forecast-data FETCH_HEAD
       - name: Prioritize and publish fresh live forecasts inside the archive lock
         # First give live updates a turn inside the SAME output-branch lock.
