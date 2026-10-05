@@ -72,6 +72,9 @@ def child(root, profile):
                   cpu_capability=torch.backends.cpu.get_cpu_capability(),
                   threads=torch.get_num_threads(), machine=platform.machine(),
                   immutable_archive_modified=False)
+    cpu = json.loads(subprocess.check_output(['lscpu','-J'], text=True))['lscpu']
+    result['cpu_hardware'] = {r['field'].rstrip(':'):r['data'] for r in cpu
+        if r['field'] in ('Model name:', 'Vendor ID:', 'CPU(s):')}
     try:
         result['difference'] = verify_replay(reference, inputs, predictions, blocks, field)
         result['matches_original'] = True

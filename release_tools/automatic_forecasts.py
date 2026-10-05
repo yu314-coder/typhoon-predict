@@ -74,6 +74,34 @@ def inputs(weather,times,row,contract,geo):
        'issue_intensity':np.asarray([x if ok else 0 for x,ok in zip(raw,mask)]),'issue_mask':np.asarray(mask,dtype='float32')}
     return {k:torch.from_numpy(np.asarray(a,dtype='float32')[None].copy()) for k,a in v.items()}
 
+def read_ncep_exact(xr, url, variable, dates, contract, specs):
+    """Bounded reopen after an incomplete remote coordinate/I/O response.
+
+    Retry the SAME source and exact indices. A missing time/level/location is
+    never replaced by a nearest index; do not return a partially read variable.
+    """
+    for attempt in range(3):
+        try:
+            result = {}
+            with xr.open_dataset(url,engine='netcdf4') as ds:
+                for var,level,ch in specs:
+                    if var!=variable:continue
+                    selected=ds[var].sel(time=dates,lat=contract['global_lat'],lon=contract['global_lon'])
+                    if level is not None:selected=selected.sel(level=level)
+                    if not np.array_equal(selected.time.values.astype('datetime64[ns]'),dates):
+                        raise ValueError('NCEP time mismatch')
+                    values=np.asarray(selected.values,dtype='float32')
+                    if variable=='slp':
+                        if selected.attrs.get('units','').lower() not in ['pascals','pa']:
+                            raise ValueError('Unexpected SLP unit')
+                        values=values/100
+                    result[ch]=values
+            return result
+        except (KeyError, OSError, RuntimeError):
+            if attempt==2:raise
+            time.sleep(attempt+1)
+
+
 def ncep(row,contract):
     """Read exact 4x-daily fields through issue time, including cross-year history."""
     import xarray as xr
@@ -85,17 +113,8 @@ def ncep(row,contract):
         for variable in ['slp','hgt','uwnd','vwnd']:
             group='surface' if variable=='slp' else 'pressure'
             url=f'https://psl.noaa.gov/thredds/dodsC/Datasets/ncep.reanalysis/{group}/{variable}.{year}.nc'
-            with xr.open_dataset(url,engine='netcdf4') as ds:
-                for var,level,ch in specs:
-                    if var!=variable:continue
-                    a=ds[var].sel(time=dates,lat=contract['global_lat'],lon=contract['global_lon'])
-                    if level is not None:a=a.sel(level=level)
-                    if not np.array_equal(a.time.values.astype('datetime64[ns]'),dates):raise ValueError('NCEP time mismatch')
-                    values=np.asarray(a.values,dtype='float32')
-                    if variable=='slp':
-                        if a.attrs.get('units','').lower() not in ['pascals','pa']:raise ValueError('Unexpected SLP unit')
-                        values=values/100
-                    fields[positions,ch]=values
+            for ch,values in read_ncep_exact(xr,url,variable,dates,contract,specs).items():
+                fields[positions,ch]=values
     if not np.isfinite(fields).all() or np.max(np.abs(fields))>100000:raise ValueError('Missing or invalid reanalysis')
     return fields,np.asarray([ns(utc(t)) for t in wanted])
 

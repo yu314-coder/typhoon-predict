@@ -6,6 +6,7 @@ The old forecasts/ and fields/ files are NEVER written by this job.
 """
 import argparse
 import base64
+import contextlib
 import gzip
 import hashlib
 import json
@@ -21,6 +22,69 @@ from auxiliary_wind_archive import export_wind, METHOD as WIND_METHOD
 from immutable_basin_field import read_basin_field
 
 METHOD = 'model-geographic-moving-core-export-v1'
+REPLAY_VERSION = '2026-10-05-strict-cpu-profiles-v2'
+
+
+class ReplayMismatch(ValueError):
+    """Only a completed same-input rollout may try a bounded CPU math fallback."""
+    def __init__(self, difference):
+        self.difference = difference
+        super().__init__('Replay does not reproduce immutable outputs: '+str(difference))
+
+
+def recovery_is_cooling(error, now):
+    # A tested corrected execution/reader gets one retry. Its new failures keep
+    # the original six-hour cooldown; never dispatch an unproductive tight loop.
+    if error.get('replay_version') != REPLAY_VERSION:
+        return False
+    try:
+        return now-a.parse(error['at']) < timedelta(hours=6)
+    except (KeyError, TypeError, ValueError):
+        return True
+
+
+@contextlib.contextmanager
+def replay_profile(profile):
+    """Change only CPU attention arithmetic, restoring flags after each issue."""
+    if profile not in ('native', 'unfused-attention', 'sdpa-math'):
+        raise ValueError('Unsupported bounded CPU replay profile')
+    fastpath = torch.backends.mha.get_fastpath_enabled()
+    context = contextlib.nullcontext()
+    if profile != 'native':
+        torch.backends.mha.set_fastpath_enabled(False)
+    if profile == 'sdpa-math':
+        from torch.nn.attention import sdpa_kernel, SDPBackend
+        context = sdpa_kernel(SDPBackend.MATH)
+    try:
+        with context:
+            yield
+    finally:
+        torch.backends.mha.set_fastpath_enabled(fastpath)
+
+
+def verified_replay(export, *, backend='cpu'):
+    """Accept the first FULL immutable replay match, never the smallest error.
+
+    No fallback for identity/hash/source/lead/physical failures. No route shifts,
+    scalar insertions, dtype changes, new inputs or wider acceptance limits.
+    """
+    profiles = ('native', 'unfused-attention', 'sdpa-math') if backend == 'cpu' else ('native',)
+    for index, profile in enumerate(profiles):
+        try:
+            with replay_profile(profile):
+                result, wind = export()
+                runtime = dict(torch_version=torch.__version__, threads=torch.get_num_threads(),
+                    attention_fastpath=torch.backends.mha.get_fastpath_enabled(),
+                    cpu_capability=torch.backends.cpu.get_cpu_capability() if backend=='cpu' else None)
+                for document in (result, wind):
+                    document['execution_profile'] = profile
+                    document['replay_version'] = REPLAY_VERSION
+                    document['replay_runtime'] = runtime
+                return result, wind
+        except ReplayMismatch as error:
+            print(json.dumps({'replay_profile_rejected':profile, 'difference':error.difference}),flush=True)
+            if index == len(profiles)-1:
+                raise
 
 def core_queue_order(row):
     """Prioritize reported storms without changing any planned issue or output."""
@@ -78,15 +142,24 @@ def verify_replay(reference, inputs, predictions, blocks, source_field, *, backe
         old=reference['route'][i+1]
         if a.ns(old['valid_time_utc']) != a.ns(reference['issue_time_utc'])+(i+1)*6*a.HOUR or old['lead_hours']!=(i+1)*6:
             raise ValueError('Original lead time mismatch')
-        maximum['route_degrees']=max(maximum['route_degrees'],float(np.max(np.abs(pred['center'][0].detach().cpu().numpy()-[old['lat'],old['lon']]))))
-        maximum['core_pressure_hpa']=max(maximum['core_pressure_hpa'],abs(float(pred['pressure'][0])-old['pressure_hpa']))
-        maximum['basin_pressure_hpa']=max(maximum['basin_pressure_hpa'],float(np.max(np.abs(blocks[i+1]['basin'][0]-source_field['pressure_hpa'][i]))))
+        center=pred['center'][0].detach().cpu().numpy()
+        pressure=float(pred['pressure'][0])
+        basin=blocks[i+1]['basin'][0]
+        original_basin=np.asarray(source_field['pressure_hpa'][i])
+        if (center.shape!=(2,) or basin.shape!=original_basin.shape
+                or not np.isfinite(center).all() or not np.isfinite(pressure)
+                or not np.isfinite(basin).all() or not np.isfinite(original_basin).all()
+                or not np.isfinite([old['lat'],old['lon'],old['pressure_hpa']]).all()):
+            raise ValueError('Nonfinite or malformed immutable replay output')
+        maximum['route_degrees']=max(maximum['route_degrees'],float(np.max(np.abs(center-[old['lat'],old['lon']]))))
+        maximum['core_pressure_hpa']=max(maximum['core_pressure_hpa'],abs(pressure-old['pressure_hpa']))
+        maximum['basin_pressure_hpa']=max(maximum['basin_pressure_hpa'],float(np.max(np.abs(basin-original_basin))))
     # A cross-backend MPS float32 rollout may accumulate sub-lattice sampling
     # differences. 0.002 degrees is at most 223 m, ~1% of the 20-km core grid.
     # Cloud replay retains its original stricter pinned-CPU threshold.
     route_limit=.002 if backend=='mps' else .001
     if maximum['route_degrees']>route_limit or maximum['core_pressure_hpa']>.05 or maximum['basin_pressure_hpa']>.006:
-        raise ValueError('Replay does not reproduce immutable outputs: '+str(maximum))
+        raise ReplayMismatch(maximum)
     return maximum
 
 def export_core(model, contract, inputs, row, reference, source_field, source_hashes, *, backend='cpu', include_wind=False):
@@ -144,7 +217,7 @@ def main():
     core_completed={p.name[:-8] for p in dest.glob('*.json.gz')}
     wind_completed={p.stem for p in wind_dest.glob('auto-*.json')}
     completed=core_completed & wind_completed
-    cooling={ident for ident,e in errors.items() if batch_now-a.parse(e['at'])<timedelta(hours=6)}
+    cooling={ident for ident,e in errors.items() if recovery_is_cooling(e,batch_now)}
     queue=core_batch_queue(plan['queue'],completed,cooling)
     for row in queue:
         if attempted>=args.limit or time.monotonic()-start>args.minutes*60:break
@@ -153,7 +226,7 @@ def main():
         if target.exists() and wind_target.exists():continue
         original=args.output/'forecasts'/f'{ident}.json'
         now=datetime.now(timezone.utc)
-        if ident in errors and now-a.parse(errors[ident]['at'])<timedelta(hours=6):continue
+        if ident in errors and recovery_is_cooling(errors[ident],now):continue
         attempted+=1
         try:
             reference=json.loads(original.read_text());field,field_hashes=read_basin_field(args.output,ident)
@@ -165,9 +238,10 @@ def main():
                     weather=np.concatenate([z['slp'][idx,None].astype('float32'),z['q'][idx].astype('float32')*z['scale'][None,:,None,None]+z['offset'][None,:,None,None]],axis=1);times=wanted
             else:weather,times,_,_=a.remote_history(row,args.cache,contract)
             inputs={k:v.to(args.device) for k,v in a.inputs(weather,times,row,contract,geo).items()}
-            result,wind=export_core(model,contract,inputs,row,reference,field,
-                {'forecast_sha256':sha(original),**field_hashes,
-                 'input_manifest_sha256':config['manifest_sha256'],'weights_sha256':manifest['inference_weights_sha256']},backend=args.device,include_wind=True)
+            source_hashes = {'forecast_sha256':sha(original),**field_hashes,
+                'input_manifest_sha256':config['manifest_sha256'],'weights_sha256':manifest['inference_weights_sha256']}
+            result,wind=verified_replay(lambda: export_core(model,contract,inputs,row,reference,field,
+                source_hashes,backend=args.device,include_wind=True),backend=args.device)
             if not target.exists():
                 blob=gzip.compress(json.dumps(result,separators=(',',':'),allow_nan=False).encode(),mtime=0)
                 tmp=target.with_suffix('.tmp');tmp.write_bytes(blob);tmp.replace(target);core_success+=1
@@ -177,19 +251,19 @@ def main():
                 print(json.dumps({'wind_complete':ident,'resolved_leads':sum(p['valid_members'] for p in wind['points'])}),flush=True)
             errors.pop(ident,None);success+=1
         except Exception as e:
-            errors[ident]={'at':a.utc(now),'error':str(e)[:500]}
+            errors[ident]={'at':a.utc(now),'error':str(e)[:500],'replay_version':REPLAY_VERSION}
             print(json.dumps({'core_failed':ident,'error':str(e)[:500]}),flush=True)
     planned={r['id'] for r in plan['queue']};done={p.name[:-8] for p in dest.glob('*.json.gz')}&planned
     now=datetime.now(timezone.utc)
     wind_done={p.stem for p in wind_dest.glob('auto-*.json')}&planned
-    core_cooling={i for i in errors if i not in done and now-a.parse(errors[i]['at'])<timedelta(hours=6)}
-    wind_cooling={i for i in errors if i not in wind_done and now-a.parse(errors[i]['at'])<timedelta(hours=6)}
+    core_cooling={i for i in errors if i not in done and recovery_is_cooling(errors[i],now)}
+    wind_cooling={i for i in errors if i not in wind_done and recovery_is_cooling(errors[i],now)}
     joint_cooling=core_cooling|wind_cooling
     continue_ready=success>0 and bool(planned-(done&wind_done)-joint_cooling) and not args.only_id
     status=dict(model='Trackformer 1.2',checkpoint_sha256=a.CHECKPOINT,members=1,method=METHOD,
         total=len(planned),completed=len(done),ready=len(planned-done-core_cooling),cooling_down=len(core_cooling),
         batch_attempted=attempted,batch_succeeded=core_success,errors=errors,updated_at_utc=a.utc(now),
-        run_url=a.os.environ.get('RUN_URL'),input_manifest_sha256=config['manifest_sha256'],
+        run_url=a.os.environ.get('RUN_URL'),input_manifest_sha256=config['manifest_sha256'],replay_version=REPLAY_VERSION,
         original_forecasts_modified=False,original_basin_fields_modified=False,
         state='complete' if done==planned else 'backfilling',
         continue_ready=continue_ready)
@@ -198,7 +272,7 @@ def main():
         total=len(planned),completed=len(wind_done),ready=len(planned-wind_done-wind_cooling),
         cooling_down=len(wind_cooling),batch_attempted=attempted,batch_succeeded=wind_success,
         errors={i:e for i,e in errors.items() if i not in wind_done},updated_at_utc=a.utc(now),
-        run_url=a.os.environ.get('RUN_URL'),input_manifest_sha256=config['manifest_sha256'],
+        run_url=a.os.environ.get('RUN_URL'),input_manifest_sha256=config['manifest_sha256'],replay_version=REPLAY_VERSION,
         original_forecasts_modified=False,original_basin_fields_modified=False,
         original_core_fields_modified=False,wind_averaging_period='unvalidated',
         state='complete' if wind_done==planned else 'backfilling',continue_ready=continue_ready)

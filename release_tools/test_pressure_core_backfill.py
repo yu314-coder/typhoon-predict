@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch, Mock
 import base64
 import copy
 import json
@@ -8,7 +9,8 @@ from pathlib import Path
 import torch
 import automatic_forecasts as a
 import numpy as np
-from pressure_core_backfill import METHOD,core_batch_queue,core_queue_order,encoded_grid,verify_replay,sha
+from pressure_core_backfill import (METHOD,REPLAY_VERSION,ReplayMismatch,recovery_is_cooling,
+    replay_profile,verified_replay,core_batch_queue,core_queue_order,encoded_grid,verify_replay,sha)
 from recover_pressure_core import reconstruct
 from verify_pressure_core_archive import verify_grid,verify_issue as verify_core_issue
 from immutable_basin_field import read_basin_field
@@ -88,6 +90,15 @@ class ImmutableReplayChecks(unittest.TestCase):
     def test_missing_lead_is_not_accepted_as_complete(self):
         with self.assertRaisesRegex(ValueError,'lead count'):
             verify_replay(self.reference,self.inputs,self.predictions[:-1],self.blocks,self.field)
+    def test_nonfinite_prediction_cannot_be_marked_as_zero_difference(self):
+        for key in ('center','pressure'):
+            predictions=copy.deepcopy(self.predictions)
+            predictions[19][key]=torch.full_like(predictions[19][key],float('nan'))
+            with self.assertRaisesRegex(ValueError,'Nonfinite'):
+                verify_replay(self.reference,self.inputs,predictions,self.blocks,self.field)
+        blocks=copy.deepcopy(self.blocks);blocks[19]['basin'][0,0,0]=float('nan')
+        with self.assertRaisesRegex(ValueError,'Nonfinite'):
+            verify_replay(self.reference,self.inputs,self.predictions,blocks,self.field)
     def test_core_auditor_accepts_plain_original_without_changing_archive(self):
         temp_base = Path('/Volumes/D/typhoon_predict/output') if Path('/Volumes/D').exists() else Path(os.environ['RUNNER_TEMP'])
         with tempfile.TemporaryDirectory(dir=temp_base) as tmp:
@@ -120,5 +131,68 @@ class ImmutableReplayChecks(unittest.TestCase):
         predictions[19]['center']=torch.tensor([[20.003,125.]])
         with self.assertRaisesRegex(ValueError,'does not reproduce'):
             verify_replay(self.reference,self.inputs,predictions,self.blocks,self.field,backend='mps')
+
+class BoundedCpuReplay(unittest.TestCase):
+    def test_first_full_match_records_profile_without_replaying(self):
+        output = ({'immutable':'core'}, {'immutable':'wind'})
+        export = Mock(return_value=output)
+        result, wind = verified_replay(export)
+        export.assert_called_once_with()
+        self.assertEqual(result['execution_profile'],'native')
+        self.assertEqual(wind['execution_profile'],'native')
+        self.assertEqual(result['immutable'],'core')
+        self.assertEqual(wind['immutable'],'wind')
+        self.assertEqual(result['replay_version'],REPLAY_VERSION)
+
+    def test_only_completed_same_input_mismatch_may_retry(self):
+        mismatch = ReplayMismatch({'route_degrees':.01})
+        export = Mock(side_effect=[mismatch, ({}, {})])
+        original = torch.backends.mha.get_fastpath_enabled()
+        result, wind = verified_replay(export)
+        self.assertEqual(export.call_count,2)
+        self.assertEqual(result['execution_profile'],'unfused-attention')
+        self.assertFalse(result['replay_runtime']['attention_fastpath'])
+        self.assertEqual(torch.backends.mha.get_fastpath_enabled(),original)
+        self.assertEqual(wind['replay_runtime'],result['replay_runtime'])
+
+    def test_input_source_and_identity_failures_never_try_another_profile(self):
+        for message in ('Original causal input tensor hash mismatch',
+                        'Wrong immutable forecast identity','Nonfinite/unphysical geographic reconstruction'):
+            export = Mock(side_effect=ValueError(message))
+            with self.assertRaisesRegex(ValueError,message):
+                verified_replay(export)
+            self.assertEqual(export.call_count,1)
+
+    def test_all_profiles_rejected_bounded_no_nearest_match(self):
+        export = Mock(side_effect=ReplayMismatch({'route_degrees':.002}))
+        original = torch.backends.mha.get_fastpath_enabled()
+        with self.assertRaises(ReplayMismatch):
+            verified_replay(export)
+        self.assertEqual(export.call_count,3)
+        self.assertEqual(torch.backends.mha.get_fastpath_enabled(),original)
+
+    def test_mps_does_not_run_cpu_fallbacks(self):
+        export = Mock(side_effect=ReplayMismatch({'route_degrees':.003}))
+        with self.assertRaises(ReplayMismatch):
+            verified_replay(export,backend='mps')
+        self.assertEqual(export.call_count,1)
+
+    def test_profile_is_restored_even_after_source_exception(self):
+        original = torch.backends.mha.get_fastpath_enabled()
+        with self.assertRaisesRegex(ValueError,'source'):
+            with replay_profile('sdpa-math'):
+                self.assertFalse(torch.backends.mha.get_fastpath_enabled())
+                raise ValueError('source')
+        self.assertEqual(torch.backends.mha.get_fastpath_enabled(),original)
+
+    def test_repaired_version_gets_one_retry_then_six_hour_cooldown(self):
+        from datetime import timedelta
+        now=a.parse('2026-10-05T11:00:00Z')
+        old={'at':a.utc(now),'error':'failure'}
+        self.assertFalse(recovery_is_cooling(old,now))
+        current=dict(old,replay_version=REPLAY_VERSION)
+        self.assertTrue(recovery_is_cooling(current,now))
+        self.assertFalse(recovery_is_cooling(current,now+timedelta(hours=6)))
+        self.assertTrue(recovery_is_cooling({'replay_version':REPLAY_VERSION},now))
 
 if __name__=='__main__':unittest.main()
