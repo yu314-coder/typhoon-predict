@@ -1,12 +1,17 @@
 import unittest
 import base64
 import copy
+import json
+import os
+import tempfile
+from pathlib import Path
 import torch
 import automatic_forecasts as a
 import numpy as np
-from pressure_core_backfill import core_batch_queue,core_queue_order,encoded_grid,verify_replay
+from pressure_core_backfill import METHOD,core_batch_queue,core_queue_order,encoded_grid,verify_replay,sha
 from recover_pressure_core import reconstruct
-from verify_pressure_core_archive import verify_grid
+from verify_pressure_core_archive import verify_grid,verify_issue as verify_core_issue
+from immutable_basin_field import read_basin_field
 
 class CoreQueuePriority(unittest.TestCase):
     def test_urgent_batch_publishes_without_waiting_for_unrelated_500_issues(self):
@@ -83,6 +88,29 @@ class ImmutableReplayChecks(unittest.TestCase):
     def test_missing_lead_is_not_accepted_as_complete(self):
         with self.assertRaisesRegex(ValueError,'lead count'):
             verify_replay(self.reference,self.inputs,self.predictions[:-1],self.blocks,self.field)
+    def test_core_auditor_accepts_plain_original_without_changing_archive(self):
+        temp_base = Path('/Volumes/D/typhoon_predict/output') if Path('/Volumes/D').exists() else Path(os.environ['RUNNER_TEMP'])
+        with tempfile.TemporaryDirectory(dir=temp_base) as tmp:
+            root = Path(tmp)
+            (root/'forecasts').mkdir(); (root/'fields').mkdir()
+            reference = dict(self.reference,storm_id='WP')
+            f=root/'forecasts/auto-tick-test.json'; b=root/'fields/auto-tick-test.json'
+            f.write_text(json.dumps(reference)); b.write_text('{"pressure_hpa":[[1000.0]]}')
+            before=(f.read_bytes(),b.read_bytes())
+            _, hashes=read_basin_field(root,reference['id'])
+            block={'basin':np.full((1,3,3),1000.,dtype='float32'),
+                   'latitude':np.array([[25,20,15]]),'longitude':np.array([[120,125,130]]),
+                   'anomaly':np.zeros((1,3,3),dtype='float32')}
+            grid=encoded_grid(block,{'global_lat':[60,30,0],'global_lon':[100,140,180]})
+            document=dict(forecast_id=reference['id'],storm_id='WP',members=1,checkpoint_sha256=a.CHECKPOINT,
+                method=METHOD,scalar_pressure_inserted=False,route_or_truth_alignment=False,
+                replay_max_difference=dict(route_degrees=0.,core_pressure_hpa=0.,basin_pressure_hpa=0.),
+                source_hashes=dict(forecast_sha256=sha(f),**hashes),input_tensor_sha256=reference['input_tensor_sha256'],
+                issue_time_utc=reference['issue_time_utc'],issue=grid,
+                frames=[dict(grid,lead_hours=p['lead_hours'],valid_time_utc=p['valid_time_utc']) for p in reference['route'][1:]])
+            verify_core_issue(document,root,{reference['id']})
+            self.assertEqual((f.read_bytes(),b.read_bytes()),before)
+            self.assertFalse((root/'fields/auto-tick-test.json.gz').exists())
     def test_cross_backend_tolerance_is_bounded_and_cpu_stays_stricter(self):
         predictions=copy.deepcopy(self.predictions)
         predictions[19]['center']=torch.tensor([[20.0015,125.]])

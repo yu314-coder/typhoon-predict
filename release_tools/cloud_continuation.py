@@ -35,14 +35,33 @@ def read(path):
     return json.loads(path.read_text()) if path.exists() else {}
 
 
+def recovery_batch_progress(core, wind, run_url):
+    if not run_url or core.get('run_url') != run_url or wind.get('run_url') != run_url:
+        raise ValueError('Missing current-run recovery status')
+    attempted = max(core.get('batch_attempted', 0), wind.get('batch_attempted', 0))
+    appended = core.get('batch_succeeded', 0) + wind.get('batch_succeeded', 0)
+    remaining = max(core['total']-core['completed'], wind['total']-wind['completed'])
+    if remaining and attempted > 0 and appended == 0:
+        raise RuntimeError('Recovery stalled: all attempted replays failed; '
+                           'partial verification receipts were published, no continuation queued')
+    return dict(batch_attempted=attempted, appended_records=appended,
+                remaining_issues=remaining, cooldown_only=remaining > 0 and attempted == 0)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--output', type=Path, required=True)
     ap.add_argument('--check-live', action='store_true')
+    ap.add_argument('--check-recovery-progress', action='store_true')
     args = ap.parse_args()
     historical = read(args.output/'status.json')
     if args.check_live:
         print(str(live_refresh_due(historical, datetime.now(timezone.utc))).lower())
+        return
+    if args.check_recovery_progress:
+        print(json.dumps(recovery_batch_progress(
+            read(args.output/'pressure-cores/status.json'),
+            read(args.output/'model-wind/status.json'), os.environ.get('RUN_URL'))))
         return
     repo = os.environ['GITHUB_REPOSITORY']
     runs = json.loads(subprocess.check_output(['gh','api',f'repos/{repo}/actions/runs?per_page=100'], text=True))['workflow_runs']

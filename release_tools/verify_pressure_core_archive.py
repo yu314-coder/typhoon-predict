@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 from pressure_core_backfill import METHOD
 from recover_pressure_core import CHECKPOINT,parse,utc
+from immutable_basin_field import verify_basin_source
 
 def sha(path):
     with Path(path).open('rb') as f:return hashlib.file_digest(f,'sha256').hexdigest()
@@ -36,8 +37,9 @@ def verify_issue(p,output,planned):
     if backend not in ['cpu','mps']:raise ValueError('Unknown replay backend')
     limits={'route_degrees':.002 if backend=='mps' else .001,'core_pressure_hpa':.05,'basin_pressure_hpa':.006}
     if p.get('replay_tolerance',limits)!=limits or any(p['replay_max_difference'][k]>v for k,v in limits.items()):raise ValueError('Replay exceeded declared numeric tolerances')
-    f=output/'forecasts'/f'{ident}.json';b=output/'fields'/f'{ident}.json.gz'
-    if sha(f)!=p['source_hashes']['forecast_sha256'] or sha(b)!=p['source_hashes']['basin_field_gzip_sha256']:raise ValueError('Immutable forecast/field changed')
+    f=output/'forecasts'/f'{ident}.json'
+    if sha(f)!=p['source_hashes']['forecast_sha256']:raise ValueError('Immutable forecast/field changed')
+    verify_basin_source(output,ident,p['source_hashes'])
     reference=json.loads(f.read_text())
     if reference['input_tensor_sha256']!=p['input_tensor_sha256'] or reference['storm_id']!=p['storm_id'] or parse(reference['issue_time_utc'])!=parse(p['issue_time_utc']):raise ValueError('Causal source identity mismatch')
     if len(p['frames'])!=20:raise ValueError('Missing core lead')

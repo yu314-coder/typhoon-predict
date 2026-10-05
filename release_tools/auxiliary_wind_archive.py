@@ -8,6 +8,7 @@ import json
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
+from immutable_basin_field import verify_basin_source
 
 METHOD = 'released-auxiliary-vmax-export-v1'
 CHECKPOINT = 'f194a23d3f91ea76ad776dfad942fabd669eeae8b3fd665815463095367e9ee0'
@@ -81,11 +82,11 @@ def verify_wind(document, output, planned, input_manifest_hash, weights_hash):
             not np.isfinite(diff[k]) or not 0 <= diff[k] <= tolerance[k] for k in tolerance):
         raise ValueError('Wind replay audit failed')
     forecast = output/'forecasts'/f'{ident}.json'
-    basin = output/'fields'/f'{ident}.json.gz'
     source = document['source_hashes']
-    if (sha(forecast) != source['forecast_sha256'] or sha(basin) != source['basin_field_gzip_sha256']
+    if (sha(forecast) != source['forecast_sha256']
             or input_manifest_hash != source['input_manifest_sha256'] or weights_hash != source['weights_sha256']):
         raise ValueError('Immutable wind source hashes changed')
+    verify_basin_source(output, ident, source)
     reference = json.loads(forecast.read_text())
     row = planned[ident]
     if (reference['id'] != ident or reference['members'] != 1 or reference['checkpoint_sha256'] != CHECKPOINT
@@ -116,4 +117,3 @@ def verify_wind(document, output, planned, input_manifest_hash, weights_hash):
                 raise ValueError('Saved wind differs')
         elif value is not None or point['reason'] not in ('outside_model_domain', 'invalid_model_wind'):
             raise ValueError('Missing wind was zero-filled')
-

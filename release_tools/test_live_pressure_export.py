@@ -4,7 +4,7 @@ import unittest
 from datetime import datetime, timezone, timedelta
 import numpy as np
 from live_pressure_export import encoded_mean, member_blocks, core_export
-from cloud_continuation import continuation_target, live_refresh_due
+from cloud_continuation import continuation_target, live_refresh_due, recovery_batch_progress
 
 
 class LiveCoreExport(unittest.TestCase):
@@ -65,6 +65,21 @@ class LiveCoreExport(unittest.TestCase):
 
 
 class FairContinuation(unittest.TestCase):
+    def test_failed_replays_are_reported_without_hot_retry_or_false_success(self):
+        core = dict(run_url='run',total=10,completed=5,batch_attempted=2,batch_succeeded=0)
+        wind = dict(core,completed=4)
+        with self.assertRaisesRegex(RuntimeError, 'all attempted replays failed'):
+            recovery_batch_progress(core,wind,'run')
+        self.assertIsNone(continuation_target({},dict(core,continue_ready=False),wind,[]))
+        self.assertEqual(recovery_batch_progress(dict(core,batch_succeeded=1),wind,'run')['appended_records'],1)
+
+    def test_cooldown_and_audit_only_batches_are_not_reported_as_failures(self):
+        core = dict(run_url='run',total=10,completed=5,batch_attempted=0,batch_succeeded=0)
+        self.assertTrue(recovery_batch_progress(core,core,'run')['cooldown_only'])
+        self.assertFalse(recovery_batch_progress(dict(core,completed=10),dict(core,completed=10),'run')['cooldown_only'])
+        with self.assertRaisesRegex(ValueError, 'current-run'):
+            recovery_batch_progress(core,core,'old')
+
     def test_never_replace_a_pending_live_run(self):
         self.assertIsNone(continuation_target({'historical_ready':50,'batch_succeeded':1},
             {'continue_ready':True},{},[{'workflow':'automatic-forecasts'}]))

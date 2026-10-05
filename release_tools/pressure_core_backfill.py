@@ -18,6 +18,7 @@ import torch
 import automatic_forecasts as a
 from recover_pressure_core import CaptureModel, reconstruct
 from auxiliary_wind_archive import export_wind, METHOD as WIND_METHOD
+from immutable_basin_field import read_basin_field
 
 METHOD = 'model-geographic-moving-core-export-v1'
 
@@ -150,13 +151,12 @@ def main():
         ident=row['id'];target=dest/f'{ident}.json.gz';wind_target=wind_dest/f'{ident}.json'
         if args.only_id and ident!=args.only_id:continue
         if target.exists() and wind_target.exists():continue
-        original=args.output/'forecasts'/f'{ident}.json';original_field=args.output/'fields'/f'{ident}.json.gz'
-        if not original.exists() or not original_field.exists():continue
+        original=args.output/'forecasts'/f'{ident}.json'
         now=datetime.now(timezone.utc)
         if ident in errors and now-a.parse(errors[ident]['at'])<timedelta(hours=6):continue
         attempted+=1
         try:
-            reference=json.loads(original.read_text());field=json.loads(gzip.decompress(original_field.read_bytes()))
+            reference=json.loads(original.read_text());field,field_hashes=read_basin_field(args.output,ident)
             if row['atlas'] is not None:
                 bundle=plan['bundles'][row.get('bundle_key',str(row['season']))]
                 with np.load(a.asset(args.cache,bundle['file'],base+'/'+bundle['file'],bundle['sha256']),allow_pickle=False) as z:
@@ -166,7 +166,7 @@ def main():
             else:weather,times,_,_=a.remote_history(row,args.cache,contract)
             inputs={k:v.to(args.device) for k,v in a.inputs(weather,times,row,contract,geo).items()}
             result,wind=export_core(model,contract,inputs,row,reference,field,
-                {'forecast_sha256':sha(original),'basin_field_gzip_sha256':sha(original_field),
+                {'forecast_sha256':sha(original),**field_hashes,
                  'input_manifest_sha256':config['manifest_sha256'],'weights_sha256':manifest['inference_weights_sha256']},backend=args.device,include_wind=True)
             if not target.exists():
                 blob=gzip.compress(json.dumps(result,separators=(',',':'),allow_nan=False).encode(),mtime=0)

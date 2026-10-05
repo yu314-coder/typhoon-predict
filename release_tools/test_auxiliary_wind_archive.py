@@ -8,6 +8,7 @@ from pathlib import Path
 
 import torch
 from auxiliary_wind_archive import CHECKPOINT, LIMITS, export_wind, sha, verify_wind
+from immutable_basin_field import read_basin_field
 
 
 class ActualModelWind(unittest.TestCase):
@@ -99,6 +100,22 @@ class ActualModelWind(unittest.TestCase):
             b.write_bytes(b'changed basin')
             with self.assertRaisesRegex(ValueError, 'hashes changed'):
                 verify(document)
+
+    def test_plain_original_field_is_verified_without_rewriting_it(self):
+        temp_base = Path('/Volumes/D/typhoon_predict/output') if Path('/Volumes/D').exists() else Path(os.environ['RUNNER_TEMP'])
+        with tempfile.TemporaryDirectory(dir=temp_base) as tmp:
+            root = Path(tmp)
+            (root/'forecasts').mkdir(); (root/'fields').mkdir()
+            f = root/'forecasts/auto-tick-test.json'; b = root/'fields/auto-tick-test.json'
+            f.write_text(json.dumps(self.reference)); b.write_text('{"pressure_hpa":[[1000.0]]}')
+            before = (f.read_bytes(),b.read_bytes())
+            _, field_hashes = read_basin_field(root,self.reference['id'])
+            self.hashes.pop('basin_field_gzip_sha256')
+            self.hashes.update(forecast_sha256=sha(f),**field_hashes)
+            planned = {'auto-tick-test': {'storm_id':'WP','issue_time_utc':self.reference['issue_time_utc']}}
+            verify_wind(self.document(),root,planned,'d'*64,'e'*64)
+            self.assertEqual((f.read_bytes(),b.read_bytes()),before)
+            self.assertFalse((root/'fields/auto-tick-test.json.gz').exists())
 
 
 if __name__ == '__main__':
