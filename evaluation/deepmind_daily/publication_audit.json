@@ -1,0 +1,45 @@
+{
+  "status": "complete_verified",
+  "reviewed_at_utc": "2026-10-05T05:18:43.939189+00:00",
+  "archive_sha256": "602425d3ff9284cce44fee4d3a75f50354b6e3f26f391f5402f72afabd762d45",
+  "verified_daily_cases": 1473,
+  "verified_storms": 270,
+  "hashed_case_files": 2946,
+  "verified_physical_pressure_grids": 29460,
+  "model": "Google DeepMind WeatherNext Cyclones Mini (<2024)",
+  "software_version": "0.3.0",
+  "software_commit": "89c4b2a77a1c57b328b909c575550fd2e5aadc9c",
+  "checkpoint_sha256": "a1bb151457077248d70a458b1a7b19deacd2926fbcb46eee4ff2691444e3596e",
+  "cohort_sha256": "965184f1e5ab3fcb52e304f39b38583a14f753870aa2295f2d01942a441dcfd6",
+  "members": 1,
+  "backend": "NVIDIA GeForce RTX 3070 / CUDA",
+  "all_route_and_pressure_scores_recomputed": true,
+  "exact_common_curve_case_ids": true,
+  "all_original_forecasts_sha256_verified": true,
+  "causal_input_metadata_and_saved_hashes_verified": true,
+  "raw_era5_states_in_return_zip": false,
+  "raw_input_audit_scope": "Original worker receipt and saved input hashes/times; raw ERA5 states were not returned in this result-only ZIP.",
+  "new_inference_performed": false,
+  "model_weights_changed": false,
+  "forecasts_modified": false,
+  "missing_results_scored_as_zero": 0,
+  "previous_snapshot_sha256": "79f67a5f4490150cf0ab24d73e5d3cdedb4884d37e86560cbadde1d4ecdafc43",
+  "snapshot_sha256": "adff1baa1dbc38a6b443cfdd436cd7d4893c04241355c9eaf5004f439ce469a4",
+  "imported_files_sha256": {
+    "benchmark.json": "85a0965b7a87d400ccad67b437d05b2ac651055b8f4a473ff30fdd85ac778645",
+    "verification.json": "8f29a767ab5db61cf6773f5806cc110789329b04db48361715e5b4c295545c89",
+    "protocol.json": "91b31582f24ffdd4f2309eddb0cc68498a2c31cab7cbabaf06f43dfbff413606",
+    "case-manifest.json": "30d35cfb79e809227fd0d255f9b5173ad18e781c7450ed4bbf0211553f8e63bd",
+    "canary.json": "c7c9724752aab3f2208b53aad31949580800c0c60e28b187bccbd5d0a3c5e075"
+  },
+  "period_coverage": {
+    "historical_1980_1999": {
+      "daily_issues": 1336,
+      "storms": 230
+    },
+    "recent_2024_onward": {
+      "daily_issues": 137,
+      "storms": 40
+    }
+  }
+}

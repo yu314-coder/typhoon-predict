@@ -40,6 +40,8 @@ SYNC_FILES = (
     'release_tools/plot_release_pressure_benchmark.py',
     'release_tools/plot_daily_storm_final.py',
     'release_tools/plot_model_announcement.py',
+    'release_tools/import_deepmind_release_results.py',
+    'release_tools/test_deepmind_release_results.py',
     'release_tools/build_mangkhut_gif.py',
     'release_tools/deepmind_daily_benchmark.py',
     'release_tools/test_deepmind_daily_benchmark.py',
@@ -60,6 +62,12 @@ SYNC_FILES = (
     'evaluation/released_daily/pressure_comparison.png',
     'evaluation/released_daily/model_1_2_benchmark.png',
     'evaluation/released_daily/model_1_2_benchmark.json',
+    'evaluation/deepmind_daily/benchmark.json',
+    'evaluation/deepmind_daily/verification.json',
+    'evaluation/deepmind_daily/publication_audit.json',
+    'evaluation/deepmind_daily/protocol.json',
+    'evaluation/deepmind_daily/case-manifest.json',
+    'evaluation/deepmind_daily/canary.json',
 )
 
 
@@ -172,13 +180,13 @@ def run(output, publish=False):
         # immutable commit in the card. Never pin new bytes to the old movie
         # revision or let a missing future image render as a stale figure.
         assets = api.create_commit(repo_id=REPO, repo_type='model', parent_commit=parent,
-            commit_message='Publish Trackformer 1.2 announcement assets and matched DeepMind benchmark protocol',
+            commit_message='Publish completed WeatherNext Cyclones Mini daily comparison and audited three-model chart',
             operations=[CommitOperationAdd(path_in_repo=name, path_or_fileobj=str(ROOT/name)) for name in SYNC_FILES])
         card_path.write_text(render_card(original.read_text(), github, assets.oid))
         receipt['files']['README.md'] = sha(card_path)
         receipt['figure_revision'] = assets.oid
         committed = api.create_commit(repo_id=REPO, repo_type='model', parent_commit=assets.oid,
-            commit_message='Introduce Trackformer 1.2 with a focused showcase and verified daily metrics',
+            commit_message='Update Trackformer 1.2 model card with completed DeepMind CUDA benchmark',
             operations=[CommitOperationAdd(path_in_repo='README.md', path_or_fileobj=str(card_path))])
         for name, expected in receipt['files'].items():
             saved = hf_hub_download(REPO, name, revision=committed.oid, cache_dir=CACHE)

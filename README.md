@@ -35,23 +35,40 @@ This selected example illustrates the model, not typical skill. Observations are
 
 Trackformer 1.1 predicts track and scalar intensity/structure outputs. **1.2 adds evolving sea-level-pressure fields and a moving pressure core**, giving the route forecast a spatial weather representation that can be inspected on a map.
 
-![Trackformer 1.1 versus 1.2: pressure intensity, track position and track direction on matched daily forecasts](evaluation/released_daily/model_1_2_benchmark.png)
+![Trackformer 1.1, 1.2 and WeatherNext Cyclones Mini: pressure intensity, track position and track direction on matched daily forecasts](evaluation/released_daily/model_1_2_benchmark.png)
 
-| Development metric · lower is better | 1.1 | 1.2 · mean of 50 | Shared coverage |
-| --- | ---: | ---: | --- |
-| Mean track error, +6 to +120 h | 798.4 km | **471.2 km** | 1,473 days / 270 storms |
-| Six-hour track-direction error | 51.58° | **34.96°** | 1,473 days / 270 storms |
-| Central-pressure MAE · JMA intensity reference | 13.53 hPa | **12.84 hPa** | 134 days / 40 storms |
+| Development metric | 1.1 | 1.2 · mean of 50 | DeepMind Mini · one member | Shared coverage |
+| --- | ---: | ---: | ---: | --- |
+| Mean track error, +6 to +120 h · lower is better | 798.4 km | **471.2 km** | 498.4 km | 1,473 days / 270 storms |
+| Six-hour track-direction error · lower is better | 51.58° | **34.96°** | 39.76° | 1,473 days / 270 storms |
+| Central-pressure MAE · JMA · lower is better | 13.53 hPa | 12.84 hPa | **10.20 hPa** | 134 days / 40 storms |
+| Centred route-shape similarity · higher is better | 0.7544 | 0.8837 | **0.9010** | 1,473 days / 270 storms |
+| Pressure-curve similarity · JMA · higher is better | 0.7074 | 0.7118 | **0.8088** | 134 days / 40 storms |
 
 Mean track error is **41.0% lower** for 1.2 on this cohort. Central-pressure error has a **small mean reduction**; the paired whole-storm 95% interval includes no improvement (−2.68 to +1.20 hPa). These results do not establish a statistically reliable pressure advantage or improvements in every output or lead.
 
 **One storm-day is one case.** Scores average valid +6 to +120 h leads within each day, then days within each typhoon, then typhoons with equal weight. Both versions use the same frozen starts and exact valid times. Missing labels and unsupported outputs are excluded, never treated as zero errors. Track and pressure have different valid coverage, shown above.
 
-**DeepMind comparison:** a new run of the official [WeatherNext Cyclones Mini](https://github.com/google-deepmind/weathernext) is underway on the same 1,473 starts and twenty leads. Its scores are **pending**, not borrowed from older benchmarks. This reference uses one member and its own causal ERA5 input pipeline; 1.2 uses the saved mean of 50. Common masks are recomputed for the three-way comparison. Historical cases overlap Mini's training years, so recent and historical groups are reported separately. [Benchmark protocol](docs/deepmind_daily_benchmark.md)
-
 The cohort contains 40 recent storms and 230 storms from 1980–1999. It lies outside the selected Trackformer's fitting/validation years but is a **development comparison, not a certified untouched holdout**. Different input pipelines mean this is not a controlled architecture ablation. Position, direction and route-shape similarity are separate measures; good shape alone does not prove geographical alignment.
 
 [Full daily results](evaluation/daily_storm_final.json) · [Shared metrics and uncertainty](evaluation/released_daily/released_daily_benchmark.json) · [Forecast/hash audit](evaluation/released_daily/released_daily_verification.json) · [Daily protocol](docs/daily_storm_benchmark.md) · [Pressure, wind and radius evaluation](docs/intensity_benchmark.md)
+
+### Completed DeepMind comparison
+
+The reference is Google's official [WeatherNext Cyclones Mini `<2024`](https://github.com/google-deepmind/weathernext#weathernext-cyclones-mini), a **1° model trained through 2023**, run with **WeatherNext software v0.3.0**. The software version is not the checkpoint name. This is **Mini, not the full-sized WeatherNext 2/Cyclones model**.
+
+All **1,473 daily starts / 270 storms** completed on an **NVIDIA RTX 3070 using CUDA**. Each saved forecast contains twenty exact six-hour route and native pressure-map outputs through +120 h. The returned archive's hashes, original Trackformer forecasts, common masks and equal-storm scores were independently rechecked. Mini uses one seeded member and its own causal ERA5 analyses; 1.2 uses a 50-input-member mean. No missing result is scored as zero.
+
+The combined cohort favours 1.2 for position and heading, while Mini has lower central-pressure error and higher pressure-curve similarity. **The recent-only track results favour Mini**, so the combined numbers must not be read as a general advantage over DeepMind:
+
+| Recent storms beginning in 2024+ · 137 days / 40 storms | 1.1 | 1.2 · mean of 50 | DeepMind Mini · one member |
+| --- | ---: | ---: | ---: |
+| Mean track error · lower is better | 901.4 km | 477.2 km | **288.5 km** |
+| Six-hour direction error · lower is better | 52.90° | 34.68° | **31.16°** |
+
+The remaining 1,336 days / 230 historical storms overlap Mini's fitting years. JMA pressure scores use 2,637 shared valid leads from the smaller 134-day subset, not all 1,473 days. Curve similarity measures timing/shape after removing pressure level and amplitude; it does not replace hPa error. These are point estimates, not a claim of statistically proven superiority.
+
+[Completed results and period breakdowns](evaluation/deepmind_daily/benchmark.json) · [CUDA completion receipt](evaluation/deepmind_daily/verification.json) · [Independent publication audit](evaluation/deepmind_daily/publication_audit.json) · [Model identity and reproducible protocol](docs/deepmind_daily_benchmark.md)
 
 ## How Trackformer 1.2 works
 

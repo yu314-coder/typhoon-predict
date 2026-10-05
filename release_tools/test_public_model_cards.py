@@ -15,11 +15,15 @@ class PublicModelCardsTest(unittest.TestCase):
         self.assertTrue(rendered.startswith(self.header))
         for text in ('# Introducing Trackformer 1.2', '1,473 days / 270 storms',
                      '134 days / 40 storms', '13.53', '12.84',
-                     'scores are **pending**', 'no native wind-radius forecast head'):
+                     'WeatherNext software v0.3.0', '10.20 hPa', '288.5 km',
+                     'no native wind-radius forecast head'):
             self.assertIn(text, rendered)
         self.assertNotIn('README revision', rendered)
         self.assertNotIn('Corrected pressure forecast', rendered)
         self.assertNotIn('Old model card', rendered)
+        self.assertNotIn('scores are **pending**', rendered)
+        self.assertIn('Mini, not the full-sized', rendered)
+        self.assertIn('recent-only track results favour Mini', rendered)
 
     def test_one_pinned_featured_player(self):
         rendered = render_card(self.original, self.source)
@@ -65,7 +69,9 @@ class PublicModelCardsTest(unittest.TestCase):
             self.assertIn(path, SYNC_FILES)
         for path in ('docs/deepmind_daily_benchmark.md', 'docs/showcase_archive.md',
                      'evaluation/released_daily/released_daily_benchmark.json',
-                     'evaluation/released_daily/released_daily_verification.json'):
+                     'evaluation/released_daily/released_daily_verification.json',
+                     'evaluation/deepmind_daily/publication_audit.json',
+                     'evaluation/deepmind_daily/verification.json'):
             self.assertIn(path, SYNC_FILES)
         self.assertNotIn('models/trackformer_1_2_field/weights.pt', SYNC_FILES)
         self.assertNotIn('paper/trackformer.tex', SYNC_FILES)

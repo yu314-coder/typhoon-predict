@@ -1,0 +1,1007 @@
+{
+  "schema": "deepmind-site-import-v1",
+  "status": "complete_verified",
+  "cohort": {
+    "storms": 270,
+    "daily_issues": 1473,
+    "sha256": "965184f1e5ab3fcb52e304f39b38583a14f753870aa2295f2d01942a441dcfd6",
+    "leads_hours": [
+      6,
+      12,
+      18,
+      24,
+      30,
+      36,
+      42,
+      48,
+      54,
+      60,
+      66,
+      72,
+      78,
+      84,
+      90,
+      96,
+      102,
+      108,
+      114,
+      120
+    ]
+  },
+  "models": [
+    {
+      "key": "v11",
+      "version": "1.1",
+      "member_count": null,
+      "member_policy": "Existing frozen weighted-route reference",
+      "checkpoint_sha256": null
+    },
+    {
+      "key": "v12",
+      "version": "1.2",
+      "member_count": 50,
+      "member_policy": "Existing 50-member mean",
+      "checkpoint_sha256": "f194a23d3f91ea76ad776dfad942fabd669eeae8b3fd665815463095367e9ee0"
+    },
+    {
+      "key": "deepmind",
+      "version": "deepmind",
+      "member_count": 1,
+      "member_policy": "One official Mini member, seed 0",
+      "checkpoint_sha256": "a1bb151457077248d70a458b1a7b19deacd2926fbcb46eee4ff2691444e3596e"
+    }
+  ],
+  "metrics": [
+    {
+      "key": "mean_track_error_km",
+      "title": "Track position error",
+      "unit": "km",
+      "higher_is_better": false,
+      "values": {
+        "1.1": 798.4143395733709,
+        "1.2": 471.2045276140213,
+        "deepmind": 498.3660837262175
+      },
+      "coverage": {
+        "1.1": {
+          "storms": 270
+        },
+        "1.2": {
+          "storms": 270
+        },
+        "deepmind": {
+          "storms": 270
+        }
+      }
+    },
+    {
+      "key": "direction_error_deg",
+      "title": "Track direction error",
+      "unit": "degrees",
+      "higher_is_better": false,
+      "values": {
+        "1.1": 51.58419207122625,
+        "1.2": 34.959947454592786,
+        "deepmind": 39.76380497312257
+      },
+      "coverage": {
+        "1.1": {
+          "storms": 270
+        },
+        "1.2": {
+          "storms": 270
+        },
+        "deepmind": {
+          "storms": 270
+        }
+      }
+    },
+    {
+      "key": "shape_similarity",
+      "title": "Track shape similarity",
+      "unit": "0-1",
+      "higher_is_better": true,
+      "values": {
+        "1.1": 0.7543824571538857,
+        "1.2": 0.8837028632459877,
+        "deepmind": 0.9010381186926554
+      },
+      "coverage": {
+        "1.1": {
+          "storms": 270
+        },
+        "1.2": {
+          "storms": 270
+        },
+        "deepmind": {
+          "storms": 270
+        }
+      }
+    },
+    {
+      "key": "pressure_JMA_hpa",
+      "title": "Central-pressure error (JMA)",
+      "unit": "hPa",
+      "higher_is_better": false,
+      "values": {
+        "1.1": 13.53233861138585,
+        "1.2": 12.837077366789085,
+        "deepmind": 10.197678417354012
+      },
+      "common_lead_points": 2637,
+      "coverage": {
+        "1.1": {
+          "storms": 40,
+          "daily_cases": 134
+        },
+        "1.2": {
+          "storms": 40,
+          "daily_cases": 134
+        },
+        "deepmind": {
+          "storms": 40,
+          "daily_cases": 134
+        }
+      }
+    },
+    {
+      "key": "pressure_JMA_curve_similarity",
+      "title": "Pressure-curve similarity (JMA)",
+      "unit": "0-1",
+      "higher_is_better": true,
+      "values": {
+        "1.1": 0.7074066420243609,
+        "1.2": 0.7118461112422476,
+        "deepmind": 0.8087969164941555
+      },
+      "common_lead_points": 2637,
+      "coverage": {
+        "1.1": {
+          "storms": 40,
+          "daily_cases": 134
+        },
+        "1.2": {
+          "storms": 40,
+          "daily_cases": 134
+        },
+        "deepmind": {
+          "storms": 40,
+          "daily_cases": 134
+        }
+      }
+    },
+    {
+      "key": "pressure_USA_hpa",
+      "title": "Central-pressure error (USA)",
+      "unit": "hPa",
+      "higher_is_better": false,
+      "values": {
+        "1.1": 12.835629459598886,
+        "1.2": 12.552942457392373,
+        "deepmind": 11.546903198440878
+      },
+      "common_lead_points": 2325,
+      "coverage": {
+        "1.1": {
+          "storms": 40,
+          "daily_cases": 134
+        },
+        "1.2": {
+          "storms": 40,
+          "daily_cases": 134
+        },
+        "deepmind": {
+          "storms": 40,
+          "daily_cases": 134
+        }
+      }
+    },
+    {
+      "key": "pressure_USA_curve_similarity",
+      "title": "Pressure-curve similarity (USA)",
+      "unit": "0-1",
+      "higher_is_better": true,
+      "values": {
+        "1.1": 0.7236794525870405,
+        "1.2": 0.6636769485468179,
+        "deepmind": 0.7445409788756472
+      },
+      "common_lead_points": 2325,
+      "coverage": {
+        "1.1": {
+          "storms": 40,
+          "daily_cases": 131
+        },
+        "1.2": {
+          "storms": 40,
+          "daily_cases": 131
+        },
+        "deepmind": {
+          "storms": 40,
+          "daily_cases": 131
+        }
+      }
+    }
+  ],
+  "aggregate_equal_complete_storm": {
+    "route": {
+      "1.1": {
+        "mean_track_error_km": {
+          "value": 798.4143395733709,
+          "storms": 270
+        },
+        "track_error_120h_km": {
+          "value": 1646.3960476448165,
+          "storms": 270
+        },
+        "direction_error_deg": {
+          "value": 51.58419207122625,
+          "storms": 270
+        },
+        "shape_similarity": {
+          "value": 0.7543824571538857,
+          "storms": 270
+        },
+        "track_error_by_lead_km": [
+          66.10969036943266,
+          133.4783672768527,
+          202.3585175411488,
+          273.2879621656292,
+          346.90051929279923,
+          419.8767857705207,
+          493.5704476997114,
+          568.0858703129328,
+          644.1251568785259,
+          722.6238658146501,
+          803.5946300337959,
+          886.616879788694,
+          973.2847405022445,
+          1060.5849499902793,
+          1151.5785924519794,
+          1244.9737736697598,
+          1343.5921960496646,
+          1443.1911582149028,
+          1544.0566399990746,
+          1646.396047644816
+        ]
+      },
+      "1.2": {
+        "mean_track_error_km": {
+          "value": 471.2045276140213,
+          "storms": 270
+        },
+        "track_error_120h_km": {
+          "value": 1031.633570368749,
+          "storms": 270
+        },
+        "direction_error_deg": {
+          "value": 34.959947454592786,
+          "storms": 270
+        },
+        "shape_similarity": {
+          "value": 0.8837028632459877,
+          "storms": 270
+        },
+        "track_error_by_lead_km": [
+          48.276258844589,
+          91.12774309041492,
+          129.1208135780606,
+          164.481223771445,
+          199.06958720909273,
+          234.93256251923398,
+          272.48049128499,
+          311.4789218238006,
+          353.46861840507904,
+          399.3840596538071,
+          449.2708765186405,
+          502.4908306263511,
+          558.3174531497493,
+          616.1753924353181,
+          677.6609275099131,
+          740.9340851986844,
+          808.8023210064223,
+          880.0772095202088,
+          954.9076057658763,
+          1031.633570368749
+        ]
+      },
+      "deepmind": {
+        "mean_track_error_km": {
+          "value": 498.3660837262175,
+          "storms": 270
+        },
+        "track_error_120h_km": {
+          "value": 1031.9091421404376,
+          "storms": 270
+        },
+        "direction_error_deg": {
+          "value": 39.76380497312257,
+          "storms": 270
+        },
+        "shape_similarity": {
+          "value": 0.9010381186926554,
+          "storms": 270
+        },
+        "track_error_by_lead_km": [
+          105.79431937309762,
+          136.30842390708193,
+          168.8925890316698,
+          208.95643055237963,
+          243.63979975302811,
+          278.11432944685924,
+          316.6521861156824,
+          357.1736913330865,
+          392.8310729414844,
+          436.5373191336134,
+          478.075813984495,
+          522.4673167277231,
+          576.9905349536721,
+          634.2907658367048,
+          690.6818730442626,
+          746.7391690084353,
+          807.6243133903178,
+          879.0423409543573,
+          954.6002428959632,
+          1031.909142140437
+        ]
+      }
+    },
+    "pressure": {
+      "JMA": {
+        "daily_cases": 134,
+        "storms": 40,
+        "common_lead_points": 2637,
+        "models": {
+          "1.1": {
+            "mae_hpa": {
+              "value": 13.53233861138585,
+              "storms": 40,
+              "daily_cases": 134
+            },
+            "curve_similarity": {
+              "value": 0.7074066420243609,
+              "storms": 40,
+              "daily_cases": 134
+            }
+          },
+          "1.2": {
+            "mae_hpa": {
+              "value": 12.837077366789085,
+              "storms": 40,
+              "daily_cases": 134
+            },
+            "curve_similarity": {
+              "value": 0.7118461112422476,
+              "storms": 40,
+              "daily_cases": 134
+            }
+          },
+          "deepmind": {
+            "mae_hpa": {
+              "value": 10.197678417354012,
+              "storms": 40,
+              "daily_cases": 134
+            },
+            "curve_similarity": {
+              "value": 0.8087969164941555,
+              "storms": 40,
+              "daily_cases": 134
+            }
+          }
+        }
+      },
+      "USA": {
+        "daily_cases": 134,
+        "storms": 40,
+        "common_lead_points": 2325,
+        "models": {
+          "1.1": {
+            "mae_hpa": {
+              "value": 12.835629459598886,
+              "storms": 40,
+              "daily_cases": 134
+            },
+            "curve_similarity": {
+              "value": 0.7236794525870405,
+              "storms": 40,
+              "daily_cases": 131
+            }
+          },
+          "1.2": {
+            "mae_hpa": {
+              "value": 12.552942457392373,
+              "storms": 40,
+              "daily_cases": 134
+            },
+            "curve_similarity": {
+              "value": 0.6636769485468179,
+              "storms": 40,
+              "daily_cases": 131
+            }
+          },
+          "deepmind": {
+            "mae_hpa": {
+              "value": 11.546903198440878,
+              "storms": 40,
+              "daily_cases": 134
+            },
+            "curve_similarity": {
+              "value": 0.7445409788756472,
+              "storms": 40,
+              "daily_cases": 131
+            }
+          }
+        }
+      }
+    }
+  },
+  "periods": {
+    "historical_1980_1999": {
+      "route": {
+        "1.1": {
+          "mean_track_error_km": {
+            "value": 780.4956251297209,
+            "storms": 230
+          },
+          "track_error_120h_km": {
+            "value": 1617.68537007603,
+            "storms": 230
+          },
+          "direction_error_deg": {
+            "value": 51.35513468466848,
+            "storms": 230
+          },
+          "shape_similarity": {
+            "value": 0.756462863476536,
+            "storms": 230
+          },
+          "track_error_by_lead_km": [
+            63.95070387461008,
+            129.56057152366327,
+            196.91757281750267,
+            266.29351479253165,
+            337.4313487866377,
+            408.5365624559959,
+            480.4125299649792,
+            554.0338033012117,
+            628.3701179860931,
+            704.556054381504,
+            783.1646921434294,
+            864.6586584087509,
+            949.2682475583533,
+            1035.1766032588005,
+            1125.2495149384633,
+            1218.047210654655,
+            1315.6802847719387,
+            1415.099441487216,
+            1515.8196994120542,
+            1617.6853700760307
+          ]
+        },
+        "1.2": {
+          "mean_track_error_km": {
+            "value": 470.1683227329181,
+            "storms": 230
+          },
+          "track_error_120h_km": {
+            "value": 1022.9686679865174,
+            "storms": 230
+          },
+          "direction_error_deg": {
+            "value": 35.008663500237326,
+            "storms": 230
+          },
+          "shape_similarity": {
+            "value": 0.880227238887145,
+            "storms": 230
+          },
+          "track_error_by_lead_km": [
+            48.00936024802012,
+            91.97411308450529,
+            131.2279581683132,
+            167.32238620520673,
+            201.3545994142221,
+            236.4041620555792,
+            272.8634618572267,
+            311.62044814780137,
+            353.54628740878155,
+            398.8030667186859,
+            448.4963800108917,
+            501.7638464578764,
+            557.7134662207559,
+            615.9415271471161,
+            677.1770146233011,
+            739.235914695639,
+            804.7389191190093,
+            874.8402182910024,
+            947.3646567979115,
+            1022.9686679865174
+          ]
+        },
+        "deepmind": {
+          "mean_track_error_km": {
+            "value": 534.8619522162429,
+            "storms": 230
+          },
+          "track_error_120h_km": {
+            "value": 1082.253921983746,
+            "storms": 230
+          },
+          "direction_error_deg": {
+            "value": 41.2608569444939,
+            "storms": 230
+          },
+          "shape_similarity": {
+            "value": 0.8933690501351934,
+            "storms": 230
+          },
+          "track_error_by_lead_km": [
+            114.73579161496248,
+            150.05176773716605,
+            186.62578636599312,
+            230.15185300349486,
+            269.44361640486176,
+            308.8927597927205,
+            350.43195179308117,
+            393.53364129433595,
+            432.49137917943165,
+            476.05487406828956,
+            517.4587499637993,
+            564.5613200677591,
+            620.1750658120939,
+            679.1636664565294,
+            737.6134951348805,
+            794.3707077948451,
+            855.8112853459712,
+            927.6904921578597,
+            1005.7269183530368,
+            1082.2539219837458
+          ]
+        }
+      },
+      "pressure": {
+        "JMA": {
+          "daily_cases": 0,
+          "storms": 0,
+          "common_lead_points": 0,
+          "models": {
+            "1.1": {
+              "mae_hpa": {
+                "value": null,
+                "storms": 0,
+                "daily_cases": 0
+              },
+              "curve_similarity": {
+                "value": null,
+                "storms": 0,
+                "daily_cases": 0
+              }
+            },
+            "1.2": {
+              "mae_hpa": {
+                "value": null,
+                "storms": 0,
+                "daily_cases": 0
+              },
+              "curve_similarity": {
+                "value": null,
+                "storms": 0,
+                "daily_cases": 0
+              }
+            },
+            "deepmind": {
+              "mae_hpa": {
+                "value": null,
+                "storms": 0,
+                "daily_cases": 0
+              },
+              "curve_similarity": {
+                "value": null,
+                "storms": 0,
+                "daily_cases": 0
+              }
+            }
+          }
+        },
+        "USA": {
+          "daily_cases": 0,
+          "storms": 0,
+          "common_lead_points": 0,
+          "models": {
+            "1.1": {
+              "mae_hpa": {
+                "value": null,
+                "storms": 0,
+                "daily_cases": 0
+              },
+              "curve_similarity": {
+                "value": null,
+                "storms": 0,
+                "daily_cases": 0
+              }
+            },
+            "1.2": {
+              "mae_hpa": {
+                "value": null,
+                "storms": 0,
+                "daily_cases": 0
+              },
+              "curve_similarity": {
+                "value": null,
+                "storms": 0,
+                "daily_cases": 0
+              }
+            },
+            "deepmind": {
+              "mae_hpa": {
+                "value": null,
+                "storms": 0,
+                "daily_cases": 0
+              },
+              "curve_similarity": {
+                "value": null,
+                "storms": 0,
+                "daily_cases": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "recent_2024_onward": {
+      "route": {
+        "1.1": {
+          "mean_track_error_km": {
+            "value": 901.4469476243576,
+            "storms": 40
+          },
+          "track_error_120h_km": {
+            "value": 1811.4824436653348,
+            "storms": 40
+          },
+          "direction_error_deg": {
+            "value": 52.90127204393345,
+            "storms": 40
+          },
+          "shape_similarity": {
+            "value": 0.7424201207986456,
+            "storms": 40
+          },
+          "track_error_by_lead_km": [
+            78.52386271466261,
+            156.0056928576924,
+            233.6439497021143,
+            313.5060345609392,
+            401.3482497032272,
+            485.08306982903804,
+            569.2284746744191,
+            648.8852556303291,
+            734.7166305100175,
+            826.5137815552425,
+            921.0667729034061,
+            1012.8766527233684,
+            1111.3795749296182,
+            1206.6829436962798,
+            1302.9707881546994,
+            1399.8015110066206,
+            1504.0856858965933,
+            1604.7185293991047,
+            1706.4190483744474,
+            1811.4824436653344
+          ]
+        },
+        "1.2": {
+          "mean_track_error_km": {
+            "value": 477.1627056803647,
+            "storms": 40
+          },
+          "track_error_120h_km": {
+            "value": 1081.4567590665797,
+            "storms": 40
+          },
+          "direction_error_deg": {
+            "value": 34.679830192136706,
+            "storms": 40
+          },
+          "shape_similarity": {
+            "value": 0.9036877033093333,
+            "storms": 40
+          },
+          "track_error_by_lead_km": [
+            49.81092577486012,
+            86.26111562439522,
+            117.00473218410767,
+            148.14453977731517,
+            185.93076702959854,
+            226.4708651852496,
+            270.27841049462984,
+            310.6651454607977,
+            353.022021633789,
+            402.7247690307546,
+            453.72423143819543,
+            506.6709895950815,
+            561.790377991463,
+            617.5201178424808,
+            680.4434266079353,
+            750.6985655911949,
+            832.166881859046,
+            910.1899090881452,
+            998.2795623316731,
+            1081.45675906658
+          ]
+        },
+        "deepmind": {
+          "mean_track_error_km": {
+            "value": 288.51483990857145,
+            "storms": 40
+          },
+          "track_error_120h_km": {
+            "value": 742.426658041413,
+            "storms": 40
+          },
+          "direction_error_deg": {
+            "value": 31.155756137737363,
+            "storms": 40
+          },
+          "shape_similarity": {
+            "value": 0.9451352628980612,
+            "storms": 40
+          },
+          "track_error_by_lead_km": [
+            54.38085398237462,
+            57.28419688409821,
+            66.92670435931014,
+            87.08275145846693,
+            95.26785400498491,
+            101.13835495815766,
+            122.41853347063868,
+            148.10397905590278,
+            164.7843120732874,
+            209.3113782592264,
+            251.62393210349515,
+            280.4267975225144,
+            328.6794825177443,
+            376.2715872727139,
+            420.82504602320796,
+            472.8578209865762,
+            530.5492246453126,
+            599.3154715342171,
+            660.6218590177866,
+            742.426658041413
+          ]
+        }
+      },
+      "pressure": {
+        "JMA": {
+          "daily_cases": 134,
+          "storms": 40,
+          "common_lead_points": 2637,
+          "models": {
+            "1.1": {
+              "mae_hpa": {
+                "value": 13.53233861138585,
+                "storms": 40,
+                "daily_cases": 134
+              },
+              "curve_similarity": {
+                "value": 0.7074066420243609,
+                "storms": 40,
+                "daily_cases": 134
+              }
+            },
+            "1.2": {
+              "mae_hpa": {
+                "value": 12.837077366789085,
+                "storms": 40,
+                "daily_cases": 134
+              },
+              "curve_similarity": {
+                "value": 0.7118461112422476,
+                "storms": 40,
+                "daily_cases": 134
+              }
+            },
+            "deepmind": {
+              "mae_hpa": {
+                "value": 10.197678417354012,
+                "storms": 40,
+                "daily_cases": 134
+              },
+              "curve_similarity": {
+                "value": 0.8087969164941555,
+                "storms": 40,
+                "daily_cases": 134
+              }
+            }
+          }
+        },
+        "USA": {
+          "daily_cases": 134,
+          "storms": 40,
+          "common_lead_points": 2325,
+          "models": {
+            "1.1": {
+              "mae_hpa": {
+                "value": 12.835629459598886,
+                "storms": 40,
+                "daily_cases": 134
+              },
+              "curve_similarity": {
+                "value": 0.7236794525870405,
+                "storms": 40,
+                "daily_cases": 131
+              }
+            },
+            "1.2": {
+              "mae_hpa": {
+                "value": 12.552942457392373,
+                "storms": 40,
+                "daily_cases": 134
+              },
+              "curve_similarity": {
+                "value": 0.6636769485468179,
+                "storms": 40,
+                "daily_cases": 131
+              }
+            },
+            "deepmind": {
+              "mae_hpa": {
+                "value": 11.546903198440878,
+                "storms": 40,
+                "daily_cases": 134
+              },
+              "curve_similarity": {
+                "value": 0.7445409788756472,
+                "storms": 40,
+                "daily_cases": 131
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "interpretation": "Development comparison: 1.2 reference is 50-member input-perturbed mean; Mini is one member, different weather source. Historical fitting-year overlap; recent 2024+ reported separately.",
+  "aggregation": "Same frozen scorer: leads per day; days within storm; equal storms. Common three-way moving directions and pressure-valid leads; separate JMA/USA labels.",
+  "pressure_scope": "Native matched subset, common three-way leads. Missing is null, never zero.",
+  "verification_sha256": "8f29a767ab5db61cf6773f5806cc110789329b04db48361715e5b4c295545c89",
+  "case_manifest_sha256": "30d35cfb79e809227fd0d255f9b5173ad18e781c7450ed4bbf0211553f8e63bd",
+  "canary": {
+    "wp_pressure_mean_abs_difference_hpa": 0.00025739270264116574,
+    "wp_pressure_max_abs_difference_hpa": 0.04547119140625,
+    "wp_pressure_max_abs_difference_hpa_by_lead": [
+      0.00030517578125,
+      0.000244140625,
+      0.000244140625,
+      0.00018310546875,
+      0.00030517578125,
+      0.00054931640625,
+      0.00079345703125,
+      0.0009765625,
+      0.002685546875,
+      0.00341796875,
+      0.0032958984375,
+      0.0048828125,
+      0.004638671875,
+      0.0032958984375,
+      0.00543212890625,
+      0.00787353515625,
+      0.00836181640625,
+      0.023681640625,
+      0.04547119140625,
+      0.042724609375
+    ],
+    "field_gate_limits_hpa": {
+      "mean": 0.01,
+      "max": 0.1
+    },
+    "field_gate_passed": true,
+    "tracker_max_difference_km": 0.14586496919052705,
+    "central_pressure_max_abs_difference_hpa": 0.07400935954797205,
+    "pressure_masks_match": true,
+    "cpu_numerical_equivalence": true,
+    "status": "cuda_canary_passed",
+    "tested_at_utc": "2026-10-04T12:55:06.985459+00:00",
+    "validation_protocol": {
+      "id": "same-runtime-strict-fp32-cpu-cuda-v2",
+      "primary_reference": "One fresh CPU rollout in the same pinned WSL runtime and inference code path",
+      "legacy_reference": "Bundled Mac CPU output retained as a separate cross-runtime diagnostic, not the primary gate",
+      "field_gate_limits_hpa": {
+        "mean": 0.01,
+        "max": 0.1
+      },
+      "jax": "0.4.38",
+      "jaxlib": "0.4.38",
+      "case_index": 0,
+      "cpu_counts_as_benchmark": false,
+      "tolerances_changed": false
+    },
+    "runtime_match": true,
+    "input_bytes_match": true,
+    "protocol_match": true,
+    "case_index": 0,
+    "checkpoint_sha256": "a1bb151457077248d70a458b1a7b19deacd2926fbcb46eee4ff2691444e3596e",
+    "gpu_verified_steps": 20,
+    "protocol_sha256": "91b31582f24ffdd4f2309eddb0cc68498a2c31cab7cbabaf06f43dfbff413606",
+    "cpu_forecast_sha256": "a8700f10b93dcf76b20439ed0cf71c312274398813af4ef8c6df51cbc75b0964",
+    "cuda_forecast_sha256": "0338d2b907bf0f4a605883b4c778bf961fe7406b6916161317b25a39b66fa68c",
+    "cpu_metadata_identity": "a2b686e98309ebcda11482f521b68cc8657171d08606d24e0c303484c446cddb",
+    "cuda_metadata_identity": "5eb223c4c969f2df64b29289ef3e96a467b418721ee7071faa81e64c59fbb1a1",
+    "cpu_input_state_sha256": "f0e8ca0d826e52e76a2b090084a09845a58871d3e6e02b8513b7a4f9cbf8d6c2",
+    "cuda_input_state_sha256": "f0e8ca0d826e52e76a2b090084a09845a58871d3e6e02b8513b7a4f9cbf8d6c2",
+    "cpu_device": {
+      "backend": "cpu",
+      "device_kind": "cpu",
+      "platform": "cpu",
+      "platform_version": "cpu",
+      "jax": "0.4.38",
+      "jaxlib": "0.4.38",
+      "python": "3.12.3",
+      "gpu_matmul_verified": false,
+      "numerics": {
+        "matmul_precision": "highest",
+        "NVIDIA_TF32_OVERRIDE": "0",
+        "jax_enable_x64": false,
+        "jax_threefry_partitionable": true
+      }
+    },
+    "device": {
+      "backend": "cuda",
+      "device_kind": "NVIDIA GeForce RTX 3070",
+      "platform": "gpu",
+      "platform_version": "PJRT C API\ncuda 12030",
+      "jax": "0.4.38",
+      "jaxlib": "0.4.38",
+      "python": "3.12.3",
+      "gpu_matmul_verified": true,
+      "numerics": {
+        "matmul_precision": "highest",
+        "NVIDIA_TF32_OVERRIDE": "0",
+        "jax_enable_x64": false,
+        "jax_threefry_partitionable": true
+      }
+    },
+    "cpu_predictions_reused_as_cuda": false,
+    "legacy_cross_runtime_comparison": {
+      "wp_pressure_mean_abs_difference_hpa": 0.0074994690769043465,
+      "wp_pressure_max_abs_difference_hpa": 0.59765625,
+      "wp_pressure_max_abs_difference_hpa_by_lead": [
+        0.03729248046875,
+        0.00933837890625,
+        0.0706787109375,
+        0.03485107421875,
+        0.0855712890625,
+        0.05712890625,
+        0.0518798828125,
+        0.04205322265625,
+        0.0977783203125,
+        0.07293701171875,
+        0.05584716796875,
+        0.0611572265625,
+        0.145751953125,
+        0.1763916015625,
+        0.19189453125,
+        0.26953125,
+        0.20556640625,
+        0.29156494140625,
+        0.5030517578125,
+        0.59765625
+      ],
+      "field_gate_limits_hpa": {
+        "mean": 0.01,
+        "max": 0.1
+      },
+      "field_gate_passed": false,
+      "tracker_max_difference_km": 35.802407171684315,
+      "central_pressure_max_abs_difference_hpa": 1.597311381356235,
+      "pressure_masks_match": true,
+      "cpu_numerical_equivalence": false,
+      "gating": false,
+      "reference_sha256": "982501139e39ebf6e6308c23d7abf3131c221f0ce489000400cafcaa65b06eb4",
+      "input_bytes_match": true,
+      "note": "The older Mac implementation/runtime differs. A failed legacy comparison remains failed; it is not numerical-equivalence certification."
+    }
+  },
+  "published_to_site": false,
+  "integration_note": "Import after independent review into the EXISTING site. The current frontend explicitly suppresses DeepMind until its verified import adapter is updated."
+}

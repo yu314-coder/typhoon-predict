@@ -1,8 +1,8 @@
 {
   "source": "evaluation/released_daily/released_daily_benchmark.json",
-  "source_sha256": "79f67a5f4490150cf0ab24d73e5d3cdedb4884d37e86560cbadde1d4ecdafc43",
+  "source_sha256": "adff1baa1dbc38a6b443cfdd436cd7d4893c04241355c9eaf5004f439ce469a4",
   "chart": "evaluation/released_daily/model_1_2_benchmark.png",
-  "chart_sha256": "3bd866eede33fc93d36a0a5373a3b1637bf0f56860938c3d5691b9b7dfe770b4",
+  "chart_sha256": "a1aec843491af2c81c587410de9d9a478a7aae75c4b79ee4b95d2fd18ef9b2de",
   "metrics": [
     "pressure_JMA_hpa",
     "mean_track_error_km",
@@ -11,18 +11,43 @@
   "values": {
     "pressure_JMA_hpa": {
       "1.1": 13.53233861138585,
-      "1.2": 12.837077366789085
+      "1.2": 12.837077366789085,
+      "deepmind": 10.197678417354012
     },
     "mean_track_error_km": {
       "1.1": 798.4143395733709,
-      "1.2": 471.2045276140213
+      "1.2": 471.2045276140213,
+      "deepmind": 498.3660837262175
     },
     "direction_error_deg": {
       "1.1": 51.58419207122625,
-      "1.2": 34.95994745459279
+      "1.2": 34.95994745459279,
+      "deepmind": 39.76380497312257
     }
   },
-  "deepmind_score": null,
+  "deepmind_status": "complete_verified",
+  "deepmind_model": {
+    "key": "deepmind",
+    "label": "Google DeepMind WeatherNext Cyclones Mini (<2024)",
+    "model_checkpoint": "WeatherNextCyclones_Mini_<2024",
+    "software_version": "0.3.0",
+    "software_commit": "89c4b2a77a1c57b328b909c575550fd2e5aadc9c",
+    "trained_through": 2023,
+    "resolution_degrees": 1,
+    "member_count": 1,
+    "member_policy": "One official Mini member, seed 0",
+    "checkpoint_sha256": "a1bb151457077248d70a458b1a7b19deacd2926fbcb46eee4ff2691444e3596e",
+    "method": "Official predictor and initialized-storm tracker; causal ERA5; RTX 3070 CUDA",
+    "status": "complete_verified"
+  },
+  "models": [
+    "1.1",
+    "1.2",
+    "deepmind"
+  ],
+  "bars_per_panel": 3,
+  "error_bars": false,
   "zero_fill": false,
-  "model_forecasts_modified": false
+  "model_forecasts_modified": false,
+  "publication_audit_sha256": "52c767b46452a29341c024f24a774328ed6fd4169f5f28e923a81e01c641b222"
 }
