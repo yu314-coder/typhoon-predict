@@ -4,6 +4,8 @@ The released pressure-field model predicts Western Pacific storm tracks, central
 
 This folder contains the exact source, input contract and inference-only weights for the research model in the [main README](../../README.md). `model.py`, `baseline_model.py` and `v165_base.py` are source-identical to the selected training implementation. The weight file is distributed via the [GitHub release](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.2) and [Hugging Face](https://huggingface.co/euler314/typhoon-predict/tree/main/models/trackformer_1_2_field), not Git.
 
+**Training-data cutoff:** fitting and weather normalization use **2000–2021**; validation/checkpoint selection uses **2022–2023**; the original test partition uses **2024–2025**. Inputs come from IBTrACS-derived storm records, NOAA PSL NCEP/NCAR Reanalysis basin fields, ARCO-ERA5 regional pressure and static land/elevation. Newer 2026 archive/live inputs are inference, not retraining. [Sources and exact split coverage](../../docs/trackformer_1_2_training_data.md) · [Verified training-data receipt](../../evaluation/training_data/trackformer_1_2_provenance.json).
+
 Use Python with PyTorch and NumPy. The export environment used PyTorch 2.13.0; the source was evaluated on macOS MPS. Example:
 
 ```bash

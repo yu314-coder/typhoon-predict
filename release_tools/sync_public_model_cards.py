@@ -24,6 +24,7 @@ FILMS = ('mangkhut',)
 CURRENT_FIGURES = frozenset((
     'evaluation/released_daily/model_1_2_benchmark.png',
     'evaluation/released_daily/model_1_2_after_2024_benchmark.png',
+    'evaluation/released_daily/model_1_2_before_2024_benchmark.png',
     'docs/trackformer_1_2_architecture.svg',
 ))
 SYNC_FILES = (
@@ -51,6 +52,9 @@ SYNC_FILES = (
     'docs/daily_storm_benchmark.md',
     'docs/intensity_benchmark.md',
     'docs/trackformer_1_2_evaluation.md',
+    'docs/trackformer_1_2_training_data.md',
+    'evaluation/training_data/trackformer_1_2_provenance.json',
+    'release_tools/audit_training_data.py',
     'docs/deepmind_daily_benchmark.md',
     'docs/showcase_archive.md',
     'evaluation/README.md',
@@ -68,6 +72,8 @@ SYNC_FILES = (
     'evaluation/released_daily/model_1_2_benchmark.json',
     'evaluation/released_daily/model_1_2_after_2024_benchmark.png',
     'evaluation/released_daily/model_1_2_after_2024_benchmark.json',
+    'evaluation/released_daily/model_1_2_before_2024_benchmark.png',
+    'evaluation/released_daily/model_1_2_before_2024_benchmark.json',
     'evaluation/deepmind_daily/benchmark.json',
     'evaluation/deepmind_daily/verification.json',
     'evaluation/deepmind_daily/publication_audit.json',
@@ -187,13 +193,13 @@ def run(output, publish=False):
         # immutable commit in the card. Never pin new bytes to the old movie
         # revision or let a missing future image render as a stale figure.
         assets = api.create_commit(repo_id=REPO, repo_type='model', parent_commit=parent,
-            commit_message='Publish exact Mini <2024 identity, UTC proportions and total/post-2024 comparison charts',
+            commit_message='Add pre-2024 chart and verified Trackformer 1.2 training sources and cutoffs',
             operations=[CommitOperationAdd(path_in_repo=name, path_or_fileobj=str(ROOT/name)) for name in SYNC_FILES])
         card_path.write_text(render_card(original.read_text(), github, assets.oid))
         receipt['files']['README.md'] = sha(card_path)
         receipt['figure_revision'] = assets.oid
         committed = api.create_commit(repo_id=REPO, repo_type='model', parent_commit=assets.oid,
-            commit_message='Show completed Mini <2024 results with separate total and post-2024 benchmarks',
+            commit_message='Show total, pre-2024 and post-2024 results with explicit 1.2 training years',
             operations=[CommitOperationAdd(path_in_repo='README.md', path_or_fileobj=str(card_path))])
         for name, expected in receipt['files'].items():
             saved = hf_hub_download(REPO, name, revision=committed.oid, cache_dir=CACHE)

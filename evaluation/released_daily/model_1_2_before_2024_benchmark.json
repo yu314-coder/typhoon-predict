@@ -1,10 +1,10 @@
 {
   "source": "evaluation/deepmind_daily/period_comparison.json",
   "source_sha256": "0aef2eb8b5f808e5100cbbe132af3dc3e5d2de6fefe7d92d916190049cdf25cb",
-  "chart": "evaluation/released_daily/model_1_2_benchmark.png",
-  "chart_sha256": "ef201e3187496b476bef0281f854ac5d5e6f3143e7e2152d3f9795e3b20ccc1f",
-  "period": "total",
-  "period_definition": "All 1,473 frozen daily starts",
+  "chart": "evaluation/released_daily/model_1_2_before_2024_benchmark.png",
+  "chart_sha256": "d441f512bd6eeb6761bc2ac4bb3bb09d64c9efccc8241fdc93b489fd442f5104",
+  "period": "before_2024",
+  "period_definition": "UTC issue year < 2024",
   "metrics": [
     "pressure_JMA_hpa",
     "mean_track_error_km",
@@ -12,19 +12,19 @@
   ],
   "values": {
     "pressure_JMA_hpa": {
-      "1.1": 13.53233861138585,
-      "1.2": 12.837077366789085,
-      "deepmind": 10.197678417354012
+      "1.1": null,
+      "1.2": null,
+      "deepmind": null
     },
     "mean_track_error_km": {
-      "1.1": 798.4143395733709,
-      "1.2": 471.2045276140213,
-      "deepmind": 498.3660837262175
+      "1.1": 780.4956251297209,
+      "1.2": 470.1683227329181,
+      "deepmind": 534.8619522162429
     },
     "direction_error_deg": {
-      "1.1": 51.58419207122625,
-      "1.2": 34.959947454592786,
-      "deepmind": 39.76380497312257
+      "1.1": 51.35513468466848,
+      "1.2": 35.008663500237326,
+      "deepmind": 41.2608569444939
     }
   },
   "deepmind_status": "complete_verified",
@@ -47,27 +47,29 @@
     "1.2",
     "deepmind"
   ],
-  "bars_per_panel": 3,
+  "bars_per_panel": null,
   "available_bars_per_panel": {
-    "pressure_JMA_hpa": 3,
+    "pressure_JMA_hpa": 0,
     "mean_track_error_km": 3,
     "direction_error_deg": 3
   },
   "coverage": {
     "pressure_JMA_hpa": {
-      "daily_issues": 134,
-      "storms": 40
+      "daily_issues": 0,
+      "storms": 0
     },
     "mean_track_error_km": {
-      "daily_issues": 1473,
-      "storms": 270
+      "daily_issues": 1336,
+      "storms": 230
     },
     "direction_error_deg": {
-      "daily_issues": 1473,
-      "storms": 270
+      "daily_issues": 1336,
+      "storms": 230
     }
   },
-  "unavailable_metrics": [],
+  "unavailable_metrics": [
+    "pressure_JMA_hpa"
+  ],
   "error_bars": false,
   "zero_fill": false,
   "model_forecasts_modified": false,

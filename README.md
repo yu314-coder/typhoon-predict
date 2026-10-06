@@ -76,6 +76,19 @@ The proportions below describe **benchmark coverage, not training-data compositi
 
 Because the final score weights storms equally, the historical group contributes **85.2% of the total track score's storm weight**, not its 90.7% share of starts. These dates overlap Mini's fitting years; the mixed-year total is not an unused temporal test. Calendar 2024 is already later than Mini's training cutoff, but is intentionally excluded from the requested strict `>2024` chart.
 
+### Before 2024 · historical forecast starts only
+
+![Pre-2024 benchmark: Trackformer 1.1, 1.2 and the same WeatherNext Cyclones Mini <2024 checkpoint; historical track scores, pressure not scored](evaluation/released_daily/model_1_2_before_2024_benchmark.png)
+
+| Pre-2024 development metric | 1.1 | 1.2 · mean of 50 | DeepMind Mini <2024 · one member | Shared coverage |
+| --- | ---: | ---: | ---: | --- |
+| Historical track position MAE · lower is better | 780.5 km | **470.2 km** | 534.9 km | 1,336 days / 230 storms |
+| Historical track-direction error · lower is better | 51.36° | **35.01°** | 41.26° | 1,336 days / 230 storms |
+| Historical route-shape similarity · centred · higher is better | 0.7565 | 0.8802 | **0.8934** | 1,336 days / 230 storms |
+| Historical JMA central-pressure MAE | Not scored | Not scored | Not scored | 0 shared valid pressure starts |
+
+This is strict UTC issue year `<2024`, **all 1980–1999 in this frozen cohort**, not every storm before 2024. The historical group overlaps Mini's training years. **Pressure is not scored** because the frozen 1.1 historical issue-time intensity inputs are unavailable; the shared three-model pressure mask is empty. The chart deliberately draws no pressure bars—missing data are not zero error. Route-shape similarity is separate from geographic track accuracy.
+
 ### After 2024 · 2025–2026 forecast starts only
 
 ![Post-2024 benchmark: Trackformer 1.1, 1.2 and the same WeatherNext Cyclones Mini <2024 checkpoint; 2024 excluded](evaluation/released_daily/model_1_2_after_2024_benchmark.png)
@@ -93,6 +106,29 @@ The combined cohort favours 1.2 for position and heading, while Mini has lower c
 Total JMA pressure scores use **134 days / 40 storms / 2,637 shared valid leads**; post-2024 JMA pressure uses **59 days / 18 storms / 1,174 leads**. Missing historical intensity inputs are not zero-scored. Pressure is central-pressure intensity, not whole-map error. Curve similarity measures timing/shape after removing pressure level and amplitude; it does not replace hPa error. These are point estimates, not a claim of statistically proven superiority.
 
 [Exact date proportions and recomputed subset scores](evaluation/deepmind_daily/period_comparison.json) · [Original completed results](evaluation/deepmind_daily/benchmark.json) · [CUDA completion receipt](evaluation/deepmind_daily/verification.json) · [Independent publication audit](evaluation/deepmind_daily/publication_audit.json) · [Model identity and reproducible protocol](docs/deepmind_daily_benchmark.md)
+
+## Training data and year cutoffs
+
+**Released Trackformer 1.2 was fitted on 2000–2021 weather and typhoon data.** Validation used 2022–2023 for checkpoint selection; the original test partition used 2024–2025. **2026 live or historical forecasts are inference with frozen 1.2 weights, not training through 2026.**
+
+| Data used by 1.2 | Source and variables | Years used for fitting |
+| --- | --- | --- |
+| Typhoon observations and labels | [NOAA IBTrACS](https://www.ncei.noaa.gov/products/international-best-track-archive)-derived storm positions, recent motion, available maximum wind and central pressure, with validity masks | 2000–2021 · Western Pacific-domain windows |
+| Large-scale weather | [NOAA PSL NCEP/NCAR Reanalysis 1](https://psl.noaa.gov/data/gridded/data.ncep.reanalysis.html): sea-level pressure, 500 hPa height, and east/north winds at 850, 500 and 200 hPa; six-hour, 2.5° basin grid | 2000–2021 |
+| Native regional pressure detail | [ARCO-ERA5](https://github.com/google-research/arco-era5) mean sea-level pressure at 0.25°, fixed issue-centred patches when available | 2000–2021 · 800 fitting windows |
+| Static geography | ERA5 land fraction and surface geopotential converted to elevation, plus latitude/longitude | Static fields; not extra typhoon training years |
+
+| Original whole-storm partition | Weather / typhoon years | Eligible six-hour windows | Native-pressure windows |
+| --- | --- | ---: | ---: |
+| Fitting · gradient updates and weather normalization | 2000–2021 | 13,949 | 800 |
+| Validation · checkpoint selection, no gradient updates | 2022–2023 | 1,041 | 100 |
+| Original test · evaluation only | 2024–2025 | 1,195 | 100 |
+
+Each input contains nine analyses from −48 to 0 h. Later fields and best-track values are **training targets or evaluation labels**, never positive-lead prediction inputs. Entire storms stay in one partition and windows crossing a year-partition boundary are excluded. Weather normalization is fitted only on 2000–2021.
+
+The checksum-pinned source caches extend further: the derived typhoon archive reaches **13 July 2026**, and the NCEP basin archive reaches **17 March 2026, 18 UTC**. Those endpoints describe archive availability, **not the fitting cutoff**. Later live weather uses separately documented experimental GFS transfer; it does not update the released weights. This release has no satellite cloud-image or humidity input channel. Previously inspected test/showcase storms remain development evidence, not a newly untouched holdout.
+
+[Training-source details and exact date ranges](docs/trackformer_1_2_training_data.md) · [Recomputed split counts and verified dataset hashes](evaluation/training_data/trackformer_1_2_provenance.json)
 
 ## How Trackformer 1.2 works
 

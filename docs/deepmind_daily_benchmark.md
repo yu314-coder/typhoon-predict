@@ -43,7 +43,7 @@ Mini has better recent-only track scores even though 1.2 has lower position/head
 
 ### Strict forecast-date partition and separate charts
 
-Both README charts use **`WeatherNextCyclones_Mini_<2024`**, the same official checkpoint trained through 2023, software v0.3.0, native 1° and one CUDA member. A post-2024 forecast is not a post-2024-trained model. The following proportions refer to this evaluation cohort, not the model's training dataset.
+All three README charts—total, strict `<2024` and strict `>2024`—use **`WeatherNextCyclones_Mini_<2024`**, the same official checkpoint trained through 2023, software v0.3.0, native 1° and one CUDA member. A post-2024 forecast is not a post-2024-trained model. The following proportions refer to this evaluation cohort, not the model's training dataset.
 
 | UTC issue year | Starts / share | Storms / share |
 | --- | --- | --- |
@@ -53,7 +53,9 @@ Both README charts use **`WeatherNextCyclones_Mini_<2024`**, the same official c
 
 The original `recent_2024_onward` aggregate includes 2024 and is retained unchanged. The new **strict `after_2024`** derivative excludes 2024: track position MAE is **963.02 / 469.40 / 258.67 km**, direction error **57.88 / 33.81 / 28.73°**, and JMA pressure MAE **12.59 / 11.12 / 9.55 hPa** for 1.1 / 1.2 / Mini. Track uses 61 starts / 18 storms; pressure uses 59 starts / 18 storms / 1,174 exact common leads. The total chart still uses the original scores. Its historical 230 storms contribute 85.2% of equal-storm track weight, not 90.7%.
 
-[UTC partitions, exact case IDs, all metrics and source hashes](../evaluation/deepmind_daily/period_comparison.json) · [Total chart](../evaluation/released_daily/model_1_2_benchmark.png) · [Post-2024 chart](../evaluation/released_daily/model_1_2_after_2024_benchmark.png)
+The strict **`before_2024`** chart uses the 1,336 historical starts / 230 storms (1980–1999 here): position MAE **780.50 / 470.17 / 534.86 km** and direction error **51.36 / 35.01 / 41.26°** for 1.1 / 1.2 / Mini. All three shared JMA pressure scores are null, with zero eligible common starts: frozen historical 1.1 intensity inputs are unavailable. That panel says **Not scored** and contains no bars, not zero-height bars. Track coverage must never be reused as pressure coverage.
+
+[UTC partitions, exact case IDs, all metrics and source hashes](../evaluation/deepmind_daily/period_comparison.json) · [Total chart](../evaluation/released_daily/model_1_2_benchmark.png) · [Pre-2024 chart](../evaluation/released_daily/model_1_2_before_2024_benchmark.png) · [Post-2024 chart](../evaluation/released_daily/model_1_2_after_2024_benchmark.png)
 
 Reproduce these derivative summaries without inference or raw-weather downloads:
 

@@ -48,6 +48,26 @@
     "deepmind"
   ],
   "bars_per_panel": 3,
+  "available_bars_per_panel": {
+    "pressure_JMA_hpa": 3,
+    "mean_track_error_km": 3,
+    "direction_error_deg": 3
+  },
+  "coverage": {
+    "pressure_JMA_hpa": {
+      "daily_issues": 59,
+      "storms": 18
+    },
+    "mean_track_error_km": {
+      "daily_issues": 61,
+      "storms": 18
+    },
+    "direction_error_deg": {
+      "daily_issues": 61,
+      "storms": 18
+    }
+  },
+  "unavailable_metrics": [],
   "error_bars": false,
   "zero_fill": false,
   "model_forecasts_modified": false,

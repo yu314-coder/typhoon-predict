@@ -156,12 +156,52 @@ class PublicModelCardsTest(unittest.TestCase):
         for source in (self.source, render_card(self.original, self.source)):
             self.assertLess(source.index('**DeepMind checkpoint:'), source.index('model_1_2_benchmark.png'))
             self.assertEqual(source.count('model_1_2_benchmark.png'), 1)
+            self.assertEqual(source.count('model_1_2_before_2024_benchmark.png'), 1)
             self.assertEqual(source.count('model_1_2_after_2024_benchmark.png'), 1)
             for text in ('90.7%', '85.2%', '5.2%', '8.1%', '4.1%', '6.7%',
                          'Calendar 2024', '59 days / 18 storms / 1,174',
                          'not training-data composition', 'same Mini `<2024` checkpoint',
                          '100% Mini `<2024`; 0% other checkpoints'):
                 self.assertIn(text, source)
+
+    def test_historical_chart_and_missing_pressure_are_explicit(self):
+        report = json.loads((ROOT / 'evaluation/deepmind_daily/period_comparison.json').read_text())
+        before = report['periods']['before_2024']
+        for source in (self.source, render_card(self.original, self.source)):
+            section = source.split('### Before 2024', 1)[1].split('### After 2024', 1)[0]
+            for label, key, places in (('Historical track position MAE', 'mean_track_error_km', 1),
+                                       ('Historical track-direction error', 'direction_error_deg', 2),
+                                       ('Historical route-shape similarity', 'shape_similarity', 4)):
+                self.assert_metric_row(section, label,
+                    {m: before['scores']['route'][m][key]['value'] for m in ('1.1', '1.2', 'deepmind')}, places)
+            for text in ('Pressure is not scored', '0 shared valid pressure starts', 'not zero error', '1980–1999'):
+                self.assertIn(text, section)
+
+    def test_training_years_sources_and_receipt_match_release(self):
+        manifest = json.loads((ROOT / 'models/trackformer_1_2_field/manifest.json').read_text())
+        audit = json.loads((ROOT / 'evaluation/training_data/trackformer_1_2_provenance.json').read_text())
+        self.assertEqual(audit['status'], 'verified')
+        for key in ('source_checkpoint_sha256', 'inference_weights_sha256'):
+            self.assertEqual(audit[key], manifest[key])
+        self.assertEqual(audit['dataset_manifest_sha256'], manifest['dataset_sha256'])
+        self.assertEqual(audit['normalization_fit_years'], [2000, 2021])
+        self.assertEqual(len(audit['verified_archive_files']), 6)
+        self.assertTrue(audit['whole_storm_splits'])
+        for name, years, count, native in (('train', [2000, 2021], 13949, 800),
+                                           ('validation', [2022, 2023], 1041, 100),
+                                           ('test', [2024, 2025], 1195, 100)):
+            row = audit['partitions'][name]
+            self.assertEqual((row['years'], row['windows'], row['native_pressure_windows']), (years, count, native))
+        for key in ('inference_performed', 'model_weights_modified', 'training_data_modified'):
+            self.assertFalse(audit[key])
+        for source in (self.source, render_card(self.original, self.source)):
+            for text in ('## Training data and year cutoffs', '2000–2021', '2022–2023', '2024–2025',
+                         'not training through 2026', 'IBTrACS', 'NCEP/NCAR Reanalysis 1',
+                         'ARCO-ERA5', 'land fraction', '13,949', '1,041', '1,195'):
+                self.assertIn(text, source)
+        for path in ('docs/trackformer_1_2_training_data.md',
+                     'evaluation/training_data/trackformer_1_2_provenance.json', 'release_tools/audit_training_data.py'):
+            self.assertIn(path, SYNC_FILES)
 
     def test_evaluation_index_and_worker_handoff_metadata_are_explained(self):
         index = (ROOT / 'evaluation/README.md').read_text()

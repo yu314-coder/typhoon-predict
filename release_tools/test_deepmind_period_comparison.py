@@ -5,7 +5,7 @@ import unittest
 
 from build_deepmind_period_comparison import FOLDER, MODELS, ROOT, period_key, summarize
 from import_deepmind_release_results import same
-from plot_model_announcement import period_metrics
+from plot_model_announcement import metric_available, period_metrics
 
 
 class DeepMindPeriodComparisonTest(unittest.TestCase):
@@ -85,7 +85,9 @@ class DeepMindPeriodComparisonTest(unittest.TestCase):
         self.assertEqual(self.report['missing_results_scored_as_zero'], 0)
 
     def test_chart_receipts_match_exact_data_and_bytes(self):
-        for name, key in (('model_1_2_benchmark', 'total'), ('model_1_2_after_2024_benchmark', 'after_2024')):
+        for name, key in (('model_1_2_benchmark', 'total'),
+                          ('model_1_2_before_2024_benchmark', 'before_2024'),
+                          ('model_1_2_after_2024_benchmark', 'after_2024')):
             base = ROOT / 'evaluation/released_daily' / name
             receipt = json.loads(base.with_suffix('.json').read_text())
             self.assertEqual(receipt['period'], key)
@@ -95,6 +97,21 @@ class DeepMindPeriodComparisonTest(unittest.TestCase):
             expected = period_metrics(self.report['periods'][key])
             self.assertEqual(receipt['values'], {k: v['values'] for k, v in expected.items()})
             self.assertFalse(receipt['zero_fill'])
+            self.assertEqual(receipt['available_bars_per_panel'],
+                             {k: 3 if metric_available(v) else 0 for k, v in expected.items()})
+            self.assertEqual(receipt['coverage'], {k: v['coverage'] for k, v in expected.items()})
+            if key == 'before_2024':
+                self.assertIsNone(receipt['bars_per_panel'])
+                self.assertEqual(receipt['unavailable_metrics'], ['pressure_JMA_hpa'])
+
+    def test_unavailable_panel_is_not_zero_fill_or_invalid_numeric_score(self):
+        empty = {'values': {m: None for m in MODELS}, 'coverage': {'daily_issues': 0, 'storms': 0}}
+        self.assertFalse(metric_available(empty))
+        for values, coverage in (({m: 0 for m in MODELS}, empty['coverage']),
+                                 (empty['values'], {'daily_issues': 1, 'storms': 1}),
+                                 ({m: float('nan') for m in MODELS}, {'daily_issues': 1, 'storms': 1})):
+            with self.assertRaises(ValueError):
+                metric_available({'values': values, 'coverage': coverage})
 
 
 if __name__ == '__main__':

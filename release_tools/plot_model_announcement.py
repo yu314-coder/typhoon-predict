@@ -12,6 +12,21 @@ SOURCE = ROOT/'evaluation/released_daily/released_daily_benchmark.json'
 DEST = ROOT/'evaluation/released_daily/model_1_2_benchmark.png'
 PERIOD_SOURCE = ROOT/'evaluation/deepmind_daily/period_comparison.json'
 POST_DEST = ROOT/'evaluation/released_daily/model_1_2_after_2024_benchmark.png'
+PRE_DEST = ROOT/'evaluation/released_daily/model_1_2_before_2024_benchmark.png'
+
+
+def metric_available(row):
+    """A zero-support metric is unavailable, never an error of zero."""
+    values = list(row['values'].values())
+    coverage = row['coverage']
+    if coverage['daily_issues'] == 0 and coverage['storms'] == 0:
+        if not all(v is None for v in values):
+            raise ValueError('Zero support requires null scores, not numeric bars')
+        return False
+    if coverage['daily_issues'] <= 0 or coverage['storms'] <= 0 or any(
+            v is None or not np.isfinite(v) or v < 0 for v in values):
+        raise ValueError('Missing or invalid metric cannot become a zero bar')
+    return True
 
 
 def period_metrics(period):
@@ -42,6 +57,7 @@ def main():
     if periods['model'] != reference or not periods['single_checkpoint_across_all_periods']:
         raise ValueError('Period groups are not different checkpoint generations')
     for key, dest, title in (('total', DEST, 'Total · mixed-year comparison'),
+                             ('before_2024', PRE_DEST, 'Before 2024 · historical comparison'),
                              ('after_2024', POST_DEST, 'After 2024 · 2025–2026 comparison')):
         metrics = period_metrics(periods['periods'][key])
         draw_chart(metrics, reference, periods, key, dest, title)
@@ -60,9 +76,20 @@ def draw_chart(metrics, reference, periods, period_key, dest, title):
     for ax, (key, panel_title, label, maximum, digits) in zip(axes, specs):
         row = metrics[key]
         values = [row['values'][k] for k in models]
-        if any(v is None or not np.isfinite(v) or v < 0 for v in values):
-            raise ValueError('Missing or invalid metric cannot become a zero bar')
         ax.set_facecolor('#f6f8fc')
+        ax.set_title(panel_title, loc='left', fontsize=16, fontweight='bold', color='#21334c', pad=38)
+        ax.text(0, 1.03, label, transform=ax.transAxes, color='#53647c', fontsize=10)
+        if not metric_available(row):
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.text(.5, .65, 'Not scored', transform=ax.transAxes, ha='center',
+                    fontsize=22, fontweight='bold', color='#53647c')
+            ax.text(.5, .35, 'No shared valid JMA pressure cases.\nFrozen 1.1 intensity inputs unavailable.\nMissing is not a zero error.',
+                    transform=ax.transAxes, ha='center', va='center',
+                    fontsize=11, linespacing=1.65, color='#53647c')
+            ax.text(.5, -.33, '0 shared pressure starts / 0 storms · no bars',
+                    transform=ax.transAxes, ha='center', color='#53647c', fontsize=10)
+            continue
         ax.set_axisbelow(True)
         ax.grid(axis='y', color='#dfe5ee', linewidth=.8)
         ax.bar([0, 1, 2], values, width=.55, color=['#9aa9bc', '#3c67d6', '#9073cf'], zorder=3)
@@ -72,8 +99,6 @@ def draw_chart(metrics, reference, periods, period_key, dest, title):
         ax.set_ylim(0, maximum)
         ax.set_xticks([0, 1, 2], ['1.1', '1.2\nmean of 50', 'DeepMind Mini\n<2024 · 1 member'])
         ax.tick_params(axis='both', length=0, labelcolor='#53647c')
-        ax.set_title(panel_title, loc='left', fontsize=16, fontweight='bold', color='#21334c', pad=38)
-        ax.text(0, 1.03, label, transform=ax.transAxes, color='#53647c', fontsize=10)
         coverage = row['coverage']
         ax.text(.5, -.33, f"{coverage['daily_issues']:,} daily starts / {coverage['storms']} storms",
                 transform=ax.transAxes, ha='center', color='#53647c', fontsize=10)
@@ -82,6 +107,8 @@ def draw_chart(metrics, reference, periods, period_key, dest, title):
     fig.text(.055, .84, 'Same saved forecasts and valid times · +6 to +120 h · equal storm weight · lower is better', fontsize=11, color='#53647c')
     if period_key == 'total':
         note = 'Storm proportions: <2024 85.2% · 2024 8.1% · >2024 6.7%. Historical dates overlap Mini fitting years.'
+    elif period_key == 'before_2024':
+        note = 'Strict UTC issue year <2024: 1,336 starts / 230 storms, all 1980–1999 here. These dates overlap Mini fitting years.'
     else:
         note = 'Strict UTC issue year >2024: 61 starts / 18 storms. Calendar 2024 is excluded, not counted as >2024.'
     fig.text(.055, .09, note, fontsize=10, color='#53647c')
@@ -94,7 +121,12 @@ def draw_chart(metrics, reference, periods, period_key, dest, title):
                'period': period_key, 'period_definition': periods['period_definition'][period_key],
                'metrics': [s[0] for s in specs], 'values': {k: metrics[k]['values'] for k, *_ in specs},
                'deepmind_status': 'complete_verified', 'deepmind_model': reference,
-               'models': list(models), 'bars_per_panel': 3, 'error_bars': False,
+               'models': list(models),
+               'bars_per_panel': 3 if all(metric_available(r) for r in metrics.values()) else None,
+               'available_bars_per_panel': {k: 3 if metric_available(r) else 0 for k, r in metrics.items()},
+               'coverage': {k: r['coverage'] for k, r in metrics.items()},
+               'unavailable_metrics': [k for k, r in metrics.items() if not metric_available(r)],
+               'error_bars': False,
                'zero_fill': False, 'model_forecasts_modified': False,
                'publication_audit_sha256': hashlib.sha256((ROOT/'evaluation/deepmind_daily/publication_audit.json').read_bytes()).hexdigest()}
     dest.with_suffix('.json').write_text(json.dumps(receipt, indent=2)+'\n')
