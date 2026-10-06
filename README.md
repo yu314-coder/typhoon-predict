@@ -37,9 +37,13 @@ Trackformer 1.1 predicts track and scalar intensity/structure outputs. **1.2 add
 
 **The three-model comparison is complete and verified:** Trackformer 1.1, Trackformer 1.2 and Google's WeatherNext Cyclones Mini `<2024` were scored on **1,473 daily starts / 270 storms**. The DeepMind results below are completed RTX 3070 CUDA forecasts, not estimates or a pending run. [Completion receipt](evaluation/deepmind_daily/verification.json) · [Independent publication audit](evaluation/deepmind_daily/publication_audit.json).
 
-![Trackformer 1.1, 1.2 and WeatherNext Cyclones Mini: pressure intensity, track position and track direction on matched daily forecasts](evaluation/released_daily/model_1_2_benchmark.png)
+**DeepMind checkpoint: `WeatherNextCyclones_Mini_<2024` · trained through 2023 · native 1° · one member · WeatherNext software v0.3.0.** This is the official Mini checkpoint, not full-sized WeatherNext or WeatherNext 3. The `<2024` suffix describes its training cutoff, not the dates being forecast. [Official model definitions](https://github.com/google-deepmind/weathernext#weathernext-cyclones-mini).
 
-| Development metric | 1.1 | 1.2 · mean of 50 | DeepMind Mini · one member | Shared coverage |
+### Total · all completed forecast starts
+
+![Total benchmark: Trackformer 1.1, 1.2 and WeatherNext Cyclones Mini <2024; pressure intensity, track position and track direction](evaluation/released_daily/model_1_2_benchmark.png)
+
+| Development metric | 1.1 | 1.2 · mean of 50 | DeepMind Mini <2024 · one member | Shared coverage |
 | --- | ---: | ---: | ---: | --- |
 | Mean track error, +6 to +120 h · lower is better | 798.4 km | **471.2 km** | 498.4 km | 1,473 days / 270 storms |
 | Six-hour track-direction error · lower is better | 51.58° | **34.96°** | 39.76° | 1,473 days / 270 storms |
@@ -61,16 +65,34 @@ The reference is Google's official [WeatherNext Cyclones Mini `<2024`](https://g
 
 All **1,473 daily starts / 270 storms** completed on an **NVIDIA RTX 3070 using CUDA**. Each saved forecast contains twenty exact six-hour route and native pressure-map outputs through +120 h. The returned archive's hashes, original Trackformer forecasts, common masks and equal-storm scores were independently rechecked. Mini uses one seeded member and its own causal ERA5 analyses; 1.2 uses a 50-input-member mean. No missing result is scored as zero.
 
-The combined cohort favours 1.2 for position and heading, while Mini has lower central-pressure error and higher pressure-curve similarity. **The recent-only track results favour Mini**, so the combined numbers must not be read as a general advantage over DeepMind:
+The proportions below describe **benchmark coverage, not training-data composition or different DeepMind models**. All groups use the same Mini `<2024` checkpoint. **DeepMind checkpoint usage: 100% Mini `<2024`; 0% other checkpoints.** Dates refer to the forecast's UTC issue time; calendar 2024 is separate from strict `>2024`.
 
-| Recent storms beginning in 2024+ · 137 days / 40 storms | 1.1 | 1.2 · mean of 50 | DeepMind Mini · one member |
-| --- | ---: | ---: | ---: |
-| Mean track error · lower is better | 901.4 km | 477.2 km | **288.5 km** |
-| Six-hour direction error · lower is better | 52.90° | 34.68° | **31.16°** |
+| Forecast issue dates | Daily starts | Share of starts | Storms | Share of storms |
+| --- | ---: | ---: | ---: | ---: |
+| `<2024` · 1980–1999 in this frozen cohort | 1,336 | 90.7% | 230 | 85.2% |
+| Calendar 2024 | 76 | 5.2% | 22 | 8.1% |
+| `>2024` · 2025–2026 in this frozen cohort | 61 | 4.1% | 18 | 6.7% |
+| Total | 1,473 | 100% | 270 | 100% |
 
-The remaining 1,336 days / 230 historical storms overlap Mini's fitting years. JMA pressure scores use 2,637 shared valid leads from the smaller 134-day subset, not all 1,473 days. Curve similarity measures timing/shape after removing pressure level and amplitude; it does not replace hPa error. These are point estimates, not a claim of statistically proven superiority.
+Because the final score weights storms equally, the historical group contributes **85.2% of the total track score's storm weight**, not its 90.7% share of starts. These dates overlap Mini's fitting years; the mixed-year total is not an unused temporal test. Calendar 2024 is already later than Mini's training cutoff, but is intentionally excluded from the requested strict `>2024` chart.
 
-[Completed results and period breakdowns](evaluation/deepmind_daily/benchmark.json) · [CUDA completion receipt](evaluation/deepmind_daily/verification.json) · [Independent publication audit](evaluation/deepmind_daily/publication_audit.json) · [Model identity and reproducible protocol](docs/deepmind_daily_benchmark.md)
+### After 2024 · 2025–2026 forecast starts only
+
+![Post-2024 benchmark: Trackformer 1.1, 1.2 and the same WeatherNext Cyclones Mini <2024 checkpoint; 2024 excluded](evaluation/released_daily/model_1_2_after_2024_benchmark.png)
+
+| Post-2024 development metric | 1.1 | 1.2 · mean of 50 | DeepMind Mini <2024 · one member | Shared coverage |
+| --- | ---: | ---: | ---: | --- |
+| Track position MAE · lower is better | 963.0 km | 469.4 km | **258.7 km** | 61 days / 18 storms |
+| Track-direction error · lower is better | 57.88° | 33.81° | **28.73°** | 61 days / 18 storms |
+| JMA central-pressure MAE · lower is better | 12.59 hPa | 11.12 hPa | **9.55 hPa** | 59 days / 18 storms / 1,174 leads |
+| Route-shape similarity · centred · higher is better | 0.7100 | 0.9007 | **0.9568** | 61 days / 18 storms |
+| JMA pressure-curve similarity · higher is better | 0.6843 | 0.7208 | **0.7839** | 59 days / 18 storms |
+
+The combined cohort favours 1.2 for position and heading, while Mini has lower central-pressure error and higher pressure-curve similarity. **The recent-only track results favour Mini**: after 2024, Mini's mean position error is **258.7 km**, versus 469.4 km for 1.2. The total must not be read as a general advantage over DeepMind. Different inputs/member policies and previously inspected cases prevent an equal-compute or certified untouched-holdout claim.
+
+Total JMA pressure scores use **134 days / 40 storms / 2,637 shared valid leads**; post-2024 JMA pressure uses **59 days / 18 storms / 1,174 leads**. Missing historical intensity inputs are not zero-scored. Pressure is central-pressure intensity, not whole-map error. Curve similarity measures timing/shape after removing pressure level and amplitude; it does not replace hPa error. These are point estimates, not a claim of statistically proven superiority.
+
+[Exact date proportions and recomputed subset scores](evaluation/deepmind_daily/period_comparison.json) · [Original completed results](evaluation/deepmind_daily/benchmark.json) · [CUDA completion receipt](evaluation/deepmind_daily/verification.json) · [Independent publication audit](evaluation/deepmind_daily/publication_audit.json) · [Model identity and reproducible protocol](docs/deepmind_daily_benchmark.md)
 
 ## How Trackformer 1.2 works
 

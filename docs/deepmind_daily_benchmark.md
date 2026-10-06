@@ -41,6 +41,29 @@ Mini has better recent-only track scores even though 1.2 has lower position/head
 
 [Full results, period breakdowns and per-lead track errors](../evaluation/deepmind_daily/benchmark.json) · [Shared snapshot and existing 1.1/1.2 uncertainty](../evaluation/released_daily/released_daily_benchmark.json) · [Completion receipt](../evaluation/deepmind_daily/verification.json) · [Independent review](../evaluation/deepmind_daily/publication_audit.json)
 
+### Strict forecast-date partition and separate charts
+
+Both README charts use **`WeatherNextCyclones_Mini_<2024`**, the same official checkpoint trained through 2023, software v0.3.0, native 1° and one CUDA member. A post-2024 forecast is not a post-2024-trained model. The following proportions refer to this evaluation cohort, not the model's training dataset.
+
+| UTC issue year | Starts / share | Storms / share |
+| --- | --- | --- |
+| `<2024` (1980–1999 here) | 1,336 / 90.7% | 230 / 85.2% |
+| Calendar 2024 | 76 / 5.2% | 22 / 8.1% |
+| `>2024` (2025–2026 here) | 61 / 4.1% | 18 / 6.7% |
+
+The original `recent_2024_onward` aggregate includes 2024 and is retained unchanged. The new **strict `after_2024`** derivative excludes 2024: track position MAE is **963.02 / 469.40 / 258.67 km**, direction error **57.88 / 33.81 / 28.73°**, and JMA pressure MAE **12.59 / 11.12 / 9.55 hPa** for 1.1 / 1.2 / Mini. Track uses 61 starts / 18 storms; pressure uses 59 starts / 18 storms / 1,174 exact common leads. The total chart still uses the original scores. Its historical 230 storms contribute 85.2% of equal-storm track weight, not 90.7%.
+
+[UTC partitions, exact case IDs, all metrics and source hashes](../evaluation/deepmind_daily/period_comparison.json) · [Total chart](../evaluation/released_daily/model_1_2_benchmark.png) · [Post-2024 chart](../evaluation/released_daily/model_1_2_after_2024_benchmark.png)
+
+Reproduce these derivative summaries without inference or raw-weather downloads:
+
+```bash
+python release_tools/build_deepmind_period_comparison.py --archive /path/to/DeepMind_RTX3070_results_20261004_125651_467960.zip
+python release_tools/plot_model_announcement.py
+```
+
+The helper checks the exact archive hash against the existing publication audit and every one of the 1,473 case-score JSON hashes against the frozen manifest. It rechecks identities, causal-time metadata, CUDA completion and common pressure masks, reproduces the original total and period scores, then recomputes only the UTC subsets using the unchanged equal-storm aggregation. It never rewrites the original worker export, changes a forecast array or claims a new raw-input audit. Chart sidecars identify their derivative source hash, checkpoint, period, exact values and missing-data policy.
+
 ## Like-for-like scoring
 
 All three models use the frozen starts, exact future label times and original issue-relative kilometre projection. Routes are unshifted. Direction is recomputed on **common moving steps across truth and all three models**, not compared using different masks.

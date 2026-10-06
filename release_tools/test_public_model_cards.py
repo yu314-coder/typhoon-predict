@@ -16,7 +16,7 @@ class PublicModelCardsTest(unittest.TestCase):
         self.assertTrue(rendered.startswith(self.header))
         for text in ('# Introducing Trackformer 1.2', '1,473 days / 270 storms',
                      '134 days / 40 storms', '13.53', '12.84',
-                     'WeatherNext software v0.3.0', '10.20 hPa', '288.5 km',
+                     'WeatherNext software v0.3.0', '10.20 hPa', '258.7 km',
                      'no native wind-radius forecast head'):
             self.assertIn(text, rendered)
         self.assertNotIn('README revision', rendered)
@@ -134,18 +134,34 @@ class PublicModelCardsTest(unittest.TestCase):
             self.assert_metric_row(release, label, metrics[key], places)
 
     def test_recent_group_is_not_confused_with_combined_cohort(self):
-        exported = json.loads((ROOT / 'evaluation/deepmind_daily/benchmark.json').read_text())
-        recent = exported['periods']['recent_2024_onward']['route']
-        section = self.source.split('| Recent storms beginning in 2024+', 1)[1]
-        for label, key, places in (('Mean track error', 'mean_track_error_km', 1),
-                                   ('Six-hour direction error', 'direction_error_deg', 2)):
-            values = {model: recent[model][key]['value'] for model in ('1.1', '1.2', 'deepmind')}
-            # The recent-only table has four columns, unlike the main coverage table.
-            rows = [line for line in section.splitlines() if line.startswith('| ')
-                    and line.split('|')[1].strip().startswith(label)]
-            self.assertEqual(len(rows), 1)
-            row = rows[0].rstrip('|').rstrip() + ' | recent-only |'
-            self.assert_metric_row(row, label, values, places)
+        report = json.loads((ROOT / 'evaluation/deepmind_daily/period_comparison.json').read_text())
+        post = report['periods']['after_2024']
+        self.assertEqual(post['daily_issues'], 61)
+        self.assertEqual(post['storms'], 18)
+        self.assertEqual(post['years'], [2025, 2026])
+        section = self.source.split('### After 2024', 1)[1]
+        for label, key, places in (('Track position MAE', 'mean_track_error_km', 1),
+                                   ('Track-direction error', 'direction_error_deg', 2),
+                                   ('Route-shape similarity', 'shape_similarity', 4)):
+            values = {model: post['scores']['route'][model][key]['value']
+                      for model in ('1.1', '1.2', 'deepmind')}
+            self.assert_metric_row(section, label, values, places)
+        pressure = post['scores']['pressure']['JMA']['models']
+        for label, key, places in (('JMA central-pressure MAE', 'mae_hpa', 2),
+                                   ('JMA pressure-curve similarity', 'curve_similarity', 4)):
+            self.assert_metric_row(section, label,
+                                   {m: pressure[m][key]['value'] for m in ('1.1', '1.2', 'deepmind')}, places)
+
+    def test_checkpoint_identity_and_proportions_precede_separate_charts(self):
+        for source in (self.source, render_card(self.original, self.source)):
+            self.assertLess(source.index('**DeepMind checkpoint:'), source.index('model_1_2_benchmark.png'))
+            self.assertEqual(source.count('model_1_2_benchmark.png'), 1)
+            self.assertEqual(source.count('model_1_2_after_2024_benchmark.png'), 1)
+            for text in ('90.7%', '85.2%', '5.2%', '8.1%', '4.1%', '6.7%',
+                         'Calendar 2024', '59 days / 18 storms / 1,174',
+                         'not training-data composition', 'same Mini `<2024` checkpoint',
+                         '100% Mini `<2024`; 0% other checkpoints'):
+                self.assertIn(text, source)
 
     def test_evaluation_index_and_worker_handoff_metadata_are_explained(self):
         index = (ROOT / 'evaluation/README.md').read_text()
