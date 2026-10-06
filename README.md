@@ -35,6 +35,8 @@ This selected example illustrates the model, not typical skill. Observations are
 
 Trackformer 1.1 predicts track and scalar intensity/structure outputs. **1.2 adds evolving sea-level-pressure fields and a moving pressure core**, giving the route forecast a spatial weather representation that can be inspected on a map.
 
+**The three-model comparison is complete and verified:** Trackformer 1.1, Trackformer 1.2 and Google's WeatherNext Cyclones Mini `<2024` were scored on **1,473 daily starts / 270 storms**. The DeepMind results below are completed RTX 3070 CUDA forecasts, not estimates or a pending run. [Completion receipt](evaluation/deepmind_daily/verification.json) · [Independent publication audit](evaluation/deepmind_daily/publication_audit.json).
+
 ![Trackformer 1.1, 1.2 and WeatherNext Cyclones Mini: pressure intensity, track position and track direction on matched daily forecasts](evaluation/released_daily/model_1_2_benchmark.png)
 
 | Development metric | 1.1 | 1.2 · mean of 50 | DeepMind Mini · one member | Shared coverage |

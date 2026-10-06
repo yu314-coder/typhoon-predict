@@ -1,4 +1,5 @@
 """Portable regression checks for complete shared README publication."""
+import json
 import re
 import unittest
 from sync_public_model_cards import CURRENT_FIGURES, SYNC_FILES, MEDIA_REVISION, ROOT, media_url, render_card
@@ -78,6 +79,83 @@ class PublicModelCardsTest(unittest.TestCase):
         self.assertNotIn('paper/trackformer.pdf', SYNC_FILES)
         for path in SYNC_FILES:
             self.assertTrue((ROOT / path).is_file(), path)
+
+    def test_linked_current_docs_cannot_call_completed_run_pending(self):
+        for name in ('README.md', 'models/trackformer_1_2_field/README.md',
+                     'evaluation/README.md', 'docs/deepmind_daily_benchmark.md',
+                     'docs/daily_storm_benchmark.md', 'docs/trackformer_1_2_evaluation.md',
+                     'RELEASE_NOTES_TRACKFORMER_1_2.md'):
+            with self.subTest(path=name):
+                source = (ROOT / name).read_text()
+                self.assertIn('Mini', source)
+                self.assertIn('1,473', source)
+                self.assertIn('270', source)
+                for stale in ('results remain pending', 'run is in progress',
+                              'scores are **pending**', 'deepmind comparison has not been run'):
+                    self.assertNotIn(stale, source.lower())
+                if name != 'README.md':
+                    self.assertIn(name, SYNC_FILES)
+
+    def assert_metric_row(self, source, label, values, places):
+        rows = [line for line in source.splitlines() if line.startswith('| ')
+                and line.split('|')[1].strip().startswith(label)]
+        self.assertEqual(len(rows), 1, label)
+        cells = [cell.strip() for cell in rows[0].strip().strip('|').split('|')]
+        self.assertEqual(len(cells), 5, label)
+        for index, key in enumerate(('1.1', '1.2', 'deepmind'), 1):
+            match = re.search(r'\d+(?:\.\d+)?', cells[index].replace('**', '').replace(',', ''))
+            self.assertIsNotNone(match, (label, key))
+            self.assertEqual(match.group(), f'{values[key]:.{places}f}', (label, key))
+
+    def test_readme_and_release_tables_match_completed_metrics_not_estimates(self):
+        exported = json.loads((ROOT / 'evaluation/deepmind_daily/benchmark.json').read_text())
+        receipt = json.loads((ROOT / 'evaluation/deepmind_daily/verification.json').read_text())
+        metrics = {row['key']: row['values'] for row in exported['metrics']}
+        self.assertEqual(exported['status'], 'complete_verified')
+        self.assertEqual(receipt['verified_daily_cases'], 1473)
+        self.assertEqual(receipt['verified_storms'], 270)
+        specs = (
+            ('Mean track error, +6 to +120 h', 'mean_track_error_km', 1),
+            ('Six-hour track-direction error', 'direction_error_deg', 2),
+            ('Central-pressure MAE · JMA', 'pressure_JMA_hpa', 2),
+            ('Centred route-shape similarity', 'shape_similarity', 4),
+            ('Pressure-curve similarity · JMA', 'pressure_JMA_curve_similarity', 4),
+        )
+        for source in (self.source, render_card(self.original, self.source)):
+            for label, key, places in specs:
+                with self.subTest(label=label):
+                    self.assert_metric_row(source, label, metrics[key], places)
+        release = (ROOT / 'RELEASE_NOTES_TRACKFORMER_1_2.md').read_text()
+        for label, key, places in (
+            ('Mean track error', 'mean_track_error_km', 1),
+            ('Direction error', 'direction_error_deg', 2),
+            ('Central-pressure MAE against JMA', 'pressure_JMA_hpa', 2),
+        ):
+            self.assert_metric_row(release, label, metrics[key], places)
+
+    def test_recent_group_is_not_confused_with_combined_cohort(self):
+        exported = json.loads((ROOT / 'evaluation/deepmind_daily/benchmark.json').read_text())
+        recent = exported['periods']['recent_2024_onward']['route']
+        section = self.source.split('| Recent storms beginning in 2024+', 1)[1]
+        for label, key, places in (('Mean track error', 'mean_track_error_km', 1),
+                                   ('Six-hour direction error', 'direction_error_deg', 2)):
+            values = {model: recent[model][key]['value'] for model in ('1.1', '1.2', 'deepmind')}
+            # The recent-only table has four columns, unlike the main coverage table.
+            rows = [line for line in section.splitlines() if line.startswith('| ')
+                    and line.split('|')[1].strip().startswith(label)]
+            self.assertEqual(len(rows), 1)
+            row = rows[0].rstrip('|').rstrip() + ' | recent-only |'
+            self.assert_metric_row(row, label, values, places)
+
+    def test_evaluation_index_and_worker_handoff_metadata_are_explained(self):
+        index = (ROOT / 'evaluation/README.md').read_text()
+        self.assertIn('completed three-model comparison', index)
+        self.assertNotIn('270 issue times from 90 storms', index)
+        self.assertNotIn('results are not implied', index)
+        self.assertIn('evaluation/README.md', SYNC_FILES)
+        notes = (ROOT / 'docs/deepmind_daily_benchmark.md').read_text()
+        self.assertIn('retained byte-for-byte', notes)
+        self.assertIn('handoff before import, not the current benchmark status', notes)
 
 
 if __name__ == '__main__':

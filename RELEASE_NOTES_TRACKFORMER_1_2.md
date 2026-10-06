@@ -28,13 +28,15 @@ Inference weight SHA-256: `db49f36e85a3766defc4c172746897a1f783705d1ce8e6f9dfb8e
 
 ## Matched development results
 
-| Measure | 1.1 | 1.2 mean of 50 | Matched coverage |
-| --- | ---: | ---: | --- |
-| Mean track error | 798.4 km | 471.2 km | 1,473 daily starts / 270 storms |
-| Direction error | 51.58° | 34.96° | Same daily starts |
-| Central-pressure MAE against JMA | 13.53 hPa | 12.84 hPa | 134 common starts / 40 storms |
+| Measure | 1.1 | 1.2 mean of 50 | DeepMind Mini, one member | Matched coverage |
+| --- | ---: | ---: | ---: | --- |
+| Mean track error | 798.4 km | 471.2 km | 498.4 km | 1,473 daily starts / 270 storms |
+| Direction error | 51.58° | 34.96° | 39.76° | Same daily starts |
+| Central-pressure MAE against JMA | 13.53 hPa | 12.84 hPa | 10.20 hPa | 134 common starts / 40 storms |
 
 Storms receive equal weight after valid leads and daily starts are averaged. The mean pressure reduction is small and its paired whole-storm uncertainty includes no improvement. These repeatedly inspected results are development evidence, not a certified untouched holdout. [Verified common-support metrics](https://github.com/yu314-coder/typhoon-predict/blob/main/evaluation/released_daily/released_daily_benchmark.json).
+
+**The DeepMind comparison is complete and verified:** the official **WeatherNext Cyclones Mini `<2024`** checkpoint (1° resolution, trained through 2023), using **WeatherNext software v0.3.0**, completed all 1,473 daily starts / 270 storms on an RTX 3070 using CUDA. Mini's recent-only mean track error is **288.5 km**, better than 1.2's **477.2 km**. Historical fitting-year overlap, different weather inputs and unequal member counts prevent a general superiority claim. [Completed results and model identity](https://github.com/yu314-coder/typhoon-predict/blob/main/docs/deepmind_daily_benchmark.md) · [CUDA completion receipt](https://github.com/yu314-coder/typhoon-predict/blob/main/evaluation/deepmind_daily/verification.json) · [Independent publication audit](https://github.com/yu314-coder/typhoon-predict/blob/main/evaluation/deepmind_daily/publication_audit.json).
 
 The [model announcement](https://github.com/yu314-coder/typhoon-predict) includes the selected Mangkhut pressure-map animation and architecture. Selected examples are not representative skill. Auxiliary wind and pressure-derived radius diagnostics remain unvalidated; there is no native wind-radius forecast head in 1.2.
 

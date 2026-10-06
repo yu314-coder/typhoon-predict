@@ -20,6 +20,12 @@ The original track run's 1.2-only central-pressure MAE is **12.62 hPa on 40 stor
 
 The other **1,339 starts lack valid frozen 1.1 issue-time intensity inputs**, so this is not 270-storm pressure coverage. The original pressure-only mask is not substituted into the new common-mask comparison. A basin-wide average does not establish cyclone-core accuracy. The frozen cohort contains 40 recent and 230 historical storms from 1980–1999; retrospective analyses, complete-five-day eligibility and prior model selection limit interpretation.
 
+## Completed DeepMind comparison
+
+Google's official **WeatherNext Cyclones Mini `<2024`**, using **WeatherNext software v0.3.0**, completed the same **1,473 daily starts / 270 storms** on an RTX 3070 with CUDA. Mini is one seeded member, not the full-sized WeatherNext model; 1.2 remains a 50-member mean. The common-support results are **498.4 km** mean track error, **39.76°** direction error and **10.20 hPa** JMA central-pressure MAE on **134 starts / 40 storms**. Its JMA pressure-curve similarity is **0.8088**.
+
+Mini's recent-only mean track error is **288.5 km** versus **477.2 km** for 1.2. Historical fitting-year overlap and different input/member policies limit the combined-cohort comparison; no general superiority claim is justified. The [completed protocol and period breakdowns](deepmind_daily_benchmark.md), [CUDA receipt](../evaluation/deepmind_daily/verification.json) and [independent three-model publication audit](../evaluation/deepmind_daily/publication_audit.json) establish completion. The older two-model receipt remains the original Trackformer audit, not the hash receipt for the subsequently merged snapshot. No missing or unsupported score is treated as zero.
+
 ## Recent pressure-line example
 
 ### Fung-wong MP4: selected route-and-pressure example

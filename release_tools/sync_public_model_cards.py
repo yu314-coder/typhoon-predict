@@ -50,6 +50,7 @@ SYNC_FILES = (
     'docs/trackformer_1_2_evaluation.md',
     'docs/deepmind_daily_benchmark.md',
     'docs/showcase_archive.md',
+    'evaluation/README.md',
     'docs/trackformer_1_2_architecture.svg',
     'docs/trackformer_1_2_mangkhut.gif',
     'docs/trackformer_1_2_mangkhut.gif.json',

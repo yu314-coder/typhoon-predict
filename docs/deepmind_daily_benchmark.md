@@ -69,3 +69,5 @@ python release_tools/import_deepmind_release_results.py \
 ```
 
 Completed scores are also exposed by the existing [public benchmark API](https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/api/benchmarks/released). Documentation publication does not replace immutable forecasts, change either model's weights, restart the benchmark, modify active training, or redeploy the website. The original two-model verification receipt remains unchanged; the new publication audit identifies the merged snapshot's exact hash.
+
+The returned worker's `benchmark.json` is retained byte-for-byte for its audit hashes. Its `published_to_site: false` and `integration_note` describe the handoff before import, not the current benchmark status. The completed CUDA receipt, independent publication audit and shared public snapshot above are the current completion/publication evidence; those historical worker fields do not mean the comparison is unfinished.
