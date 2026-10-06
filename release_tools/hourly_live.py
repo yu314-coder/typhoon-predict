@@ -21,6 +21,8 @@ import time
 CHECKPOINT = 'f194a23d3f91ea76ad776dfad942fabd669eeae8b3fd665815463095367e9ee0'
 WORKFLOW = 'hourly-live.yml'
 BRANCH = 'live-hourly-data'
+CYCLE_TIMEOUT_SECONDS = 2700
+PUBLISH_MARGIN_SECONDS = 120
 
 
 def utc(t):
@@ -204,10 +206,17 @@ def git_publish(output):
 def run_session(output, cache, minutes):
     """In-process hourly clock removes reliance on every GitHub cron firing."""
     deadline = time.monotonic()+minutes*60
-    while time.monotonic() < deadline:
+    while True:
+        remaining = deadline-time.monotonic()
+        # Never shorten a complete fifty-member cycle to the session's last
+        # few minutes. Exit successfully so the existing handoff can take over.
+        if remaining < CYCLE_TIMEOUT_SECONDS+PUBLISH_MARGIN_SECONDS:
+            print(json.dumps({'state':'session_handoff_ready',
+                              'remaining_seconds':max(0, remaining)}), flush=True)
+            return
         began = datetime.now(timezone.utc)
         subprocess.run([sys.executable, '-B', __file__, '--output', str(output), '--cache', str(cache)],
-                       check=True, timeout=min(2700, max(60, deadline-time.monotonic())))
+                       check=True, timeout=CYCLE_TIMEOUT_SECONDS)
         git_publish(output)
         wake = began.replace(minute=0, second=0, microsecond=0)+timedelta(hours=1)
         print(json.dumps({'next_run_utc':utc(wake),'JMA_change_required':False}), flush=True)

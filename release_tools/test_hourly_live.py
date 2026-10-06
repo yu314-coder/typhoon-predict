@@ -1,6 +1,8 @@
 import unittest
+from unittest.mock import patch
 from datetime import datetime, timezone
-from hourly_live import hourly_row, workflow_busy, handoff_ready
+from pathlib import Path
+from hourly_live import hourly_row, workflow_busy, handoff_ready, run_session, CYCLE_TIMEOUT_SECONDS
 
 
 class HourlyLiveTests(unittest.TestCase):
@@ -26,6 +28,20 @@ class HourlyLiveTests(unittest.TestCase):
     def test_no_future_initialization(self):
         with self.assertRaises(ValueError):
             hourly_row(self.row, datetime(2026,10,3,8,tzinfo=timezone.utc))
+
+    def test_short_remaining_session_hands_off_without_starting_inference(self):
+        with patch('hourly_live.time.monotonic', side_effect=[0, 2750]), \
+             patch('hourly_live.subprocess.run') as run, patch('hourly_live.git_publish') as publish:
+            run_session(Path('/output/data'), Path('/cache'), 46)
+        run.assert_not_called()
+        publish.assert_not_called()
+
+    def test_full_cycle_keeps_full_timeout_and_publishes_before_handoff(self):
+        with patch('hourly_live.time.monotonic', side_effect=[0, 0, 3000, 3000]), \
+             patch('hourly_live.subprocess.run') as run, patch('hourly_live.git_publish') as publish:
+            run_session(Path('/output/data'), Path('/cache'), 50)
+        self.assertEqual(run.call_args.kwargs['timeout'], CYCLE_TIMEOUT_SECONDS)
+        publish.assert_called_once_with(Path('/output/data'))
 
     def test_no_duplicate_session_or_interference_with_backfill(self):
         for state in ['in_progress', 'queued', 'pending', 'waiting']:
