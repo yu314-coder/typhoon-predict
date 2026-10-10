@@ -5,6 +5,24 @@ import subprocess
 from datetime import datetime, timezone
 
 from cloud_continuation import WORKFLOWS, live_refresh_due
+from backfill_queue import retry_is_cooling
+
+
+def historical_work_due(status, now):
+    remaining = status.get('historical_remaining')
+    if remaining is None:
+        remaining = max(0, status.get('historical_total', 0)-status.get('historical_completed', 0))
+    if remaining <= 0:
+        return False
+    if status.get('historical_ready', 0) > 0:
+        return True
+    errors = {k: v for k, v in status.get('errors', {}).items()
+              if k.startswith(('auto-hist-', 'auto-tick-'))}
+    # Published ready/cooling counts are snapshots. Re-evaluate retry age so a
+    # stopped continuation is recovered when its 24-hour cooldown has elapsed.
+    return len(errors) < remaining or any(
+        not retry_is_cooling(e, now, status.get('historical_input_version'))
+        for e in errors.values())
 
 
 def decision(status, runs, current_id, event, schedule, now):
@@ -18,6 +36,8 @@ def decision(status, runs, current_id, event, schedule, now):
         return True, 'Explicit workflow request; no competing writer'
     if schedule == '17 * * * *':
         return True, 'Primary hourly live check'
+    if historical_work_due(status, now):
+        return True, 'Resume missing planned history or expired retry cooldown'
     try:
         due = live_refresh_due(status, now)
         stamp = status.get('live_checked_at_utc')

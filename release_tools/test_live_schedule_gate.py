@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime, timezone
-from live_schedule_gate import decision
+from live_schedule_gate import decision, historical_work_due
 
 
 class LiveScheduleGateTests(unittest.TestCase):
@@ -16,6 +16,23 @@ class LiveScheduleGateTests(unittest.TestCase):
     def test_missing_bad_or_future_receipt_does_not_hide_a_stall(self):
         for stamp in [None, 'bad', '2026-10-03T09:00:00Z']:
             self.assertTrue(self.check({'live_checked_at_utc': stamp}))
+
+    def test_history_resumes_while_live_is_fresh(self):
+        fresh = {'live_checked_at_utc': '2026-10-03T06:55:00Z',
+                 'historical_remaining': 1, 'historical_ready': 1}
+        self.assertTrue(self.check(fresh))
+
+    def test_expired_cooldowns_are_recomputed_from_receipts(self):
+        status = {'historical_remaining': 1, 'historical_ready': 0,
+                  'historical_input_version': 'v1',
+                  'errors': {'auto-tick-test': {'at': '2026-10-02T06:00:00Z',
+                                               'input_version': 'v1'}}}
+        now = datetime(2026, 10, 3, 7, tzinfo=timezone.utc)
+        self.assertTrue(historical_work_due(status, now))
+        status['errors']['auto-tick-test']['at'] = '2026-10-03T06:00:00Z'
+        self.assertFalse(historical_work_due(status, now))
+        status['historical_remaining'] = 0
+        self.assertFalse(historical_work_due(status, now))
 
     def test_hourly_primary_and_manual_request_still_check_fresh_jma(self):
         fresh = {'live_checked_at_utc': '2026-10-03T06:55:00Z'}

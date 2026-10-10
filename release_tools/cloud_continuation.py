@@ -26,7 +26,12 @@ def continuation_target(historical, core, wind, busy):
         return None  # GitHub concurrency replaces an existing pending job.
     if historical.get('historical_ready', 0) > 0 and historical.get('batch_succeeded', 0) > 0:
         return 'automatic-forecasts.yml'
-    if core.get('continue_ready') or wind.get('continue_ready'):
+    # A newly published historical issue is not yet included in old recovery
+    # totals. Start its core/wind recovery rather than waiting six more hours.
+    new_issues = historical.get('batch_succeeded', 0) > 0 and any(
+        receipt.get('total', 0) < historical.get('historical_completed', 0)
+        for receipt in (core, wind))
+    if core.get('continue_ready') or wind.get('continue_ready') or new_issues:
         return 'pressure-core-backfill.yml'
     return None
 
