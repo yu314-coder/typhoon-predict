@@ -1,5 +1,14 @@
 name: Automatic Trackformer 1.2 forecasts
 on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/automatic-forecasts.yml
+      - release_tools/history_inputs.json
+      - release_tools/automatic_forecasts.py
+      - release_tools/live_schedule_gate.py
+      - release_tools/cloud_continuation.py
+      - release_tools/backfill_queue.py
   schedule:
     # Hourly freshness checks; unchanged JMA issue IDs are not inferred again.
     - cron: '17 * * * *'
