@@ -14,7 +14,7 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - name: Advance the qualified Sites CPU forecast and verify stored fields
         shell: bash
@@ -24,11 +24,43 @@ jobs:
           import crypto from 'node:crypto';
           const origin='https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site';
           const checkpoint='53545b3cce06b7f16f8023a213fac3f455cc37730e6b923ef46071562b245673';
+          const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+          // Disable a reused idle HTTP connection: the failed 2026-10-15 run
+          // stopped on ECONNRESET after 60 committed stages. Durable state,
+          // not the lost response, determines whether another POST is safe.
+          async function request(url,options={}){
+            return fetch(url,{...options,headers:{...options.headers,Connection:'close'}});
+          }
+          async function refreshWithReadback(){
+            for(let attempt=0;attempt<4;attempt++){
+              try{
+                const r=await request(origin+'/api/rainfall/v1314b/refresh',{method:'POST',signal:AbortSignal.timeout(150000)});
+                if([502,503,504].includes(r.status))throw Error('Temporary hosted transport HTTP '+r.status);
+                const result=await r.json();
+                if(!r.ok){const e=Error(JSON.stringify(result));e.permanent=true;throw e;}
+                return result;
+              }catch(error){
+                if(error.permanent||attempt===3)throw error;
+                console.log(JSON.stringify({transport_interrupted:true,attempt:attempt+1,action:'read durable job cursor and wait for the exclusive writer'}));
+                let safe=false;
+                for(let poll=0;poll<90;poll++){
+                  await sleep(2000);
+                  let data;
+                  try{const r=await request(origin+'/api/rainfall/live?model=v1314b',{signal:AbortSignal.timeout(30000)});if(!r.ok)continue;data=await r.json();}catch{continue;}
+                  const s=data.updater;
+                  if(s?.state==='failed'||s?.job_state==='failed')throw Error(s.failure_detail?.reason||s.error||'Stored scientific stage failed; preserve for inspection');
+                  if(!s||s.writer?.active!==false)continue;
+                  if(['complete','running','interrupted'].includes(s.state)){safe=true;break;}
+                  throw Error('Unknown stored outcome; no blind retry');
+                }
+                if(!safe)return {complete:false,busy:true,recovery_pending:true,training_untouched:true};
+              }
+            }
+          }
           let previous=null,complete=null;
-          for(let call=0;call<32;call++){
-            const response=await fetch(origin+'/api/rainfall/v1314b/refresh',{method:'POST',signal:AbortSignal.timeout(150000)});
-            const result=await response.json();
-            if(!response.ok)throw Error(JSON.stringify(result));
+          let interruptions=0;
+          for(let call=0;call<40;call++){
+            const result=await refreshWithReadback();
             console.log(JSON.stringify({call:call+1,...result}));
             if(result.busy||result.waiting_for_source){console.log('Deferred: the existing writer or exact weather source is not ready. Verify the last committed E3 forecast without changing its initialization.');complete={...result,deferred:true};break;}
             if(result.qualification_pending)throw Error('The expected hosted E3 qualification is absent; no promotion or fallback.');
@@ -39,7 +71,7 @@ jobs:
             assert.equal(result.Mac_required,false);
             assert.equal(result.training_untouched,true);
             assert.equal(result.total_stages,82);
-            if(previous&&previous.id===result.id)assert.ok(result.cursor>previous.cursor,'No committed stage progress; inspect before another attempt.');
+            if(previous&&previous.id===result.id&&result.cursor<=previous.cursor){assert.equal(result.interrupted,true,'No committed progress or recoverable transport interruption');assert.ok(++interruptions<=3,'Repeated interruption without committed progress');await sleep(3000);}else interruptions=0;
             previous=result;
           }
           assert.ok(complete,'Bounded run ended without a complete committed forecast.');
