@@ -30,7 +30,7 @@ jobs:
             const result=await response.json();
             if(!response.ok)throw Error(JSON.stringify(result));
             console.log(JSON.stringify({call:call+1,...result}));
-            if(result.busy||result.waiting_for_source){console.log('Deferred: the existing writer or exact weather source is not ready. No duplicate or fallback forecast.');process.exit(0);}
+            if(result.busy||result.waiting_for_source){console.log('Deferred: the existing writer or exact weather source is not ready. Verify the last committed E3 forecast without changing its initialization.');complete={...result,deferred:true};break;}
             if(result.qualification_pending)throw Error('The expected hosted E3 qualification is absent; no promotion or fallback.');
             if(result.complete&&result.published){complete=result;break;}
             assert.equal(result.in_progress,true);
@@ -48,7 +48,7 @@ jobs:
           const data=await response.json();
           assert.equal(data.schema,'v1314b-Taiwan-E3-live-CPU-v1');
           assert.equal(data.checkpoint_sha256,checkpoint);
-          assert.equal(data.id,complete.id);
+          if(!complete.deferred)assert.equal(data.id,complete.id);
           assert.equal(data.models[0].key,'v1314b_e3');
           assert.equal(data.models[1].key,'gfs');
           assert.equal(data.hosted_qualification.complete,true);
@@ -88,5 +88,5 @@ jobs:
             for(let i=0;i<bytes.length;i+=4){const v=bytes.readFloatLE(i);assert.ok(Number.isFinite(v)&&v>=0&&(!risk||v<=1),'Invalid rainfall or risk field.');}
             console.log(JSON.stringify({verified:true,model,region,bytes:bytes.length,sha256:record.sha256,all20leads:true}));
           }
-          console.log(JSON.stringify({complete:true,id:data.id,initialization_utc:data.initialization_utc,checkpoint_sha256:checkpoint,CPU_only:true,Mac_required:false,training_untouched:true,accuracy_evidence:false}));
+          console.log(JSON.stringify({complete:true,id:data.id,initialization_utc:data.initialization_utc,checkpoint_sha256:checkpoint,reused:!!(complete.reused||complete.deferred),new_cycle_pending:!!complete.waiting_for_source,existing_writer_active:!!complete.busy,CPU_only:true,Mac_required:false,training_untouched:true,accuracy_evidence:false}));
           NODE
