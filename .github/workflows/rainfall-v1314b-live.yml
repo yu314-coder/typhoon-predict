@@ -50,6 +50,7 @@ jobs:
                   const s=data.updater;
                   if(s?.state==='failed'||s?.job_state==='failed')throw Error(s.failure_detail?.reason||s.error||'Stored scientific stage failed; preserve for inspection');
                   if(!s||s.writer?.active!==false)continue;
+                  if(s.state==='waiting_for_source')return {complete:false,waiting_for_source:true,id:s.id,cursor:s.cursor,total_stages:s.total_stages,next_retry_unix:s.next_retry_unix,CPU_only:true,Mac_required:false,training_untouched:true};
                   if(['complete','running','interrupted'].includes(s.state)){safe=true;break;}
                   throw Error('Unknown stored outcome; no blind retry');
                 }
@@ -129,3 +130,4 @@ jobs:
           }
           console.log(JSON.stringify({complete:true,id:data.id,initialization_utc:data.initialization_utc,checkpoint_sha256:checkpoint,reused:!!(complete.reused||complete.deferred),new_cycle_pending:!!complete.waiting_for_source,existing_writer_active:!!complete.busy,CPU_only:true,Mac_required:false,training_untouched:true,accuracy_evidence:false}));
           NODE
+
