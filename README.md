@@ -1,10 +1,12 @@
-# Introducing Trackformer 1.2
+# TrackFormer 1.2 — pressure maps and five-day typhoon forecasts
 
-Five-day typhoon forecasts built around evolving pressure fields.
+An AI weather-research model designed to be trained and run on an ordinary home computer.
 
-Trackformer 1.2 is a research model for the **Western Pacific**. It forecasts the surrounding sea-level pressure and a moving storm core together, then reads the storm's route and central pressure from that evolving core. Forecasts advance every six hours from **+6 to +120 hours**.
+TrackFormer 1.2 predicts **Western Pacific pressure maps**, then obtains the typhoon's route and central pressure from the predicted pressure field. It updates the surrounding weather and a moving storm core together, every six hours from **+6 to +120 hours**. Horizontal winds at three pressure levels are updated within the model, providing a basis for studying northeasterly and southwesterly flow; this report's scored results concern track and pressure, not demonstrated monsoon-wind skill.
 
-[Get the model](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.2) · [Hugging Face](https://huggingface.co/euler314/typhoon-predict) · [Explore forecasts](https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/history) · [Benchmarks](https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/benchmarks) · [Paper](paper/trackformer.pdf)
+[Get the model](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.2) · [Hugging Face](https://huggingface.co/euler314/typhoon-predict) · [中文研究說明（與報告對照）](docs/research_report_zh.md) · [Live forecast](https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/live) · [Technical paper](paper/trackformer.pdf)
+
+This page follows the Chinese research report **「訓練AI模型探討西北太平洋氣壓系統影響臺灣附近颱風的預測評估」** and its approved figure/text updates. It describes the released **1.2** model; later rainfall research is not a capability of these weights. The existing technical paper and older evaluation records remain separate, versioned references.
 
 ## Forecasting the field, not just the route
 
@@ -31,81 +33,44 @@ This selected example illustrates the model, not typical skill. Observations are
 
 [Pressure arrays](evaluation/release_data/pressure_core/mangkhut/common-pressure.npz) · [Field verification](evaluation/release_data/pressure_core/mangkhut/verification.json) · [Playback verification](evaluation/release_data/mangkhut_playback_verification.json) · [More examples and diagnostics](docs/showcase_archive.md)
 
-## What improves over 1.1
+## Results in the research report
 
-Trackformer 1.1 predicts track and scalar intensity/structure outputs. **1.2 adds evolving sea-level-pressure fields and a moving pressure core**, giving the route forecast a spatial weather representation that can be inspected on a map.
+The completed comparison uses **1,473 daily starts / 270 storms**, with all twenty +6 to +120 h leads. The pressure comparison uses a **subset of those same 270 storms**, not a different 270-storm dataset.
 
-**The three-model comparison is complete and verified:** Trackformer 1.1, Trackformer 1.2 and Google's WeatherNext Cyclones Mini `<2024` were scored on **1,473 daily starts / 270 storms**. The DeepMind results below are completed RTX 3070 CUDA forecasts, not estimates or a pending run. [Completion receipt](evaluation/deepmind_daily/verification.json) · [Independent publication audit](evaluation/deepmind_daily/publication_audit.json).
+**DeepMind checkpoint: `WeatherNextCyclones_Mini_<2024` · trained through 2023 · native 1° · one member · WeatherNext software v0.3.0.** This is the official **Mini, not the full-sized WeatherNext model**. All reference forecasts completed on an **NVIDIA GeForce RTX 3070 using CUDA**. [Model identity and protocol](docs/deepmind_daily_benchmark.md) · [Completion receipt](evaluation/deepmind_daily/verification.json).
 
-**DeepMind checkpoint: `WeatherNextCyclones_Mini_<2024` · trained through 2023 · native 1° · one member · WeatherNext software v0.3.0.** This is the official Mini checkpoint, not full-sized WeatherNext or WeatherNext 3. The `<2024` suffix describes its training cutoff, not the dates being forecast. [Official model definitions](https://github.com/google-deepmind/weathernext#weathernext-cyclones-mini).
+![Day 1 to day 5 track and central-pressure errors, matching the Chinese report](docs/report_figures/day_1_to_5.png)
 
-### Total · all completed forecast starts
+The bars show exact **24, 48, 72, 96 and 120 h** leads, not averages over each day. Track uses 270 storms; pressure uses 39–40 storms per displayed lead, with the counts printed in the figure. The table below averages all available six-hour leads using the common scoring procedure.
 
-![Total benchmark: Trackformer 1.1, 1.2 and WeatherNext Cyclones Mini <2024; pressure intensity, track position and track direction](evaluation/released_daily/model_1_2_benchmark.png)
+| Development metric · lower is better | TrackFormer 1.2 · mean of 50 | DeepMind Mini <2024 · one member | Shared coverage |
+| --- | ---: | ---: | --- |
+| Mean track error, +6 to +120 h | **471.20 km** | 498.37 km | 1,473 starts / 270 storms |
+| Day 5 track error, +120 h | **1031.63 km** | 1031.91 km | 1,473 starts / 270 storms |
+| Six-hour track-direction error | **34.96°** | 39.76° | 1,473 starts / 270 storms |
+| Central-pressure MAE · JMA | 12.84 hPa | **10.20 hPa** | 134 starts / 40 storms / 2,637 valid lead records |
 
-| Development metric | 1.1 | 1.2 · mean of 50 | DeepMind Mini <2024 · one member | Shared coverage |
-| --- | ---: | ---: | ---: | --- |
-| Mean track error, +6 to +120 h · lower is better | 798.4 km | **471.2 km** | 498.4 km | 1,473 days / 270 storms |
-| Six-hour track-direction error · lower is better | 51.58° | **34.96°** | 39.76° | 1,473 days / 270 storms |
-| Central-pressure MAE · JMA · lower is better | 13.53 hPa | 12.84 hPa | **10.20 hPa** | 134 days / 40 storms |
-| Centred route-shape similarity · higher is better | 0.7544 | 0.8837 | **0.9010** | 1,473 days / 270 storms |
-| Pressure-curve similarity · JMA · higher is better | 0.7074 | 0.7118 | **0.8088** | 134 days / 40 storms |
+**Pressure coverage:** Of the 270 storms used for track, 40 meet the frozen common pressure-scoring conditions, giving 134 starts and **2,637 shared valid forecast-time records**. Each model is compared separately with the Japan Meteorological Agency records at the same valid times. This does **not** mean the remaining 230 storms have no pressure observations: the common subset inherits the original pipeline's issue-time intensity eligibility.
 
-Mean track error is **41.0% lower** for 1.2 on this cohort. Central-pressure error has a **small mean reduction**; the paired whole-storm 95% interval includes no improvement (−2.68 to +1.20 hPa). These results do not establish a statistically reliable pressure advantage or improvements in every output or lead.
+**Equal-storm scoring:** For each start, average the valid forecast-time errors; average starts within each storm; then average storms with equal weight. Missing labels and unsupported outputs are excluded, never zero-scored. Central-pressure MAE is not whole-map pressure error.
 
-**One storm-day is one case.** Scores average valid +6 to +120 h leads within each day, then days within each typhoon, then typhoons with equal weight. Both versions use the same frozen starts and exact valid times. Missing labels and unsupported outputs are excluded, never treated as zero errors. Track and pressure have different valid coverage, shown above.
+On this mixed historical/recent development cohort, 1.2 has lower mean position and heading errors; Mini has lower central-pressure MAE. **The recent-only track results favour Mini**: for strict issue years after 2024 (2025–2026), mean error is **258.7 km** for Mini versus **469.4 km** for 1.2, on 61 starts / 18 storms. Calendar 2024 is excluded from that subset. The combined cohort contains 230 storms from 1980–1999 and 40 recent storms; historical dates overlap Mini's training years. Different inputs and member counts make this a development comparison, **not a controlled architecture ablation, equal-compute test or certified untouched holdout**.
 
-The cohort contains 40 recent storms and 230 storms from 1980–1999. It lies outside the selected Trackformer's fitting/validation years but is a **development comparison, not a certified untouched holdout**. Different input pipelines mean this is not a controlled architecture ablation. Position, direction and route-shape similarity are separate measures; good shape alone does not prove geographical alignment.
+[Full saved scores and common support](evaluation/deepmind_daily/benchmark.json) · [Period breakdowns](evaluation/deepmind_daily/period_comparison.json) · [Independent publication audit](evaluation/deepmind_daily/publication_audit.json) · [Daily scoring protocol](docs/daily_storm_benchmark.md) · [Evaluation details and older comparisons](docs/trackformer_1_2_evaluation.md)
 
-[Full daily results](evaluation/daily_storm_final.json) · [Shared metrics and uncertainty](evaluation/released_daily/released_daily_benchmark.json) · [Forecast/hash audit](evaluation/released_daily/released_daily_verification.json) · [Daily protocol](docs/daily_storm_benchmark.md) · [Pressure, wind and radius evaluation](docs/intensity_benchmark.md)
+## Three report examples
 
-### Completed DeepMind comparison
+The report compares predicted and reference pressure at **+48 h**, and routes and central pressure at **all twenty +6 to +120 h leads**. All maps retain the same valid time, coordinates and pressure scale; no forecast low is moved onto an observed route. Reference pressure is **NCEP analysis**, not a station-observation map. The report panels use a common **2.5° comparison grid**; smoother drawing does not create finer information.
 
-The reference is Google's official [WeatherNext Cyclones Mini `<2024`](https://github.com/google-deepmind/weathernext#weathernext-cyclones-mini), a **1° model trained through 2023**, run with **WeatherNext software v0.3.0**. The software version is not the checkpoint name. This is **Mini, not the full-sized WeatherNext 2/Cyclones model**.
+| Example | Forecast issue (UTC) | Report figures |
+| --- | --- | --- |
+| Fung-wong / 鳳凰 (2025) | 2025-11-07 00:00 | [Pressure](docs/report_figures/fung_wong_pressure_comparison.png) · [Track / central pressure](docs/report_figures/fung_wong_track_pressure.png) · [Observed R34](docs/report_figures/fung_wong_observed_r34.png) |
+| Mangkhut / 山竹 (2018) | 2018-09-11 00:00 | [Pressure](docs/report_figures/mangkhut_pressure_comparison.png) · [Track / central pressure](docs/report_figures/mangkhut_track_pressure.png) · [Observed R34](docs/report_figures/mangkhut_observed_r34.png) |
+| Jebi / 燕子 (2018) | 2018-08-31 00:00 | [Pressure](docs/report_figures/jebi_pressure_comparison.png) · [Track / central pressure](docs/report_figures/jebi_track_pressure.png) · [Observed R34](docs/report_figures/jebi_observed_r34.png) |
 
-All **1,473 daily starts / 270 storms** completed on an **NVIDIA RTX 3070 using CUDA**. Each saved forecast contains twenty exact six-hour route and native pressure-map outputs through +120 h. The returned archive's hashes, original Trackformer forecasts, common masks and equal-storm scores were independently rechecked. Mini uses one seeded member and its own causal ERA5 analyses; 1.2 uses a 50-input-member mean. No missing result is scored as zero.
+All three use the same released checkpoint and 50-input-member policy. Fung-wong and Mangkhut use saved Metal forecasts; Jebi uses CPU forecasts from the same weights. Mangkhut and Jebi lie within the fitting years and are retrospective demonstrations, not unseen-case accuracy evidence. **The R34 panels are IBTrACS observed 34-knot quadrant-radius records, not model radius predictions or full wind maps.** Missing radii are left missing. There is **no native wind-radius forecast head** in 1.2.
 
-The proportions below describe **benchmark coverage, not training-data composition or different DeepMind models**. All groups use the same Mini `<2024` checkpoint. **DeepMind checkpoint usage: 100% Mini `<2024`; 0% other checkpoints.** Dates refer to the forecast's UTC issue time; calendar 2024 is separate from strict `>2024`.
-
-| Forecast issue dates | Daily starts | Share of starts | Storms | Share of storms |
-| --- | ---: | ---: | ---: | ---: |
-| `<2024` · 1980–1999 in this frozen cohort | 1,336 | 90.7% | 230 | 85.2% |
-| Calendar 2024 | 76 | 5.2% | 22 | 8.1% |
-| `>2024` · 2025–2026 in this frozen cohort | 61 | 4.1% | 18 | 6.7% |
-| Total | 1,473 | 100% | 270 | 100% |
-
-Because the final score weights storms equally, the historical group contributes **85.2% of the total track score's storm weight**, not its 90.7% share of starts. These dates overlap Mini's fitting years; the mixed-year total is not an unused temporal test. Calendar 2024 is already later than Mini's training cutoff, but is intentionally excluded from the requested strict `>2024` chart.
-
-### Before 2024 · historical forecast starts only
-
-![Pre-2024 benchmark: Trackformer 1.1, 1.2 and the same WeatherNext Cyclones Mini <2024 checkpoint; historical track scores, pressure not scored](evaluation/released_daily/model_1_2_before_2024_benchmark.png)
-
-| Pre-2024 development metric | 1.1 | 1.2 · mean of 50 | DeepMind Mini <2024 · one member | Shared coverage |
-| --- | ---: | ---: | ---: | --- |
-| Historical track position MAE · lower is better | 780.5 km | **470.2 km** | 534.9 km | 1,336 days / 230 storms |
-| Historical track-direction error · lower is better | 51.36° | **35.01°** | 41.26° | 1,336 days / 230 storms |
-| Historical route-shape similarity · centred · higher is better | 0.7565 | 0.8802 | **0.8934** | 1,336 days / 230 storms |
-| Historical JMA central-pressure MAE | Not scored | Not scored | Not scored | 0 shared valid pressure starts |
-
-This is strict UTC issue year `<2024`, **all 1980–1999 in this frozen cohort**, not every storm before 2024. The historical group overlaps Mini's training years. **Pressure is not scored** because the frozen 1.1 historical issue-time intensity inputs are unavailable; the shared three-model pressure mask is empty. The chart deliberately draws no pressure bars—missing data are not zero error. Route-shape similarity is separate from geographic track accuracy.
-
-### After 2024 · 2025–2026 forecast starts only
-
-![Post-2024 benchmark: Trackformer 1.1, 1.2 and the same WeatherNext Cyclones Mini <2024 checkpoint; 2024 excluded](evaluation/released_daily/model_1_2_after_2024_benchmark.png)
-
-| Post-2024 development metric | 1.1 | 1.2 · mean of 50 | DeepMind Mini <2024 · one member | Shared coverage |
-| --- | ---: | ---: | ---: | --- |
-| Track position MAE · lower is better | 963.0 km | 469.4 km | **258.7 km** | 61 days / 18 storms |
-| Track-direction error · lower is better | 57.88° | 33.81° | **28.73°** | 61 days / 18 storms |
-| JMA central-pressure MAE · lower is better | 12.59 hPa | 11.12 hPa | **9.55 hPa** | 59 days / 18 storms / 1,174 leads |
-| Route-shape similarity · centred · higher is better | 0.7100 | 0.9007 | **0.9568** | 61 days / 18 storms |
-| JMA pressure-curve similarity · higher is better | 0.6843 | 0.7208 | **0.7839** | 59 days / 18 storms |
-
-The combined cohort favours 1.2 for position and heading, while Mini has lower central-pressure error and higher pressure-curve similarity. **The recent-only track results favour Mini**: after 2024, Mini's mean position error is **258.7 km**, versus 469.4 km for 1.2. The total must not be read as a general advantage over DeepMind. Different inputs/member policies and previously inspected cases prevent an equal-compute or certified untouched-holdout claim.
-
-Total JMA pressure scores use **134 days / 40 storms / 2,637 shared valid leads**; post-2024 JMA pressure uses **59 days / 18 storms / 1,174 leads**. Missing historical intensity inputs are not zero-scored. Pressure is central-pressure intensity, not whole-map error. Curve similarity measures timing/shape after removing pressure level and amplitude; it does not replace hPa error. These are point estimates, not a claim of statistically proven superiority.
-
-[Exact date proportions and recomputed subset scores](evaluation/deepmind_daily/period_comparison.json) · [Original completed results](evaluation/deepmind_daily/benchmark.json) · [CUDA completion receipt](evaluation/deepmind_daily/verification.json) · [Independent publication audit](evaluation/deepmind_daily/publication_audit.json) · [Model identity and reproducible protocol](docs/deepmind_daily_benchmark.md)
+[All report panels with captions](docs/research_report_zh.md#三個颱風展示) · [Figure hashes and sources](docs/report_figures/provenance.json) · [Earlier films and diagnostic archive](docs/showcase_archive.md)
 
 ## Training data and year cutoffs
 
@@ -126,6 +91,8 @@ Total JMA pressure scores use **134 days / 40 storms / 2,637 shared valid leads*
 
 Each input contains nine analyses from −48 to 0 h. Later fields and best-track values are **training targets or evaluation labels**, never positive-lead prediction inputs. Entire storms stay in one partition and windows crossing a year-partition boundary are excluded. Weather normalization is fitted only on 2000–2021.
 
+The eastward/northward wind pairs **u/v carry both direction and speed** at 850, 500 and 200 hPa. The 48-hour history is the fixed format used by this release; no matched 24/48/72-hour experiment established that two days is optimal.
+
 The checksum-pinned source caches extend further: the derived typhoon archive reaches **13 July 2026**, and the NCEP basin archive reaches **17 March 2026, 18 UTC**. Those endpoints describe archive availability, **not the fitting cutoff**. Later live weather uses separately documented experimental GFS transfer; it does not update the released weights. This release has no satellite cloud-image or humidity input channel. Previously inspected test/showcase storms remain development evidence, not a newly untouched holdout.
 
 [Training-source details and exact date ranges](docs/trackformer_1_2_training_data.md) · [Recomputed split counts and verified dataset hashes](evaluation/training_data/trackformer_1_2_provenance.json)
@@ -135,7 +102,7 @@ The checksum-pinned source caches extend further: the derived typhoon archive re
 ![Trackformer 1.2: causal weather history, coupled basin and moving core, pressure-based readout and autoregressive rollout](docs/trackformer_1_2_architecture.svg)
 
 1. **Initialize from the past.** Nine six-hour analyses provide MSLP, 500 hPa height and winds at 850/500/200 hPa, ending at issue time. Static geography, the current observed centre, recent motion, current intensity and validity masks accompany the history. Native regional pressure detail is used when available; missing detail stays flagged. Current observations initialize the core, not future labels.
-2. **Evolve the environment.** A convolutional recurrent network combines steering-based advection with learned pressure tendencies. Multiscale spatial tokens and attention condition the environmental memory.
+2. **Update the surrounding weather.** The model estimates changes in pressure and horizontal winds and carries information forward to the next six-hour step.
 3. **Move and evolve the core.** A storm-centred pressure anomaly is transported relative to the environment and updated by learned tendencies. Basin pressure plus the tapered core anomaly forms the spatial forecast.
 4. **Read out the storm.** A local low-pressure association identifies the centre within 300 km, and central pressure is sampled there. An auxiliary head provides a maximum-wind scalar, not a resolved surface-wind map.
 5. **Roll forward.** Twenty autoregressive transitions produce +6, +12, …, +120 h forecasts. Training uses field, core, track, central-pressure, auxiliary-wind and masked change/displacement losses; future truth is a target, never an inference input.
@@ -144,13 +111,22 @@ The checksum-pinned source caches extend further: the derived typhoon archive re
 | --- | --- |
 | Trainable parameters | 21,452,595 |
 | Basin history | 9 × 8 × 25 × 33; −48 to 0 h |
-| Basin / core network widths | 72 / 144 / 288 / 432 and 64 / 128 / 256 / 384 |
 | Moving core | 65 × 65; approximately 20 km spacing |
-| Environmental attention | 134 pooled tokens, width 64, four heads, two Transformer blocks |
-| Recurrent memory | 32 channels each for basin and core |
 | Forecast steps | 20 × 6 hours |
 
-[Model source and input contract](models/trackformer_1_2_field/README.md) · [Exact architecture and provenance](models/trackformer_1_2_field/manifest.json) · [Illustrated technical paper](paper/trackformer.pdf)
+Training increases the prediction horizon from one to two, three and five days, checking the full five-day forecast each epoch. The report uses the selected **epoch-4** checkpoint. [Model source and input contract](models/trackformer_1_2_field/README.md) · [Exact architecture and provenance](models/trackformer_1_2_field/manifest.json).
+
+### What “50 forecasts averaged” means
+
+The **same model weights** run 50 times with distinct seeded, small, smoothed zero-centred noise added only to normalized historical weather inputs. In the saved benchmark policy, basin noise has amplitude 0.025 with a 5-cell smoothing kernel; regional noise has amplitude 0.015 with a 9-cell kernel. These amplitudes are in normalized input units, not hPa or wind units. Issue-time storm position, motion and intensity, geography and validity masks stay fixed. Original observations and weights are not edited.
+
+Routes and central pressures are averaged separately. Physical member pressure fields are placed on **common geographic coordinates before averaging**, rather than averaging unaligned moving-core array indices. This is a 50-member input-perturbation mean, **not 50 trained networks**. It is not proven optimal or automatically a calibrated uncertainty estimate; a full 270-storm clean-single-member versus 50-member accuracy comparison has not been established.
+
+### Computers and software
+
+- **Apple M4 Mac, 24 GB unified memory:** local model execution, data handling and plotting; PyTorch MPS uses the built-in GPU through Metal. Household-computer training and inference are the design goal, not a claim that every historical run used only this one machine.
+- **NVIDIA GeForce RTX 3070 / CUDA:** verified execution of the completed DeepMind reference benchmark. This is hardware, not a software package.
+- **Python / PyTorch**, NumPy, SciPy, xarray, netCDF4 and Matplotlib support modelling, data handling and figures. The Chinese report uses XeLaTeX / xeCJK.
 
 ## Get started
 
@@ -184,8 +160,12 @@ The archive covers a pinned Western Pacific plan: six-hour starts from 1996 onwa
 
 ## Limits and further reading
 
-The auxiliary wind's averaging period and surface-wind skill are not validated, and its USA-wind benchmark is worse than 1.1. There is **no native wind-radius forecast head** in 1.2. Optional pressure-derived wind/radius estimates are experimental diagnostics, not agency-equivalent forecasts. Pressure-map interpolation is not evidence of finer effective resolution. Retrospective analyses and experimental GFS live transfer must not be presented as operational validation.
+The auxiliary wind's averaging period and surface-wind skill are not validated. Optional pressure-derived wind/radius estimates are experimental diagnostics, not agency-equivalent forecasts. Pressure-map interpolation is not evidence of finer effective resolution. Retrospective analyses and experimental GFS live transfer must not be presented as operational validation.
 
-See [wind-estimation assumptions](models/trackformer_1_2_field/WIND_ESTIMATION.md), [full intensity evaluation](docs/intensity_benchmark.md), [evaluation limits](docs/trackformer_1_2_evaluation.md), and the [example archive](docs/showcase_archive.md). Source, normalization and checkpoint identities are recorded in the [manifest](models/trackformer_1_2_field/manifest.json). The [1.1 release](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.1) remains available separately.
+See [wind-estimation assumptions](models/trackformer_1_2_field/WIND_ESTIMATION.md), [full intensity evaluation](docs/intensity_benchmark.md), [evaluation limits](docs/trackformer_1_2_evaluation.md), and the [example archive](docs/showcase_archive.md). Source, normalization and checkpoint identities are recorded in the [manifest](models/trackformer_1_2_field/manifest.json). Older release comparisons remain in the linked technical records, not the report's two-model headline table.
+
+## Ongoing work: Taiwan rainfall
+
+Ongoing research combines moisture, wind direction, weather outside Taiwan and terrain to study ordinary and heavy rainfall over Taiwan, with a separate observation-based evaluation. **Released 1.2 has no rainfall forecast head or humidity input.** These are research directions, not demonstrated rainfall improvements from the pressure model.
 
 Model code is in [`models/`](models/), methods in [`paper/`](paper/), protocols in [`docs/`](docs/), results in [`evaluation/`](evaluation/) and reproducible utilities in [`release_tools/`](release_tools/).

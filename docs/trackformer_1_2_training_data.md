@@ -13,6 +13,8 @@ The **released 1.2 model's fitting cutoff is 2021**, not 2025 or 2026. Its selec
 
 The eight weather channels are **MSLP, HGT500, U850, V850, U500, V500, U200, V200**. No satellite cloud imagery, humidity/vapour, SST or ocean-heat-content channel is present in this released input contract. Such features in other experiments must not be attributed to 1.2.
 
+The eastward/northward **u/v pairs encode wind direction and speed together**, not direction alone. These environmental winds evolve during the model rollout; their presence is not a separate claim of validated monsoon or surface-wind skill. The [Chinese research explanation](research_report_zh.md) uses these same source variables and partition counts.
+
 The selected dataset manifest identifies the **derived IBTrACS archive by SHA-256**, not by an independently recorded raw IBTrACS release/download ID. A newer downloaded IBTrACS file elsewhere is not evidence of which raw snapshot built these frozen windows. Available wind labels and the learned auxiliary head do not establish a harmonized agency averaging period or a validated surface-wind/radius forecast.
 
 ## Temporal partitions
@@ -26,6 +28,8 @@ The selected dataset manifest identifies the **derived IBTrACS archive by SHA-25
 These are loader-eligible window counts, not independent storms or the number of gradient updates. Native-pressure windows are a **subset** of the corresponding eligible windows, not additional cases. Storm membership uses each storm's first year in the frozen archive. Windows whose −48 h history or +120 h targets cross a partition boundary are excluded. Weather normalization uses the 2000–2021 basin frames only.
 
 Every forecast history comprises nine consecutive six-hour analyses at **−48, −42, …, 0 h**. Supervised fields and storm labels at **+6, +12, …, +120 h** are targets only; they cannot be inference inputs. Missing native detail and missing intensity labels retain their masks. Validation is not gradient fitting, but it does inform checkpoint selection. Previously inspected original tests and showcases are development evidence, not a new unused holdout.
+
+The two-day span is the input format chosen for this implementation. No matched 24/48/72-hour experiment establishes it as the best history length. Likewise, the evaluation's 50 input-perturbed forecasts share one set of weights; the count is not a training-data multiplier or proof of a calibrated ensemble.
 
 ## Newer data do not change the fitting cutoff
 

@@ -1,5 +1,11 @@
 # Evaluation assets
 
+## Research-report view
+
+The current [report-facing summary](../README.md#results-in-the-research-report) and [Chinese explanation](../docs/research_report_zh.md) compare **TrackFormer 1.2 with DeepMind Mini**. Their [day-1–5 chart](../docs/report_figures/day_1_to_5.png) uses exact 24/48/72/96/120 h leads. Route covers **270 storms / 1,473 starts**; central pressure uses **40 of those storms / 134 starts / 2,637 common valid lead records**. The pressure subset follows frozen scoring eligibility, not a claim that the remaining storms lack all pressure observations. Source arrays and the larger historical archive below are unchanged.
+
+## Full historical archive
+
 The current **completed three-model comparison** scores Trackformer 1.1, Trackformer 1.2 and Google's **WeatherNext Cyclones Mini `<2024` (software v0.3.0)** on **1,473 daily starts / 270 Western Pacific storms**, through +120 h. Mini's RTX 3070 CUDA run is complete and verified; Trackformer 1.2 is a mean of 50 members and Mini is one member.
 
 - [Announcement chart](released_daily/model_1_2_benchmark.png) and [shared three-model scores](released_daily/released_daily_benchmark.json).

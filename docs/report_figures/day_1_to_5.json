@@ -1,0 +1,59 @@
+{
+  "lead_hours": [
+    24,
+    48,
+    72,
+    96,
+    120
+  ],
+  "route_storms": 270,
+  "route_issues": 1473,
+  "track_error_km": {
+    "1.2": [
+      164.481223771445,
+      311.4789218238006,
+      502.4908306263511,
+      740.9340851986844,
+      1031.633570368749
+    ],
+    "deepmind": [
+      208.9564305523796,
+      357.1736913330866,
+      522.4673167277228,
+      746.7391690084348,
+      1031.9091421404373
+    ]
+  },
+  "central_pressure_mae_hpa": {
+    "1.2": [
+      10.882824059440974,
+      14.65584179709299,
+      15.699234927622467,
+      14.152747888401569,
+      12.444309436541925
+    ],
+    "deepmind": [
+      7.6849854707083125,
+      10.461160570285193,
+      13.205749144191225,
+      12.40939214066142,
+      11.023561874071152
+    ]
+  },
+  "pressure_common_issues_by_day": [
+    131,
+    133,
+    134,
+    133,
+    127
+  ],
+  "pressure_common_storms_by_day": [
+    40,
+    40,
+    40,
+    40,
+    39
+  ],
+  "aggregation": "Per exact lead: mean issues within each storm, then equal-weight mean storms; common finite JMA/1.2/DeepMind support for pressure.",
+  "deepmind_route_reconstruction": "Combine saved 230-storm and 40-storm equal-storm means with 230/270 and 40/270 weights; checked against published all-lead and +120h means."
+}

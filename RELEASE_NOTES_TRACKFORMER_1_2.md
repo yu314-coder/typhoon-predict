@@ -1,5 +1,7 @@
 # Trackformer 1.2 — pressure-field research model
 
+**Documentation clarification (18 October 2026):** the current [English model page](README.md) and [Chinese research explanation](docs/research_report_zh.md) follow the research report's released-1.2 scope, household-computer goal, day-1–5 chart and three typhoon examples. Route uses 270 storms / 1,473 starts; the JMA pressure comparison uses 40 of those storms / 134 starts / 2,637 common valid records. The report's R34 panels are observations, not model radius forecasts, and Taiwan rainfall remains separate ongoing research. This updates documentation and existing figure copies only; weights, neural source and benchmark arrays are unchanged. Earlier release history below is retained as an archive.
+
 **[Download weights + complete inference code](https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.2/trackformer_1_2_field_pressure_export_v2.tar.gz)** · **[Hugging Face](https://huggingface.co/euler314/typhoon-predict)** · **[Technical paper](https://github.com/yu314-coder/typhoon-predict/blob/main/paper/trackformer.pdf)**
 
 Trackformer 1.2 forecasts Western Pacific storm tracks, central pressure and evolving sea-level-pressure fields through +120 hours. A multiscale environmental-attention network conditions the moving pressure core; track and central pressure are read from that evolving field.

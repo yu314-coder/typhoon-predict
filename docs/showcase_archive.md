@@ -2,6 +2,12 @@
 
 The [model announcement](../README.md) features the geographically registered moving-core Mangkhut (2018) forecast. Its 50-member arrays and replay/playback receipts are linked there. These are development illustrations, not representative or untouched-test evidence.
 
+## Current research-report figures
+
+The [Chinese report explanation](research_report_zh.md#三個颱風展示) contains the current **Fung-wong (2025), Mangkhut (2018) and Jebi (2018)** pressure-map, five-day route/central-pressure and observed-radius panels. The day-1–5 bar chart compares released 1.2 with DeepMind Mini only, using unchanged saved scores. [Figure hashes and source identities](report_figures/provenance.json).
+
+The report's radius figures are **IBTrACS observed R34 quadrant records, not model predictions**. The pressure reference remains NCEP analysis, with a common 2.5° comparison grid and no shifted forecasts. Mangkhut and Jebi are in the training years; the examples are retrospective demonstrations, not additional untouched validation. Older films and experimental radius diagnostics below keep their original provenance and should not be confused with these report figures.
+
 ## Additional films
 
 These earlier 50-member films retain a fixed issue-relative regional pressure patch. When the centre leaves it, only the saved coarse basin field covers that position. They use 4 hPa isobars and 23-second playback with a held ending; do not confuse them with the current moving-core Mangkhut rendering. Their original model outputs remain preserved.

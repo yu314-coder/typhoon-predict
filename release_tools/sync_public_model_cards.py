@@ -4,6 +4,7 @@ Preserve remote metadata, the featured film and frozen neural weights. Default
 mode only prepares artifacts on D; --publish explicitly updates the HF card,
 matching existing inference wrapper/docs and this small reproduction utility.
 No forecasts are rerun, no media are regenerated and no neural modules change.
+--docs-only limits uploads to an explicit documentation/figure allowlist.
 """
 from __future__ import annotations
 
@@ -21,11 +22,18 @@ MEDIA_REVISION = '87a6e366b42bb4cc0edc95d2c50c55fca21a2c93'
 CACHE = '/Volumes/D/typhoon_predict/.cache/huggingface-intensity'
 HF = 'https://huggingface.co/' + REPO
 FILMS = ('mangkhut',)
+REPORT_FIGURES = tuple('docs/report_figures/' + name for name in (
+    'day_1_to_5.png',
+    'fung_wong_pressure_comparison.png', 'fung_wong_track_pressure.png', 'fung_wong_observed_r34.png',
+    'mangkhut_pressure_comparison.png', 'mangkhut_track_pressure.png', 'mangkhut_observed_r34.png',
+    'jebi_pressure_comparison.png', 'jebi_track_pressure.png', 'jebi_observed_r34.png',
+))
 CURRENT_FIGURES = frozenset((
     'evaluation/released_daily/model_1_2_benchmark.png',
     'evaluation/released_daily/model_1_2_after_2024_benchmark.png',
     'evaluation/released_daily/model_1_2_before_2024_benchmark.png',
     'docs/trackformer_1_2_architecture.svg',
+    *REPORT_FIGURES,
 ))
 SYNC_FILES = (
     'models/trackformer_1_2_field/README.md',
@@ -81,6 +89,22 @@ SYNC_FILES = (
     'evaluation/deepmind_daily/case-manifest.json',
     'evaluation/deepmind_daily/canary.json',
     'evaluation/deepmind_daily/period_comparison.json',
+    'docs/research_report_zh.md',
+    'docs/report_figures/day_1_to_5.json',
+    'docs/report_figures/provenance.json',
+    *REPORT_FIGURES,
+)
+DOC_SYNC_FILES = (
+    'models/trackformer_1_2_field/README.md',
+    'models/trackformer_1_2_field/WIND_ESTIMATION.md',
+    'RELEASE_NOTES_TRACKFORMER_1_2.md',
+    'docs/daily_storm_benchmark.md', 'docs/intensity_benchmark.md',
+    'docs/trackformer_1_2_evaluation.md', 'docs/trackformer_1_2_training_data.md',
+    'docs/deepmind_daily_benchmark.md', 'docs/showcase_archive.md',
+    'evaluation/README.md', 'docs/research_report_zh.md',
+    'docs/report_figures/day_1_to_5.json', 'docs/report_figures/provenance.json',
+    'docs/trackformer_1_2_architecture.svg', 'docs/trackformer_1_2_mangkhut.gif',
+    *REPORT_FIGURES,
 )
 
 
@@ -125,7 +149,8 @@ def render_card(original, github, figure_revision='main'):
         if not resolved.is_relative_to(ROOT) or not resolved.exists():
             raise ValueError('Invalid or missing relative public link: ' + path)
         revision = figure_revision if path in CURRENT_FIGURES else MEDIA_REVISION
-        kind = 'resolve/' + revision if image else ('tree/main' if resolved.is_dir() else 'blob/main')
+        kind = ('resolve/' + revision if image or path in CURRENT_FIGURES
+                else ('tree/main' if resolved.is_dir() else 'blob/main'))
         target = HF + '/' + kind + '/' + path + ('#' + fragment if fragment else '')
         return image + '[' + label + '](' + target + ')'
     card = re.sub(r'(!?)\[([^\[\]\n]*)\]\(([^)\s]+)\)', link, card)
@@ -158,24 +183,48 @@ def frozen_identity(api, revision):
     return actual
 
 
-def run(output, publish=False):
+def git_hf_token():
+    """Use the existing credential helper for this exact HF host, never log it."""
+    import os
+    result = subprocess.run(['git', 'credential', 'fill'], cwd=ROOT,
+        input='protocol=https\nhost=huggingface.co\n\n',
+        text=True, capture_output=True, env={**os.environ, 'GIT_TERMINAL_PROMPT': '0'})
+    fields = dict(line.split('=', 1) for line in result.stdout.splitlines() if '=' in line)
+    if result.returncode or not fields.get('password'):
+        raise ValueError('No existing Hugging Face git credential; authenticate before publishing')
+    return fields['password']
+
+
+def remote_matches(entry, path):
+    if entry is None:
+        return False
+    lfs_sha = getattr(getattr(entry, 'lfs', None), 'sha256', None)
+    if lfs_sha:
+        return lfs_sha == sha(path)
+    data = path.read_bytes()
+    return entry.blob_id == hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+
+
+def run(output, publish=False, docs_only=False, use_git_credential=False):
     # Lazy imports keep portable CI document tests independent of HF packages.
     from huggingface_hub import CommitOperationAdd, HfApi, hf_hub_download
     output = output.resolve()
     if not output.is_relative_to(Path('/Volumes/D')):
         raise ValueError('All generated documentation/cache artifacts must stay on D')
     output.mkdir(parents=True, exist_ok=True)
-    api = HfApi()
+    api = HfApi(token=git_hf_token() if use_git_credential else None)
     parent = api.model_info(REPO).sha
     weights_before = frozen_identity(api, parent)
-    original = Path(hf_hub_download(REPO, 'README.md', revision=parent, cache_dir=CACHE))
+    original = Path(hf_hub_download(REPO, 'README.md', revision=parent, cache_dir=CACHE, token=api.token))
     github = (ROOT / 'README.md').read_text()
     card_path = output / 'README.md'
     card_path.write_text(render_card(original.read_text(), github))
-    files = {'README.md': card_path, **{name: ROOT / name for name in SYNC_FILES}}
+    selected = DOC_SYNC_FILES if docs_only else SYNC_FILES
+    files = {'README.md': card_path, **{name: ROOT / name for name in selected}}
     source_commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     receipt = {
         'status': 'prepared', 'repo_id': REPO, 'parent_commit': parent,
+        'sync_scope': 'documentation_only' if docs_only else 'full_existing_release_sync',
         'github_source_commit': source_commit,
         'github_readme_sha256': sha(ROOT / 'README.md'),
         'original_hf_readme_sha256': sha(original),
@@ -186,23 +235,29 @@ def run(output, publish=False):
         'forecast_arrays_changed': False, 'videos_changed': False,
     }
     if publish:
-        dirty = subprocess.check_output(['git', 'status', '--porcelain', '--', 'README.md', *SYNC_FILES], cwd=ROOT, text=True)
+        dirty = subprocess.check_output(['git', 'status', '--porcelain', '--', 'README.md', *selected], cwd=ROOT, text=True)
         if dirty:
             raise ValueError('Commit canonical README and matching source files before publishing')
         # Publish scientific assets first, then pin the new figures to that
         # immutable commit in the card. Never pin new bytes to the old movie
         # revision or let a missing future image render as a stale figure.
-        assets = api.create_commit(repo_id=REPO, repo_type='model', parent_commit=parent,
-            commit_message='Add pre-2024 chart and verified Trackformer 1.2 training sources and cutoffs',
-            operations=[CommitOperationAdd(path_in_repo=name, path_or_fileobj=str(ROOT/name)) for name in SYNC_FILES])
-        card_path.write_text(render_card(original.read_text(), github, assets.oid))
+        existing = {entry.path: entry for entry in api.get_paths_info(REPO, list(selected), revision=parent)}
+        changed = [name for name in selected if not remote_matches(existing.get(name), ROOT/name)]
+        figure_revision = parent
+        if changed:
+            assets = api.create_commit(repo_id=REPO, repo_type='model', parent_commit=parent,
+                commit_message='Align 1.2 research documentation and report figures',
+                operations=[CommitOperationAdd(path_in_repo=name, path_or_fileobj=str(ROOT/name)) for name in changed])
+            figure_revision = assets.oid
+        card_path.write_text(render_card(original.read_text(), github, figure_revision))
         receipt['files']['README.md'] = sha(card_path)
-        receipt['figure_revision'] = assets.oid
-        committed = api.create_commit(repo_id=REPO, repo_type='model', parent_commit=assets.oid,
-            commit_message='Show total, pre-2024 and post-2024 results with explicit 1.2 training years',
+        receipt['figure_revision'] = figure_revision
+        receipt['uploaded_asset_paths'] = changed
+        committed = api.create_commit(repo_id=REPO, repo_type='model', parent_commit=figure_revision,
+            commit_message='Match released 1.2 model card to the Chinese research report',
             operations=[CommitOperationAdd(path_in_repo='README.md', path_or_fileobj=str(card_path))])
         for name, expected in receipt['files'].items():
-            saved = hf_hub_download(REPO, name, revision=committed.oid, cache_dir=CACHE)
+            saved = hf_hub_download(REPO, name, revision=committed.oid, cache_dir=CACHE, token=api.token)
             if sha(saved) != expected:
                 raise ValueError('Published documentation/source differs: ' + name)
         if frozen_identity(api, committed.oid) != weights_before:
@@ -217,5 +272,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--publish', action='store_true')
+    parser.add_argument('--docs-only', action='store_true', help='Upload only whitelisted Markdown and report assets')
+    parser.add_argument('--use-git-credential', action='store_true', help='Use the existing HF credential helper without saving a token')
     args = parser.parse_args()
-    run(args.output, args.publish)
+    run(args.output, args.publish, args.docs_only, args.use_git_credential)

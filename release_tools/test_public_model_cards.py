@@ -2,7 +2,8 @@
 import json
 import re
 import unittest
-from sync_public_model_cards import CURRENT_FIGURES, SYNC_FILES, MEDIA_REVISION, ROOT, media_url, render_card
+from sync_public_model_cards import (CURRENT_FIGURES, DOC_SYNC_FILES, REPORT_FIGURES,
+    SYNC_FILES, MEDIA_REVISION, ROOT, media_url, render_card, sha)
 
 
 class PublicModelCardsTest(unittest.TestCase):
@@ -14,8 +15,8 @@ class PublicModelCardsTest(unittest.TestCase):
     def test_full_card_and_remote_metadata_are_preserved(self):
         rendered = render_card(self.original, self.source)
         self.assertTrue(rendered.startswith(self.header))
-        for text in ('# Introducing Trackformer 1.2', '1,473 days / 270 storms',
-                     '134 days / 40 storms', '13.53', '12.84',
+        for text in ('# TrackFormer 1.2', '1,473 daily starts / 270 storms',
+                     '134 starts / 40 storms', '2,637', '12.84',
                      'WeatherNext software v0.3.0', '10.20 hPa', '258.7 km',
                      'no native wind-radius forecast head'):
             self.assertIn(text, rendered)
@@ -30,7 +31,7 @@ class PublicModelCardsTest(unittest.TestCase):
         rendered = render_card(self.original, self.source)
         self.assertEqual(rendered.count('<video '), 1)
         self.assertEqual(rendered.count('src="' + media_url('mangkhut') + '"'), 1)
-        self.assertLess(rendered.index('src="' + media_url('mangkhut') + '"'), rendered.index('## What improves'))
+        self.assertLess(rendered.index('src="' + media_url('mangkhut') + '"'), rendered.index('## Results in the research report'))
         self.assertIsNone(re.search(r'/resolve/main/docs/trackformer_[^"\s)]+\.mp4', rendered))
         self.assertIn(MEDIA_REVISION, rendered)
         self.assertIn('docs/showcase_archive.md', rendered)
@@ -62,10 +63,10 @@ class PublicModelCardsTest(unittest.TestCase):
     def test_new_figures_are_pinned_without_changing_weights_or_paper(self):
         revision = 'a' * 40
         rendered = render_card(self.original, self.source, revision)
-        for text in ('41.0%', '95% interval includes no improvement', 'same frozen starts',
+        for text in ('same valid time', 'common pressure-scoring conditions',
                      'Missing labels', 'certified untouched holdout', '50-member mean'):
             self.assertIn(text, rendered)
-        for path in CURRENT_FIGURES:
+        for path in (*REPORT_FIGURES, 'docs/trackformer_1_2_architecture.svg'):
             self.assertIn('/resolve/' + revision + '/' + path, rendered)
             self.assertIn(path, SYNC_FILES)
         for path in ('docs/deepmind_daily_benchmark.md', 'docs/showcase_archive.md',
@@ -96,13 +97,13 @@ class PublicModelCardsTest(unittest.TestCase):
                 if name != 'README.md':
                     self.assertIn(name, SYNC_FILES)
 
-    def assert_metric_row(self, source, label, values, places):
+    def assert_metric_row(self, source, label, values, places, models=('1.1', '1.2', 'deepmind')):
         rows = [line for line in source.splitlines() if line.startswith('| ')
                 and line.split('|')[1].strip().startswith(label)]
         self.assertEqual(len(rows), 1, label)
         cells = [cell.strip() for cell in rows[0].strip().strip('|').split('|')]
-        self.assertEqual(len(cells), 5, label)
-        for index, key in enumerate(('1.1', '1.2', 'deepmind'), 1):
+        self.assertEqual(len(cells), len(models) + 2, label)
+        for index, key in enumerate(models, 1):
             match = re.search(r'\d+(?:\.\d+)?', cells[index].replace('**', '').replace(',', ''))
             self.assertIsNotNone(match, (label, key))
             self.assertEqual(match.group(), f'{values[key]:.{places}f}', (label, key))
@@ -115,16 +116,21 @@ class PublicModelCardsTest(unittest.TestCase):
         self.assertEqual(receipt['verified_daily_cases'], 1473)
         self.assertEqual(receipt['verified_storms'], 270)
         specs = (
-            ('Mean track error, +6 to +120 h', 'mean_track_error_km', 1),
+            ('Mean track error, +6 to +120 h', 'mean_track_error_km', 2),
             ('Six-hour track-direction error', 'direction_error_deg', 2),
             ('Central-pressure MAE · JMA', 'pressure_JMA_hpa', 2),
-            ('Centred route-shape similarity', 'shape_similarity', 4),
-            ('Pressure-curve similarity · JMA', 'pressure_JMA_curve_similarity', 4),
         )
         for source in (self.source, render_card(self.original, self.source)):
             for label, key, places in specs:
                 with self.subTest(label=label):
-                    self.assert_metric_row(source, label, metrics[key], places)
+                    self.assert_metric_row(source, label, metrics[key], places, ('1.2', 'deepmind'))
+            days = json.loads((ROOT / 'docs/report_figures/day_1_to_5.json').read_text())
+            self.assert_metric_row(source, 'Day 5 track error',
+                {m: days['track_error_km'][m][-1] for m in ('1.2', 'deepmind')}, 2, ('1.2', 'deepmind'))
+        pressure = next(row for row in exported['metrics'] if row['key'] == 'pressure_JMA_hpa')
+        self.assertEqual(pressure['common_lead_points'], 2637)
+        for coverage in pressure['coverage'].values():
+            self.assertEqual((coverage['storms'], coverage['daily_cases']), (40, 134))
         release = (ROOT / 'RELEASE_NOTES_TRACKFORMER_1_2.md').read_text()
         for label, key, places in (
             ('Mean track error', 'mean_track_error_km', 1),
@@ -139,43 +145,31 @@ class PublicModelCardsTest(unittest.TestCase):
         self.assertEqual(post['daily_issues'], 61)
         self.assertEqual(post['storms'], 18)
         self.assertEqual(post['years'], [2025, 2026])
-        section = self.source.split('### After 2024', 1)[1]
-        for label, key, places in (('Track position MAE', 'mean_track_error_km', 1),
-                                   ('Track-direction error', 'direction_error_deg', 2),
-                                   ('Route-shape similarity', 'shape_similarity', 4)):
-            values = {model: post['scores']['route'][model][key]['value']
-                      for model in ('1.1', '1.2', 'deepmind')}
-            self.assert_metric_row(section, label, values, places)
-        pressure = post['scores']['pressure']['JMA']['models']
-        for label, key, places in (('JMA central-pressure MAE', 'mae_hpa', 2),
-                                   ('JMA pressure-curve similarity', 'curve_similarity', 4)):
-            self.assert_metric_row(section, label,
-                                   {m: pressure[m][key]['value'] for m in ('1.1', '1.2', 'deepmind')}, places)
+        for model in ('1.2', 'deepmind'):
+            value = post['scores']['route'][model]['mean_track_error_km']['value']
+            self.assertIn(f'{value:.1f} km', self.source)
+        for text in ('61 starts / 18 storms', 'Calendar 2024 is excluded', '1980–1999',
+                     'Different inputs and member counts', 'development comparison'):
+            self.assertIn(text, self.source)
 
-    def test_checkpoint_identity_and_proportions_precede_separate_charts(self):
+    def test_report_scope_and_checkpoint_identity_precede_chart(self):
         for source in (self.source, render_card(self.original, self.source)):
-            self.assertLess(source.index('**DeepMind checkpoint:'), source.index('model_1_2_benchmark.png'))
-            self.assertEqual(source.count('model_1_2_benchmark.png'), 1)
-            self.assertEqual(source.count('model_1_2_before_2024_benchmark.png'), 1)
-            self.assertEqual(source.count('model_1_2_after_2024_benchmark.png'), 1)
-            for text in ('90.7%', '85.2%', '5.2%', '8.1%', '4.1%', '6.7%',
-                         'Calendar 2024', '59 days / 18 storms / 1,174',
-                         'not training-data composition', 'same Mini `<2024` checkpoint',
-                         '100% Mini `<2024`; 0% other checkpoints'):
+            self.assertLess(source.index('**DeepMind checkpoint:'), source.index('report_figures/day_1_to_5.png'))
+            self.assertEqual(source.count('report_figures/day_1_to_5.png'), 1)
+            self.assertNotIn('1.1', source)
+            for text in ('24, 48, 72, 96 and 120 h', 'not averages over each day',
+                         'subset of those same 270 storms', 'not 50 trained networks',
+                         'not proven optimal', 'no rainfall forecast head or humidity input'):
                 self.assertIn(text, source)
 
-    def test_historical_chart_and_missing_pressure_are_explicit(self):
-        report = json.loads((ROOT / 'evaluation/deepmind_daily/period_comparison.json').read_text())
-        before = report['periods']['before_2024']
+    def test_pressure_subset_is_not_relabelled_as_missing_observations(self):
         for source in (self.source, render_card(self.original, self.source)):
-            section = source.split('### Before 2024', 1)[1].split('### After 2024', 1)[0]
-            for label, key, places in (('Historical track position MAE', 'mean_track_error_km', 1),
-                                       ('Historical track-direction error', 'direction_error_deg', 2),
-                                       ('Historical route-shape similarity', 'shape_similarity', 4)):
-                self.assert_metric_row(section, label,
-                    {m: before['scores']['route'][m][key]['value'] for m in ('1.1', '1.2', 'deepmind')}, places)
-            for text in ('Pressure is not scored', '0 shared valid pressure starts', 'not zero error', '1980–1999'):
-                self.assertIn(text, section)
+            self.assertIn('does **not** mean the remaining 230 storms have no pressure observations', source)
+            self.assertIn('original pipeline\'s issue-time intensity eligibility', source)
+        chinese = (ROOT / 'docs/research_report_zh.md').read_text()
+        for text in ('270個颱風中符合共同評分條件的40個颱風', '共134次起報', '2,637筆共同有效紀錄',
+                     '不代表其餘 230 個颱風都沒有氣壓觀測'):
+            self.assertIn(text, chinese)
 
     def test_training_years_sources_and_receipt_match_release(self):
         manifest = json.loads((ROOT / 'models/trackformer_1_2_field/manifest.json').read_text())
@@ -212,6 +206,73 @@ class PublicModelCardsTest(unittest.TestCase):
         notes = (ROOT / 'docs/deepmind_daily_benchmark.md').read_text()
         self.assertIn('retained byte-for-byte', notes)
         self.assertIn('handoff before import, not the current benchmark status', notes)
+
+    def test_report_assets_match_verified_copies(self):
+        import struct
+        folder = ROOT / 'docs/report_figures'
+        receipt = json.loads((folder / 'provenance.json').read_text())
+        self.assertFalse(receipt['model_weights_changed'])
+        self.assertFalse(receipt['model_or_truth_arrays_changed'])
+        self.assertFalse(receipt['coordinates_or_times_shifted'])
+        self.assertFalse(receipt['model_radius_head_available'])
+        self.assertEqual(receipt['forecast_members_per_case'], 50)
+        self.assertEqual(len(REPORT_FIGURES), 10)
+        self.assertEqual(len(receipt['cases']), 3)
+        for name, expected in receipt['files_sha256'].items():
+            self.assertEqual(sha(folder / name), expected, name)
+        for name in REPORT_FIGURES:
+            data = (ROOT / name).read_bytes()
+            self.assertEqual(data[:8], b'\x89PNG\r\n\x1a\n')
+            width, height = struct.unpack('>II', data[16:24])
+            self.assertGreater(width, 600)
+            self.assertGreater(height, 250)
+        days = json.loads((folder / 'day_1_to_5.json').read_text())
+        self.assertEqual(days['lead_hours'], [24, 48, 72, 96, 120])
+        self.assertEqual((days['route_storms'], days['route_issues']), (270, 1473))
+        self.assertEqual(days['pressure_common_storms_by_day'], [40, 40, 40, 40, 39])
+        self.assertEqual(days['pressure_common_issues_by_day'], [131, 133, 134, 133, 127])
+        for values in (days['track_error_km'], days['central_pressure_mae_hpa']):
+            self.assertEqual(set(values), {'1.2', 'deepmind'})
+            self.assertTrue(all(len(series) == 5 for series in values.values()))
+
+    def test_docs_only_publication_cannot_upload_weights_code_or_raw_forecasts(self):
+        self.assertEqual(len(DOC_SYNC_FILES), len(set(DOC_SYNC_FILES)))
+        for name in DOC_SYNC_FILES:
+            self.assertIn(name, SYNC_FILES)
+            self.assertTrue((ROOT / name).is_file(), name)
+            self.assertTrue(name.endswith(('.md', '.png', '.svg', '.gif', '.json')), name)
+            if name.endswith('.json'):
+                self.assertIn(name, ('docs/report_figures/provenance.json', 'docs/report_figures/day_1_to_5.json'))
+        self.assertTrue(set(REPORT_FIGURES) <= set(DOC_SYNC_FILES))
+
+    def test_frozen_sources_and_weights_are_not_redefined_by_documentation(self):
+        manifest = json.loads((ROOT / 'models/trackformer_1_2_field/manifest.json').read_text())
+        provenance = json.loads((ROOT / 'docs/report_figures/provenance.json').read_text())
+        for key in ('source_checkpoint_sha256', 'inference_weights_sha256'):
+            self.assertEqual(provenance[key], manifest[key])
+        for name, expected in manifest['source_module_sha256'].items():
+            self.assertEqual(sha(ROOT / 'models/trackformer_1_2_field' / name), expected)
+
+    def test_equipment_and_observed_radii_have_matching_scope(self):
+        chinese = (ROOT / 'docs/research_report_zh.md').read_text()
+        for text in ('Apple M4', '24 GB', 'NVIDIA GeForce RTX 3070', 'Metal', 'CUDA',
+                     '13,949', '1,041', '1,195', '同一組模型參數', '不是訓練 50 個模型',
+                     '未證明 50 組是最佳數量', '發布的 1.2 不包含降雨預測頭或水氣輸入'):
+            self.assertIn(text, chinese)
+        for name in REPORT_FIGURES:
+            self.assertIn(name.removeprefix('docs/'), chinese)
+        self.assertIn('not model radius predictions', self.source)
+        self.assertIn('ordinary home computer', self.source)
+
+    def test_report_document_relative_links_resolve(self):
+        for name in ('README.md', 'docs/research_report_zh.md', 'docs/trackformer_1_2_evaluation.md',
+                     'docs/trackformer_1_2_training_data.md', 'models/trackformer_1_2_field/README.md'):
+            path = ROOT / name
+            for url in re.findall(r'\]\(([^)\s]+)\)', path.read_text()):
+                if url.startswith(('https:', 'http:', '#', 'mailto:')):
+                    continue
+                resolved = (path.parent / url.split('#', 1)[0]).resolve()
+                self.assertTrue(resolved.is_relative_to(ROOT) and resolved.exists(), (name, url))
 
 
 if __name__ == '__main__':

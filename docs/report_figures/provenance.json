@@ -1,0 +1,41 @@
+{
+  "schema": "trackformer-1.2-report-figures-v1",
+  "documentation_update_date": "2026-10-18",
+  "scope": "Chinese research report plus approved text and figure amendments; existing figures copied without new forecasts or training",
+  "report_snapshot_sha256": "0e3f0ecd5c44bbd24a09697d954d8b99882935f181a7faa57081c5203387ba47",
+  "source_figure_audit_sha256": "140214e416da7057a301a74cbd0c901f8a059e89dd63ab18e76fb82673d3fc3b",
+  "source_checkpoint_sha256": "f194a23d3f91ea76ad776dfad942fabd669eeae8b3fd665815463095367e9ee0",
+  "inference_weights_sha256": "db49f36e85a3766defc4c172746897a1f783705d1ce8e6f9dfb8e87ae1d902cb",
+  "forecast_members_per_case": 50,
+  "map_lead_hours": 48,
+  "map_comparison_grid_degrees": 2.5,
+  "route_and_pressure_leads_hours": [6, 12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84, 90, 96, 102, 108, 114, 120],
+  "reference_pressure": "NOAA NCEP analysis; source remains analysis despite simplified visible labels",
+  "reference_track_and_central_pressure": "IBTrACS / JMA exact valid times",
+  "coastline": "Natural Earth",
+  "radius_source": "IBTrACS WP v04r01 USA_R34 quadrant records; observations only, not model predictions",
+  "ibtracs_sha256": "47ba0d51dbd22d5fb3c93d50b35e11a74b911a4019c56d6bb3424a5992dbbbf0",
+  "radius_units": "km = nautical miles * 1.852; missing values remain missing",
+  "model_radius_head_available": false,
+  "model_weights_changed": false,
+  "model_or_truth_arrays_changed": false,
+  "coordinates_or_times_shifted": false,
+  "cases": [
+    {"name": "Fung-wong", "sid": "2025308N09144", "issue_utc": "2025-11-07T00:00:00Z", "forecast_backend": "saved Metal", "saved_comparison_npz_sha256": "975e87bb5d40fe8bd081bc2ec890d1917892cb830bbef6972ce20772c787f050"},
+    {"name": "Mangkhut", "sid": "2018250N12170", "issue_utc": "2018-09-11T00:00:00Z", "forecast_backend": "saved Metal", "in_fitting_years": true, "saved_comparison_npz_sha256": "28b39089b8f03750773dba36c71bb9bf6505e5156a4bbdeb274624240210ee1f"},
+    {"name": "Jebi", "sid": "2018239N11161", "issue_utc": "2018-08-31T00:00:00Z", "forecast_backend": "CPU", "in_fitting_years": true, "saved_comparison_npz_sha256": "f47385cae42b8e6c1e77e1b93d1f078b41ad2b080732a3283a4e4b62ee2044a4"}
+  ],
+  "files_sha256": {
+    "day_1_to_5.json": "57da3a3f7c0ced7509a4892dc7028683cc3cd6c44bf156219d62eda80c25bfd2",
+    "day_1_to_5.png": "fd99254582a474b9ce2472fe18a3546572182fb466ed61022a2b230e861bda74",
+    "fung_wong_pressure_comparison.png": "9d8cd5d90e0751c3a7da6b152a34213905047430d2722965cdfebff57f98a78f",
+    "fung_wong_track_pressure.png": "d9793a66f39e1cbac9d055149f79765b891844a716068613437b057a5a29b6c8",
+    "fung_wong_observed_r34.png": "1b7855065f39cb19502f8885d7744c035ee39f8064188e0f1b45b6a72d7d5125",
+    "mangkhut_pressure_comparison.png": "35d7878efd15bb656d8104c257bdbd9e65c3026ded28a001a2a840023e69a885",
+    "mangkhut_track_pressure.png": "d2b4febc480af3d82007fd1a10a40fbe4f29c6858913d4a666d86d336da99af8",
+    "mangkhut_observed_r34.png": "ad6712a85acb4e367e1c6f06bdd6a2b3ac455f8deabb54d132647745ba871c85",
+    "jebi_pressure_comparison.png": "1413c6f6a91e1a7843f6047cd167d8608d84fab70a7ed3f554afe1e1a44cc324",
+    "jebi_track_pressure.png": "d0bb7e6d170ab471a309657baeb205ab56fac2ba5ca7bfae6ed861336573a18f",
+    "jebi_observed_r34.png": "b1582f95506b62e559d7be58c24a4c307c727e8b6cd37e0f64a976ccb26fa5d7"
+  }
+}
