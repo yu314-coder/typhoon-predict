@@ -5,7 +5,8 @@ on:
   schedule:
     - cron: '7,37 * * * *'
 
-permissions: {}
+permissions:
+  contents: read
 
 concurrency:
   group: rainfall-v1314b-e3-sites-cpu
@@ -16,12 +17,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Test bounded writer coordination and retained freshness checks
+        run: node --test release_tools/rainfall_refresh_poll.test.mjs
       - name: Advance the qualified Sites CPU forecast and verify stored fields
         shell: bash
         run: |
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
           import crypto from 'node:crypto';
+          import {waitForRainfallWriter} from './release_tools/rainfall_refresh_poll.mjs';
           const origin='https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site';
           const checkpoint='b9df629fbbea5ade1983167bda8b1dd7511a56149593f2e7e2d013480c88c9e3';
           const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -60,10 +65,18 @@ jobs:
           }
           let previous=null,complete=null;
           let interruptions=0;
+          const deadline=Date.now()+28*60*1000;
           for(let call=0;call<40;call++){
+            assert.ok(Date.now()<deadline,'Bounded refresh deadline exceeded; preserve the stored cursor for the next invocation.');
             const result=await refreshWithReadback();
             console.log(JSON.stringify({call:call+1,...result}));
-            if(result.busy||result.waiting_for_source){console.log('Deferred: the existing writer or exact weather source is not ready. Verify the last committed E1 forecast without changing its initialization.');complete={...result,deferred:true};break;}
+            if(result.busy){
+              const writer=await waitForRainfallWriter({origin,fetcher:request,sleep,deadline:Math.min(deadline,Date.now()+7*60*1000)});
+              console.log(JSON.stringify({writer_readback:writer}));
+              if(writer.ready){previous=null;call--;continue;}
+              complete={...result,deferred:true};break;
+            }
+            if(result.waiting_for_source){console.log('Deferred: the exact weather source is not ready. Verify the last committed E1 forecast without changing its initialization.');complete={...result,deferred:true};break;}
             if(result.qualification_pending)throw Error('The expected hosted E1 qualification is absent; no promotion or fallback.');
             if(result.complete&&result.published){complete=result;break;}
             assert.equal(result.in_progress,true);
@@ -102,7 +115,7 @@ jobs:
           assert.deepEqual(data.leads_hours,Array.from({length:20},(_,i)=>6*(i+1)));
           assert.deepEqual(data.history_offsets_hours,Array.from({length:9},(_,i)=>6*(i-8)));
           const anchor=Date.parse(data.initialization_utc),now=Date.now();
-          assert.ok(Number.isFinite(anchor)&&anchor%21600000===0&&now>=anchor&&now-anchor<=12*3600000);
+          assert.ok(Number.isFinite(anchor)&&anchor%21600000===0&&now>=anchor&&now-anchor<=12*3600000,`Published rainfall forecast is stale or invalid: ${data.initialization_utc}; writer=${JSON.stringify(data.updater?.writer??null)}; no old forecast is reported as current.`);
           assert.ok(data.generated_unix>=data.forecast_issued_unix&&data.generated_unix*1000<=now+300000);
           assert.equal(data.grids.taiwan_box.rows,16);
           assert.equal(data.grids.taiwan_box.columns,10);
