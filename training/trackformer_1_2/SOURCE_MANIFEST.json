@@ -4,29 +4,19 @@
   "model_weights_modified": false,
   "files": [
     {
+      "path": "training/trackformer_1_2/EXECUTION_CHECKS.json",
+      "sha256": "baa5800cdca8cbcffdfd5380382d76722613f76169cadf152a4d32553da9c09f",
+      "bytes": 738
+    },
+    {
       "path": "training/trackformer_1_2/LICENSE",
       "sha256": "090a97ebbccef9de77cb3898c473f5c9ada7e140777957f1195fc6ab89b9a313",
       "bytes": 1083
     },
     {
-      "path": "training/trackformer_1_2/requirements.txt",
-      "sha256": "37e15a665eff6c8ee94c47ac2da0f7c7e2d699b7e21623b0289da4cf5d3995d0",
-      "bytes": 45
-    },
-    {
-      "path": "training/trackformer_1_2/config.json",
-      "sha256": "813f5d05a3dec5ec160b4e91eb80970fb11d88416fc7709ffc9d147fc880316b",
-      "bytes": 820
-    },
-    {
-      "path": "training/trackformer_1_2/THIRD_PARTY_NOTICES.md",
-      "sha256": "f764dd203eb124fa6192edd3b7b49a7a546cd5d69d3a8a250589a14ce43e2115",
-      "bytes": 1697
-    },
-    {
-      "path": "training/trackformer_1_2/checkpoint-history.json",
-      "sha256": "8b9593a7ed58c1bd28dd27c8049c89a0c5c5644a30bfe5203a4b54c445ff2fb4",
-      "bytes": 459
+      "path": "training/trackformer_1_2/PUBLICATION.md",
+      "sha256": "1bcaa51a1999422925db2a100927985b927b454a2ff4250e318f7049ceec81c8",
+      "bytes": 1505
     },
     {
       "path": "training/trackformer_1_2/README.md",
@@ -34,9 +24,24 @@
       "bytes": 6560
     },
     {
-      "path": "training/trackformer_1_2/train.py",
-      "sha256": "4502a87bfafb11667015070c6fad37b723b4a53723789febda075fba1c7770e8",
-      "bytes": 1436
+      "path": "training/trackformer_1_2/THIRD_PARTY_NOTICES.md",
+      "sha256": "f764dd203eb124fa6192edd3b7b49a7a546cd5d69d3a8a250589a14ce43e2115",
+      "bytes": 1697
+    },
+    {
+      "path": "training/trackformer_1_2/assets.json",
+      "sha256": "a59148e9ba2617599614784b47789c3654df1a7809ee039e78bcd00fe982b211",
+      "bytes": 1993
+    },
+    {
+      "path": "training/trackformer_1_2/checkpoint-history.json",
+      "sha256": "8b9593a7ed58c1bd28dd27c8049c89a0c5c5644a30bfe5203a4b54c445ff2fb4",
+      "bytes": 459
+    },
+    {
+      "path": "training/trackformer_1_2/config.json",
+      "sha256": "813f5d05a3dec5ec160b4e91eb80970fb11d88416fc7709ffc9d147fc880316b",
+      "bytes": 820
     },
     {
       "path": "training/trackformer_1_2/download_assets.py",
@@ -44,9 +49,64 @@
       "bytes": 3049
     },
     {
-      "path": "training/trackformer_1_2/assets.json",
-      "sha256": "a59148e9ba2617599614784b47789c3654df1a7809ee039e78bcd00fe982b211",
-      "bytes": 1993
+      "path": "training/trackformer_1_2/requirements.txt",
+      "sha256": "37e15a665eff6c8ee94c47ac2da0f7c7e2d699b7e21623b0289da4cf5d3995d0",
+      "bytes": 45
+    },
+    {
+      "path": "training/trackformer_1_2/source/data_preparation/requirements.txt",
+      "sha256": "54918b8f29330299e18b8924e9cd93d05807e7f8cd99b2efd4805e9be94003c1",
+      "bytes": 55
+    },
+    {
+      "path": "training/trackformer_1_2/source/data_preparation/v164_dataset_contract.md",
+      "sha256": "cfd838651e632aba0d2439ba202a59895bd4df22137185974df1d97f0e2525d4",
+      "bytes": 4664
+    },
+    {
+      "path": "training/trackformer_1_2/source/data_preparation/v164_download_pressure_geography.py",
+      "sha256": "b8602cd2fba131a287dc9e25781c8f037d3325fec8a23203576916c2f7d2189c",
+      "bytes": 9256
+    },
+    {
+      "path": "training/trackformer_1_2/source/data_preparation/v164_global_regional_train.py",
+      "sha256": "c0808a1467695d2bc2ad8483aa4f4c6de1463628221024ac559f6204effe7978",
+      "bytes": 52581
+    },
+    {
+      "path": "training/trackformer_1_2/source/data_preparation/v164_prepare_data.py",
+      "sha256": "c1746e0c0f985890a0f02061a2d84b521cc7b29042c92972aa1ebab3354e4c95",
+      "bytes": 19312
+    },
+    {
+      "path": "training/trackformer_1_2/source/data_preparation/v164_prepare_mac.py",
+      "sha256": "7e7313f865369d42f67645196b4af0e1b2b84216303f7b2b61e577d3734df79a",
+      "bytes": 1309
+    },
+    {
+      "path": "training/trackformer_1_2/source/data_preparation/v164_reuse_impl.py",
+      "sha256": "2da0078d4a74faa93f8cf874e42707b01f286406f0ceaa4db1814aab0eceb7d1",
+      "bytes": 18414
+    },
+    {
+      "path": "training/trackformer_1_2/source/data_preparation/v164_structure_research.md",
+      "sha256": "a4b40e50b7d0d1433a162438f14ed110541702c4cec2a386959857293ea78141",
+      "bytes": 17119
+    },
+    {
+      "path": "training/trackformer_1_2/source/v173/DESIGN.md",
+      "sha256": "163ae39ff572f23c519d65e27ee6a8db23b47df9461670709229ccf95130049a",
+      "bytes": 3278
+    },
+    {
+      "path": "training/trackformer_1_2/source/v173/baseline_model.py",
+      "sha256": "6c05941fd93baaca04508877edc69f8f0394b70e0a64e734ef0d2c1e8832246a",
+      "bytes": 10040
+    },
+    {
+      "path": "training/trackformer_1_2/source/v173/model.py",
+      "sha256": "5dab06c20224cf48c51302122455ee7e16948f977bf4b760fd8aff5d443ab0bc",
+      "bytes": 3428
     },
     {
       "path": "training/trackformer_1_2/source/v173/test_model.py",
@@ -64,59 +124,14 @@
       "bytes": 11200
     },
     {
-      "path": "training/trackformer_1_2/source/v173/model.py",
-      "sha256": "5dab06c20224cf48c51302122455ee7e16948f977bf4b760fd8aff5d443ab0bc",
-      "bytes": 3428
+      "path": "training/trackformer_1_2/test_training_cpu.py",
+      "sha256": "35e9379c40f5928f72f8267dcbdbea892387e0261d74e476730ddcbdf143ba1b",
+      "bytes": 3279
     },
     {
-      "path": "training/trackformer_1_2/source/v173/DESIGN.md",
-      "sha256": "163ae39ff572f23c519d65e27ee6a8db23b47df9461670709229ccf95130049a",
-      "bytes": 3278
-    },
-    {
-      "path": "training/trackformer_1_2/source/v173/baseline_model.py",
-      "sha256": "6c05941fd93baaca04508877edc69f8f0394b70e0a64e734ef0d2c1e8832246a",
-      "bytes": 10040
-    },
-    {
-      "path": "training/trackformer_1_2/source/data_preparation/v164_prepare_data.py",
-      "sha256": "c1746e0c0f985890a0f02061a2d84b521cc7b29042c92972aa1ebab3354e4c95",
-      "bytes": 19312
-    },
-    {
-      "path": "training/trackformer_1_2/source/data_preparation/requirements.txt",
-      "sha256": "54918b8f29330299e18b8924e9cd93d05807e7f8cd99b2efd4805e9be94003c1",
-      "bytes": 55
-    },
-    {
-      "path": "training/trackformer_1_2/source/data_preparation/v164_structure_research.md",
-      "sha256": "a4b40e50b7d0d1433a162438f14ed110541702c4cec2a386959857293ea78141",
-      "bytes": 17119
-    },
-    {
-      "path": "training/trackformer_1_2/source/data_preparation/v164_download_pressure_geography.py",
-      "sha256": "b8602cd2fba131a287dc9e25781c8f037d3325fec8a23203576916c2f7d2189c",
-      "bytes": 9256
-    },
-    {
-      "path": "training/trackformer_1_2/source/data_preparation/v164_prepare_mac.py",
-      "sha256": "7e7313f865369d42f67645196b4af0e1b2b84216303f7b2b61e577d3734df79a",
-      "bytes": 1309
-    },
-    {
-      "path": "training/trackformer_1_2/source/data_preparation/v164_dataset_contract.md",
-      "sha256": "cfd838651e632aba0d2439ba202a59895bd4df22137185974df1d97f0e2525d4",
-      "bytes": 4664
-    },
-    {
-      "path": "training/trackformer_1_2/source/data_preparation/v164_global_regional_train.py",
-      "sha256": "c0808a1467695d2bc2ad8483aa4f4c6de1463628221024ac559f6204effe7978",
-      "bytes": 52581
-    },
-    {
-      "path": "training/trackformer_1_2/source/data_preparation/v164_reuse_impl.py",
-      "sha256": "2da0078d4a74faa93f8cf874e42707b01f286406f0ceaa4db1814aab0eceb7d1",
-      "bytes": 18414
+      "path": "training/trackformer_1_2/train.py",
+      "sha256": "4502a87bfafb11667015070c6fad37b723b4a53723789febda075fba1c7770e8",
+      "bytes": 1436
     }
   ],
   "assets": [

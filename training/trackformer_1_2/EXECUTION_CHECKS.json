@@ -1,0 +1,35 @@
+{
+  "status": "passed",
+  "device": "cpu",
+  "optimizer_updates": 0,
+  "full_training_rerun": false,
+  "samples": [
+    {
+      "native": false,
+      "finite_backward": true,
+      "attention_gradient_nonzero": true,
+      "field_pressure_exact": true,
+      "future_input_rejected": true
+    },
+    {
+      "native": true,
+      "finite_backward": true,
+      "attention_gradient_nonzero": true,
+      "field_pressure_exact": true,
+      "future_input_rejected": true
+    }
+  ],
+  "sampler_all_train_rows": true,
+  "counts": {
+    "train": 13949,
+    "validation": 1041,
+    "test": 1195
+  },
+  "native_counts": {
+    "train": 800,
+    "validation": 100,
+    "test": 100
+  },
+  "preflight": "passed",
+  "new_full_training_run": false
+}
