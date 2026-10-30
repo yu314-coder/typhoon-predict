@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use TrackFormer, cite this software and the upstream weather/track data described in the source notices."
+type: software
+title: "TrackFormer 1.2: Northwest Pacific pressure-field and typhoon forecasting"
+version: "1.2"
+authors:
+  - family-names: "Yu"
+    given-names: "Yao-Hsing"
+repository-code: "https://github.com/yu314-coder/typhoon-predict"
+url: "https://huggingface.co/euler314/typhoon-predict"
+license: MIT

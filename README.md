@@ -1,3 +1,21 @@
+---
+license: mit
+language:
+  - en
+  - zh
+library_name: pytorch
+tags:
+  - pytorch
+  - weather-forecasting
+  - tropical-cyclones
+  - typhoon
+  - atmospheric-pressure
+  - geospatial
+  - time-series
+  - open-source
+  - reproducible-research
+---
+
 # TrackFormer 1.2 — pressure maps and five-day typhoon forecasts
 
 An AI weather-research model designed to be trained and run on an ordinary home computer.
@@ -127,6 +145,10 @@ Routes and central pressures are averaged separately. Physical member pressure f
 - **Apple M4 Mac, 24 GB unified memory:** local model execution, data handling and plotting; PyTorch MPS uses the built-in GPU through Metal. Household-computer training and inference are the design goal, not a claim that every historical run used only this one machine.
 - **NVIDIA GeForce RTX 3070 / CUDA:** verified execution of the completed DeepMind reference benchmark. This is hardware, not a software package.
 - **Python / PyTorch**, NumPy, SciPy, xarray, netCDF4 and Matplotlib support modelling, data handling and figures. The Chinese report uses XeLaTeX / xeCJK.
+
+## Open access and reuse
+
+Code and project weights are **MIT licensed**, including modification, redistribution and commercial use. Source, training arrays and checkpoints are public without account approval or a download gate. [Openness inventory and remaining provenance gaps](OPENNESS.md) · [Contributing](CONTRIBUTING.md) · [Software citation](CITATION.cff). Upstream weather data retain their own terms and attribution.
 
 ## Train the released 1.2 architecture
 
