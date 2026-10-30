@@ -14,21 +14,6 @@
       "bytes": 1083
     },
     {
-      "path": "training/trackformer_1_2/PUBLICATION.md",
-      "sha256": "1bcaa51a1999422925db2a100927985b927b454a2ff4250e318f7049ceec81c8",
-      "bytes": 1505
-    },
-    {
-      "path": "training/trackformer_1_2/README.md",
-      "sha256": "97ac00bff15891218956a4743ae0d12cddad56106683dbc3c14b4922a463023c",
-      "bytes": 1328
-    },
-    {
-      "path": "training/trackformer_1_2/THIRD_PARTY_NOTICES.md",
-      "sha256": "f764dd203eb124fa6192edd3b7b49a7a546cd5d69d3a8a250589a14ce43e2115",
-      "bytes": 1697
-    },
-    {
       "path": "training/trackformer_1_2/assets.json",
       "sha256": "a59148e9ba2617599614784b47789c3654df1a7809ee039e78bcd00fe982b211",
       "bytes": 1993
@@ -59,11 +44,6 @@
       "bytes": 55
     },
     {
-      "path": "training/trackformer_1_2/source/data_preparation/v164_dataset_contract.md",
-      "sha256": "cfd838651e632aba0d2439ba202a59895bd4df22137185974df1d97f0e2525d4",
-      "bytes": 4664
-    },
-    {
       "path": "training/trackformer_1_2/source/data_preparation/v164_download_pressure_geography.py",
       "sha256": "b8602cd2fba131a287dc9e25781c8f037d3325fec8a23203576916c2f7d2189c",
       "bytes": 9256
@@ -87,16 +67,6 @@
       "path": "training/trackformer_1_2/source/data_preparation/v164_reuse_impl.py",
       "sha256": "2da0078d4a74faa93f8cf874e42707b01f286406f0ceaa4db1814aab0eceb7d1",
       "bytes": 18414
-    },
-    {
-      "path": "training/trackformer_1_2/source/data_preparation/v164_structure_research.md",
-      "sha256": "a4b40e50b7d0d1433a162438f14ed110541702c4cec2a386959857293ea78141",
-      "bytes": 17119
-    },
-    {
-      "path": "training/trackformer_1_2/source/v173/DESIGN.md",
-      "sha256": "163ae39ff572f23c519d65e27ee6a8db23b47df9461670709229ccf95130049a",
-      "bytes": 3278
     },
     {
       "path": "training/trackformer_1_2/source/v173/baseline_model.py",
@@ -200,5 +170,50 @@
     "sha256": "2ff4dfe29509fa62e5cffd91e4046d5ca2d436e606cd8ea0c14f15df33adf7b1",
     "pages": 106,
     "source_snapshot_huggingface_revision": "1f4ed985a05589076d37f170cc8053e26cec9fba"
-  }
+  },
+  "archived_documentation": [
+    {
+      "path": "training/trackformer_1_2/PUBLICATION.md",
+      "sha256": "1bcaa51a1999422925db2a100927985b927b454a2ff4250e318f7049ceec81c8",
+      "bytes": 1505,
+      "archive_path": "docs/archive/documentation-before-consolidation-20261030.zip",
+      "archive_member": "training/trackformer_1_2/PUBLICATION.md"
+    },
+    {
+      "path": "training/trackformer_1_2/README.md",
+      "sha256": "97ac00bff15891218956a4743ae0d12cddad56106683dbc3c14b4922a463023c",
+      "bytes": 1328,
+      "archive_path": "docs/archive/documentation-before-consolidation-20261030.zip",
+      "archive_member": "training/trackformer_1_2/README.md"
+    },
+    {
+      "path": "training/trackformer_1_2/THIRD_PARTY_NOTICES.md",
+      "sha256": "f764dd203eb124fa6192edd3b7b49a7a546cd5d69d3a8a250589a14ce43e2115",
+      "bytes": 1697,
+      "archive_path": "docs/archive/documentation-before-consolidation-20261030.zip",
+      "archive_member": "training/trackformer_1_2/THIRD_PARTY_NOTICES.md"
+    },
+    {
+      "path": "training/trackformer_1_2/source/data_preparation/v164_dataset_contract.md",
+      "sha256": "cfd838651e632aba0d2439ba202a59895bd4df22137185974df1d97f0e2525d4",
+      "bytes": 4664,
+      "archive_path": "docs/archive/documentation-before-consolidation-20261030.zip",
+      "archive_member": "training/trackformer_1_2/source/data_preparation/v164_dataset_contract.md"
+    },
+    {
+      "path": "training/trackformer_1_2/source/data_preparation/v164_structure_research.md",
+      "sha256": "a4b40e50b7d0d1433a162438f14ed110541702c4cec2a386959857293ea78141",
+      "bytes": 17119,
+      "archive_path": "docs/archive/documentation-before-consolidation-20261030.zip",
+      "archive_member": "training/trackformer_1_2/source/data_preparation/v164_structure_research.md"
+    },
+    {
+      "path": "training/trackformer_1_2/source/v173/DESIGN.md",
+      "sha256": "163ae39ff572f23c519d65e27ee6a8db23b47df9461670709229ccf95130049a",
+      "bytes": 3278,
+      "archive_path": "docs/archive/documentation-before-consolidation-20261030.zip",
+      "archive_member": "training/trackformer_1_2/source/v173/DESIGN.md"
+    }
+  ],
+  "documentation_index": "docs/archive/documentation-manifest.json"
 }

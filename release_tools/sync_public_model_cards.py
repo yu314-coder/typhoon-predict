@@ -35,7 +35,7 @@ CURRENT_FIGURES = frozenset((
     'docs/trackformer_1_2_architecture.svg',
     *REPORT_FIGURES,
 ))
-SYNC_FILES = (
+LEGACY_SYNC_FILES = (
     'models/trackformer_1_2_field/README.md',
     'models/trackformer_1_2_field/WIND_ESTIMATION.md',
     'models/trackformer_1_2_field/predict.py',
@@ -94,7 +94,7 @@ SYNC_FILES = (
     'docs/report_figures/provenance.json',
     *REPORT_FIGURES,
 )
-DOC_SYNC_FILES = (
+LEGACY_DOC_SYNC_FILES = (
     'models/trackformer_1_2_field/README.md',
     'models/trackformer_1_2_field/WIND_ESTIMATION.md',
     'RELEASE_NOTES_TRACKFORMER_1_2.md',
@@ -106,6 +106,20 @@ DOC_SYNC_FILES = (
     'docs/trackformer_1_2_architecture.svg', 'docs/trackformer_1_2_mangkhut.gif',
     *REPORT_FIGURES,
 )
+
+
+_DOC_INDEX = json.loads((ROOT / 'docs/archive/documentation-manifest.json').read_text())
+_RETIRED_DOCS = frozenset(_DOC_INDEX['removed_paths'])
+_COMPACT_DOCS = (
+    'docs/REFERENCE.md',
+    'docs/TrackFormer_1.2_Training_and_Reproducibility.pdf',
+    'docs/archive/documentation-before-consolidation-20261030.zip',
+    'docs/archive/documentation-manifest.json',
+)
+SYNC_FILES = tuple(dict.fromkeys(name for name in (*LEGACY_SYNC_FILES, *_COMPACT_DOCS)
+                                if name not in _RETIRED_DOCS))
+DOC_SYNC_FILES = tuple(dict.fromkeys(name for name in (*LEGACY_DOC_SYNC_FILES, *_COMPACT_DOCS)
+                                    if name not in _RETIRED_DOCS))
 
 
 def sha(path):
@@ -132,7 +146,9 @@ def render_card(original, github, figure_revision='main'):
         raise ValueError('Preserve existing HF YAML metadata; missing header')
     if github.count('## See the forecast: Mangkhut (2018)\n') != 1:
         raise ValueError('Missing or ambiguous featured-film section')
-    card = github
+    # The canonical GitHub README also carries valid YAML now. Retain exactly
+    # the existing remote header rather than nesting a second YAML block.
+    card = re.sub(r'\A---\n.*?\n---\n', '', github, count=1, flags=re.S).lstrip()
     for stem, alt in (('mangkhut', 'Trackformer 1.2 Mangkhut pressure and route forecast'),):
         old = '[![' + alt + '](docs/trackformer_1_2_' + stem + '.gif)](' + media_url(stem) + ')'
         if card.count(old) != 1:

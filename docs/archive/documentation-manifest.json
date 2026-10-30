@@ -1,0 +1,228 @@
+{
+  "schema": "documentation-consolidation-v1",
+  "github_before": "b16332c5feb0ca3ba87715ebde4c4e375ef4a7aa",
+  "huggingface_before": "73e0f8f150182993773d4c549850ae2b1bbdf72c",
+  "final_markdown_paths": [
+    "README.md",
+    "docs/REFERENCE.md",
+    "models/trackformer_1_2_field/README.md"
+  ],
+  "archive_path": "docs/archive/documentation-before-consolidation-20261030.zip",
+  "archive_sha256": "4ee4408366e76505415a0b2a3805a97543f73979f041ceec2bcbff0fb83cbc96",
+  "original_docs": [
+    {
+      "path": "CONTRIBUTING.md",
+      "sha256": "86e953e9a804566cefb142340d373eb00669a30937002857de8f2b46665ea11b",
+      "bytes": 2108,
+      "current_location": "docs/REFERENCE.md#contributing-md"
+    },
+    {
+      "path": "OPENNESS.md",
+      "sha256": "114b3dfef38441d29cb3a9e335c337f36598a760c192e925597466436304d8d9",
+      "bytes": 3640,
+      "current_location": "docs/REFERENCE.md#openness-md"
+    },
+    {
+      "path": "README.md",
+      "sha256": "abbaa7bbcdca3e86aca01ca46b183da5c202d3816561699b763b4ac9455be1d7",
+      "bytes": 23048,
+      "current_location": "README.md"
+    },
+    {
+      "path": "RELEASE_NOTES_TRACKFORMER_1_2.md",
+      "sha256": "d67aa075e85911b6753714fdea15a425382d8c0ff75e3b4f18cbea42124ef63d",
+      "bytes": 5616,
+      "current_location": "docs/REFERENCE.md#release-notes-trackformer-1-2-md"
+    },
+    {
+      "path": "docs/automatic_forecasts.md",
+      "sha256": "20be63648e49d66817d9fdf8c3ea204bd9b787ed336fbca303b87b91bbf90a2e",
+      "bytes": 9661,
+      "current_location": "docs/REFERENCE.md#docs-automatic-forecasts-md"
+    },
+    {
+      "path": "docs/daily_storm_benchmark.md",
+      "sha256": "d5e6525c968f8e47c0adaa1956f4d74b37bc7f1da484011959dba553d68c12e7",
+      "bytes": 6923,
+      "current_location": "docs/REFERENCE.md#docs-daily-storm-benchmark-md"
+    },
+    {
+      "path": "docs/deepmind_daily_benchmark.md",
+      "sha256": "45e902884e45a5ed209a88ea41d8f323b9ba4822de63b55978d33146bd1f832b",
+      "bytes": 11593,
+      "current_location": "docs/REFERENCE.md#docs-deepmind-daily-benchmark-md"
+    },
+    {
+      "path": "docs/intensity_benchmark.md",
+      "sha256": "13dba33f4007526c0f31cbb497d9bd91bba64f2c85fee30113ef49c47fbc6b8a",
+      "bytes": 8048,
+      "current_location": "docs/REFERENCE.md#docs-intensity-benchmark-md"
+    },
+    {
+      "path": "docs/repository_layout.md",
+      "sha256": "97331372e230c17f208d853029873c34e820b79af4d09bbf3f237174915a5f8a",
+      "bytes": 1980,
+      "current_location": "docs/REFERENCE.md#docs-repository-layout-md"
+    },
+    {
+      "path": "docs/research_report_zh.md",
+      "sha256": "8775c6c3591ceda39fe93e0f33fd2e7416a6d6036d561b541194f251ec7b2104",
+      "bytes": 10385,
+      "current_location": "docs/REFERENCE.md#docs-research-report-zh-md"
+    },
+    {
+      "path": "docs/showcase_archive.md",
+      "sha256": "10789a07a277c14c0ab61be0c88d104908fcd5050a237bf35920d76f075d0897",
+      "bytes": 4380,
+      "current_location": "docs/REFERENCE.md#docs-showcase-archive-md"
+    },
+    {
+      "path": "docs/trackformer_1_2_evaluation.md",
+      "sha256": "9cb4bb25fe80ab012e9c21c4bca56d8b0075ca24e54ae4cc94cae43826bb9a5c",
+      "bytes": 9870,
+      "current_location": "docs/REFERENCE.md#docs-trackformer-1-2-evaluation-md"
+    },
+    {
+      "path": "docs/trackformer_1_2_training_data.md",
+      "sha256": "0d8b21a15d5ed69a8655fa519bb99a106d741c0cc58a4f21bee2941bbd8f0b41",
+      "bytes": 936,
+      "current_location": "docs/TrackFormer_1.2_Training_and_Reproducibility.pdf"
+    },
+    {
+      "path": "evaluation/README.md",
+      "sha256": "fab70734f14564b46f01ea51ba5d6f044a6b5ee986ecab919b3c81d44819606f",
+      "bytes": 3114,
+      "current_location": "docs/REFERENCE.md#evaluation-readme-md"
+    },
+    {
+      "path": "models/trackformer_1_2_field/README.md",
+      "sha256": "cb4f3f1182547bb1ca19f7dc1d3c9e5aa292cec51b739b94c418065d211f1423",
+      "bytes": 11984,
+      "current_location": "models/trackformer_1_2_field/README.md"
+    },
+    {
+      "path": "models/trackformer_1_2_field/WIND_ESTIMATION.md",
+      "sha256": "e3bceb94600872521ec983affff6c8a5ca5b0a53774bd91fcb4f342a5c53c64d",
+      "bytes": 2996,
+      "current_location": "docs/REFERENCE.md#models-trackformer-1-2-field-wind-estimation-md"
+    },
+    {
+      "path": "release_tools/STORM_STRUCTURE_DIAGNOSTICS.md",
+      "sha256": "6675f1dfd781802ab012bcd0dfaa6f344df16a4803d76bd12265af89a28c5dbd",
+      "bytes": 6587,
+      "current_location": "docs/REFERENCE.md#release-tools-storm-structure-diagnostics-md"
+    },
+    {
+      "path": "release_tools/V1312_CLOUD_SOURCE_SECURITY.md",
+      "sha256": "e4574a975645c000d9259303c44c616ce91df9130a764c6b3eca56e65f17965e",
+      "bytes": 2765,
+      "current_location": "docs/REFERENCE.md#release-tools-v1312-cloud-source-security-md"
+    },
+    {
+      "path": "training/trackformer_1_2/PUBLICATION.md",
+      "sha256": "1bcaa51a1999422925db2a100927985b927b454a2ff4250e318f7049ceec81c8",
+      "bytes": 1505,
+      "current_location": "docs/TrackFormer_1.2_Training_and_Reproducibility.pdf"
+    },
+    {
+      "path": "training/trackformer_1_2/README.md",
+      "sha256": "97ac00bff15891218956a4743ae0d12cddad56106683dbc3c14b4922a463023c",
+      "bytes": 1328,
+      "current_location": "docs/TrackFormer_1.2_Training_and_Reproducibility.pdf"
+    },
+    {
+      "path": "training/trackformer_1_2/THIRD_PARTY_NOTICES.md",
+      "sha256": "f764dd203eb124fa6192edd3b7b49a7a546cd5d69d3a8a250589a14ce43e2115",
+      "bytes": 1697,
+      "current_location": "docs/TrackFormer_1.2_Training_and_Reproducibility.pdf"
+    },
+    {
+      "path": "training/trackformer_1_2/source/data_preparation/v164_dataset_contract.md",
+      "sha256": "cfd838651e632aba0d2439ba202a59895bd4df22137185974df1d97f0e2525d4",
+      "bytes": 4664,
+      "current_location": "docs/TrackFormer_1.2_Training_and_Reproducibility.pdf"
+    },
+    {
+      "path": "training/trackformer_1_2/source/data_preparation/v164_structure_research.md",
+      "sha256": "a4b40e50b7d0d1433a162438f14ed110541702c4cec2a386959857293ea78141",
+      "bytes": 17119,
+      "current_location": "docs/TrackFormer_1.2_Training_and_Reproducibility.pdf"
+    },
+    {
+      "path": "training/trackformer_1_2/source/v173/DESIGN.md",
+      "sha256": "163ae39ff572f23c519d65e27ee6a8db23b47df9461670709229ccf95130049a",
+      "bytes": 3278,
+      "current_location": "docs/TrackFormer_1.2_Training_and_Reproducibility.pdf"
+    }
+  ],
+  "removed_paths": [
+    "CONTRIBUTING.md",
+    "OPENNESS.md",
+    "RELEASE_NOTES_TRACKFORMER_1_2.md",
+    "docs/automatic_forecasts.md",
+    "docs/daily_storm_benchmark.md",
+    "docs/deepmind_daily_benchmark.md",
+    "docs/intensity_benchmark.md",
+    "docs/repository_layout.md",
+    "docs/research_report_zh.md",
+    "docs/showcase_archive.md",
+    "docs/trackformer_1_2_evaluation.md",
+    "docs/trackformer_1_2_training_data.md",
+    "evaluation/README.md",
+    "models/trackformer_1_2_field/WIND_ESTIMATION.md",
+    "release_tools/STORM_STRUCTURE_DIAGNOSTICS.md",
+    "release_tools/V1312_CLOUD_SOURCE_SECURITY.md",
+    "training/trackformer_1_2/PUBLICATION.md",
+    "training/trackformer_1_2/README.md",
+    "training/trackformer_1_2/THIRD_PARTY_NOTICES.md",
+    "training/trackformer_1_2/source/data_preparation/v164_dataset_contract.md",
+    "training/trackformer_1_2/source/data_preparation/v164_structure_research.md",
+    "training/trackformer_1_2/source/v173/DESIGN.md"
+  ],
+  "github_removed": [
+    "CONTRIBUTING.md",
+    "OPENNESS.md",
+    "RELEASE_NOTES_TRACKFORMER_1_2.md",
+    "docs/automatic_forecasts.md",
+    "docs/daily_storm_benchmark.md",
+    "docs/deepmind_daily_benchmark.md",
+    "docs/intensity_benchmark.md",
+    "docs/repository_layout.md",
+    "docs/research_report_zh.md",
+    "docs/showcase_archive.md",
+    "docs/trackformer_1_2_evaluation.md",
+    "docs/trackformer_1_2_training_data.md",
+    "evaluation/README.md",
+    "models/trackformer_1_2_field/WIND_ESTIMATION.md",
+    "release_tools/STORM_STRUCTURE_DIAGNOSTICS.md",
+    "release_tools/V1312_CLOUD_SOURCE_SECURITY.md",
+    "training/trackformer_1_2/PUBLICATION.md",
+    "training/trackformer_1_2/README.md",
+    "training/trackformer_1_2/THIRD_PARTY_NOTICES.md",
+    "training/trackformer_1_2/source/data_preparation/v164_dataset_contract.md",
+    "training/trackformer_1_2/source/data_preparation/v164_structure_research.md",
+    "training/trackformer_1_2/source/v173/DESIGN.md"
+  ],
+  "hf_removed": [
+    "CONTRIBUTING.md",
+    "OPENNESS.md",
+    "RELEASE_NOTES_TRACKFORMER_1_2.md",
+    "docs/daily_storm_benchmark.md",
+    "docs/deepmind_daily_benchmark.md",
+    "docs/intensity_benchmark.md",
+    "docs/repository_layout.md",
+    "docs/research_report_zh.md",
+    "docs/showcase_archive.md",
+    "docs/trackformer_1_2_evaluation.md",
+    "docs/trackformer_1_2_training_data.md",
+    "evaluation/README.md",
+    "models/trackformer_1_2_field/WIND_ESTIMATION.md",
+    "release_tools/STORM_STRUCTURE_DIAGNOSTICS.md",
+    "training/trackformer_1_2/PUBLICATION.md",
+    "training/trackformer_1_2/README.md",
+    "training/trackformer_1_2/THIRD_PARTY_NOTICES.md",
+    "training/trackformer_1_2/source/data_preparation/v164_dataset_contract.md",
+    "training/trackformer_1_2/source/data_preparation/v164_structure_research.md",
+    "training/trackformer_1_2/source/v173/DESIGN.md"
+  ]
+}
