@@ -20,8 +20,8 @@
     },
     {
       "path": "training/trackformer_1_2/README.md",
-      "sha256": "342c43d94710355101ddc5bcad44923f47707f473eb803398f44fe2d77e8ace9",
-      "bytes": 6560
+      "sha256": "97ac00bff15891218956a4743ae0d12cddad56106683dbc3c14b4922a463023c",
+      "bytes": 1328
     },
     {
       "path": "training/trackformer_1_2/THIRD_PARTY_NOTICES.md",
@@ -40,8 +40,8 @@
     },
     {
       "path": "training/trackformer_1_2/config.json",
-      "sha256": "813f5d05a3dec5ec160b4e91eb80970fb11d88416fc7709ffc9d147fc880316b",
-      "bytes": 820
+      "sha256": "6dddaba9c17720eedb6ab8ad2564c6da926ff37ba490257a585facb59d477e4e",
+      "bytes": 1064
     },
     {
       "path": "training/trackformer_1_2/download_assets.py",
@@ -132,6 +132,11 @@
       "path": "training/trackformer_1_2/train.py",
       "sha256": "4502a87bfafb11667015070c6fad37b723b4a53723789febda075fba1c7770e8",
       "bytes": 1436
+    },
+    {
+      "path": "training/trackformer_1_2/records/selected-checkpoint-training.json",
+      "sha256": "28a8b86dfd66cc718d7cb0b165af885cbee3f39627fdb9cda0be91c021260180",
+      "bytes": 1537
     }
   ],
   "assets": [
@@ -189,5 +194,11 @@
       "bytes": 257969971,
       "group": "checkpoints"
     }
-  ]
+  ],
+  "documentation_pdf": {
+    "path": "docs/TrackFormer_1.2_Training_and_Reproducibility.pdf",
+    "sha256": "2ff4dfe29509fa62e5cffd91e4046d5ca2d436e606cd8ea0c14f15df33adf7b1",
+    "pages": 106,
+    "source_snapshot_huggingface_revision": "1f4ed985a05589076d37f170cc8053e26cec9fba"
+  }
 }

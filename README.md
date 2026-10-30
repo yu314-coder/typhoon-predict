@@ -150,11 +150,13 @@ Routes and central pressures are averaged separately. Physical member pressure f
 
 Code and project weights are **MIT licensed**, including modification, redistribution and commercial use. Source, training arrays and checkpoints are public without account approval or a download gate. [Openness inventory and remaining provenance gaps](OPENNESS.md) · [Contributing](CONTRIBUTING.md) · [Software citation](CITATION.cff). Upstream weather data retain their own terms and attribution.
 
-## Train the released 1.2 architecture
+## Complete training manual (PDF)
 
-The [open training package](training/trackformer_1_2/README.md) contains the original trainer, architecture, losses, sampler, resume logic, tests, data-preparation utilities and explicit launch configuration. The **exact six derived training-array files**, original manifest, **v168 epoch-3 warm start** and selected **v173 epoch-4 full checkpoint with optimizer/RNG state** are public on [Hugging Face](https://huggingface.co/euler314/typhoon-predict/tree/main/training/trackformer_1_2). A checksum-verifying downloader works without the old Drive setup. Source and instructions are mirrored on both repositories; large binary assets are served by Hugging Face and linked from GitHub.
+**[Download the single 106-page training and reproducibility PDF](docs/TrackFormer_1.2_Training_and_Reproducibility.pdf).** It contains data sources and processing, whole-storm partitions, normalization, tensor construction, architecture, initialization, all active losses, sampling, batches, truncated backpropagation, optimizer settings, curriculum, validation, checkpoint/resume behavior, recorded history, reproduction commands and limitations. A complete 40-file source/provenance appendix and an embedded exact-source ZIP are included; no separate Markdown pages are needed to read the method.
 
-This opens the actual released training path; it does not claim a newly reproduced training run or an untouched benchmark. The archived raw IBTrACS snapshot ID was not recorded. The report's selected epoch 4 is **not** the minimum aggregate validation-loss checkpoint: the saved history's minimum is epoch 2. See the training package for historical metadata and remaining reproducibility limits.
+The checkpoint audit distinguishes facts from the archived recipe: the selected epoch-4 optimizer records **4,384 updates**, compatible with effective batch **16** under the published four-epoch sampler; the archived notebook recipe uses batch **10** and would produce 7,016 updates. Original argv/microbatch/worker settings were not recorded. The PDF explains that discrepancy, the epoch-2 minimum validation loss versus selected epoch 4, and the remaining raw-provenance/runtime gaps.
+
+[Training source and asset index](training/trackformer_1_2/) · [Public exact corpus and optimizer checkpoints](https://huggingface.co/euler314/typhoon-predict/tree/main/training/trackformer_1_2). Project code/weights remain MIT; weather data retain upstream terms. This documentation publication does not rerun or modify any trainer.
 
 ## Get started
 
