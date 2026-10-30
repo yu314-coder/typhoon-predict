@@ -17,3 +17,7 @@ The 1.1-versus-1.2 comparison arrays, TIP diagnostic, current paper, weights, mo
 ## Recovery
 
 The complete pre-cleanup repository remains in [commit 459a3d014aa4794652ceba3ecdffcde0beada2cd](https://github.com/yu314-coder/typhoon-predict/tree/459a3d014aa4794652ceba3ecdffcde0beada2cd). The [Trackformer 1.1 release](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.1) remains available. This cleanup does not rewrite Git history.
+
+## Released 1.2 training
+
+`training/trackformer_1_2/` contains the original training source, launch wrapper, requirements, historical preparation tools, configuration, hashes and public asset downloader. Large arrays and optimizer checkpoints live at the identical Hugging Face path and are referenced from GitHub.

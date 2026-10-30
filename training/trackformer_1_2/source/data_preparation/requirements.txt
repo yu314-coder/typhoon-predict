@@ -1,0 +1,7 @@
+numpy>=1.26
+torch>=2.1
+xarray
+zarr
+gcsfs
+netCDF4
+scipy

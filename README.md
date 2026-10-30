@@ -128,6 +128,12 @@ Routes and central pressures are averaged separately. Physical member pressure f
 - **NVIDIA GeForce RTX 3070 / CUDA:** verified execution of the completed DeepMind reference benchmark. This is hardware, not a software package.
 - **Python / PyTorch**, NumPy, SciPy, xarray, netCDF4 and Matplotlib support modelling, data handling and figures. The Chinese report uses XeLaTeX / xeCJK.
 
+## Train the released 1.2 architecture
+
+The [open training package](training/trackformer_1_2/README.md) contains the original trainer, architecture, losses, sampler, resume logic, tests, data-preparation utilities and explicit launch configuration. The **exact six derived training-array files**, original manifest, **v168 epoch-3 warm start** and selected **v173 epoch-4 full checkpoint with optimizer/RNG state** are public on [Hugging Face](https://huggingface.co/euler314/typhoon-predict/tree/main/training/trackformer_1_2). A checksum-verifying downloader works without the old Drive setup. Source and instructions are mirrored on both repositories; large binary assets are served by Hugging Face and linked from GitHub.
+
+This opens the actual released training path; it does not claim a newly reproduced training run or an untouched benchmark. The archived raw IBTrACS snapshot ID was not recorded. The report's selected epoch 4 is **not** the minimum aggregate validation-loss checkpoint: the saved history's minimum is epoch 2. See the training package for historical metadata and remaining reproducibility limits.
+
 ## Get started
 
 [Download weights and the complete pressure-map exporter](https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.2/trackformer_1_2_field_pressure_export_v2.tar.gz), or use this repository with the [Hugging Face weights](https://huggingface.co/euler314/typhoon-predict/resolve/main/models/trackformer_1_2_field/weights.pt). Put `weights.pt` in `models/trackformer_1_2_field/`. The inference weights and learned model equations are unchanged; the package includes the moving-core output and map renderer.

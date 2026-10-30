@@ -57,4 +57,6 @@ With the original frozen dataset available, reproduce the small receipt without 
 python release_tools/audit_training_data.py --dataset-root /Volumes/D/typhoon_predict/data/v164_reuse --output /Volumes/D/typhoon_predict/remote_typhoon_predict_repo/evaluation/training_data/trackformer_1_2_provenance.json
 ```
 
-The original full training arrays are not newly bundled by this documentation update. Model weights, neural source, forecasts and training processes are unchanged.
+The exact derived arrays, original manifest, warm start and selected full training checkpoint are now publicly available in [the open training package](../training/trackformer_1_2/README.md). Original source bytes and frozen model weights are unchanged. The additive publication does not run training or modify any active trainer.
+
+The source archive includes historical ERA5 preparation utilities; its small full-field pilot is not the released six-file corpus. Use the published exact corpus to reproduce the released data boundary. No missing raw IBTrACS provenance has been invented.
