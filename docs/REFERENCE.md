@@ -1,41 +1,55 @@
-# TrackFormer reference
-Detailed protocols, source notices and historical release explanations are consolidated here. For the complete training method, read the [single training PDF](TrackFormer_1.2_Training_and_Reproducibility.pdf). Executable code, arrays, masks and measured scores retain their existing paths.
-The source documents below were preserved before consolidation. Their former file paths identify provenance; time-sensitive operational counts are snapshots, not fresh status checks. Source-level training/design notes are reproduced in the PDF. The exact pre-cleanup Markdown files are retained in [one ZIP](archive/documentation-before-consolidation-20261030.zip) and immutable Git history.
-For the current comparison use the main README and saved benchmark JSON. Individual historical sections can describe different cohorts or revisions; consolidation does not relabel those values as a new matched result.
-## Contents
-- [CONTRIBUTING.md](#contributing-md)
-- [OPENNESS.md](#openness-md)
-- [RELEASE_NOTES_TRACKFORMER_1_2.md](#release-notes-trackformer-1-2-md)
-- [docs/automatic_forecasts.md](#docs-automatic-forecasts-md)
-- [docs/daily_storm_benchmark.md](#docs-daily-storm-benchmark-md)
-- [docs/deepmind_daily_benchmark.md](#docs-deepmind-daily-benchmark-md)
-- [docs/intensity_benchmark.md](#docs-intensity-benchmark-md)
-- [docs/repository_layout.md](#docs-repository-layout-md)
-- [docs/research_report_zh.md](#docs-research-report-zh-md)
-- [docs/showcase_archive.md](#docs-showcase-archive-md)
-- [docs/trackformer_1_2_evaluation.md](#docs-trackformer-1-2-evaluation-md)
-- [evaluation/README.md](#evaluation-readme-md)
-- [models/trackformer_1_2_field/WIND_ESTIMATION.md](#models-trackformer-1-2-field-wind-estimation-md)
-- [release_tools/STORM_STRUCTURE_DIAGNOSTICS.md](#release-tools-storm-structure-diagnostics-md)
-- [training/trackformer_1_2/THIRD_PARTY_NOTICES.md](#training-trackformer-1-2-third-party-notices-md)
+# TrackFormer 1.2 · technical reference
+
+[Overview](../README.md) · [Model input/output guide](../models/trackformer_1_2_field/README.md) · [Complete training manual (PDF)](TrackFormer_1.2_Training_and_Reproducibility.pdf)
+
+Use this page for scoring protocols, diagnostic assumptions, examples, data attribution and contribution guidance. The complete training explanation is in one PDF; code and machine-readable evidence retain their original paths.
+
+## Start here
+
+| Task | Read |
+| --- | --- |
+| Run and inspect a forecast | [Input/output guide](../models/trackformer_1_2_field/README.md) |
+| Understand training and reproduce it | [106-page training PDF](TrackFormer_1.2_Training_and_Reproducibility.pdf) |
+| Check the measured scorecard | [Main results](../README.md#results-in-the-research-report) and [benchmark JSON](../evaluation/deepmind_daily/benchmark.json) |
+| Audit retained source documents | [Archived snapshot](archive/documentation-before-consolidation-20261030.zip) and [hash inventory](archive/documentation-manifest.json) |
+
+**Reading the historical records.** The sections below preserve protocol and release explanations from the pre-consolidation documents. Operational counts are dated snapshots, not current job status. Different historical cohorts/revisions can have different scores; do not combine them into a new comparison. Current matched results are identified in the main scorecard and its saved JSON. Original document names are shown as provenance, not additional files you must open.
+
+## Topics
+
+- [Contribution workflow](#contributing-md)
+- [License and public access](#openness-md)
+- [Release history](#release-notes-trackformer-1-2-md)
+- [Automatic forecasts and the history archive](#docs-automatic-forecasts-md)
+- [Case selection and equal-storm scoring](#docs-daily-storm-benchmark-md)
+- [DeepMind comparator and matched results](#docs-deepmind-daily-benchmark-md)
+- [Pressure and intensity verification](#docs-intensity-benchmark-md)
+- [Repository history and recovery](#docs-repository-layout-md)
+- [中文研究說明](#docs-research-report-zh-md)
+- [Forecast examples and diagnostic media](#docs-showcase-archive-md)
+- [How to interpret the evaluations](#docs-trackformer-1-2-evaluation-md)
+- [Evaluation artifact catalogue](#evaluation-readme-md)
+- [Experimental wind and radius estimation](#models-trackformer-1-2-field-wind-estimation-md)
+- [Plotting storm-structure diagnostics](#release-tools-storm-structure-diagnostics-md)
+- [Dataset attribution and upstream terms](#training-trackformer-1-2-third-party-notices-md)
 
 
 <a id="contributing-md"></a>
 
-## CONTRIBUTING.md
+## Contribution workflow
 
-# Contributing to TrackFormer
+*Source record: `CONTRIBUTING.md`.*
 
 Anyone may inspect, fork, modify and retrain the public release under its MIT license. No contributor agreement or account approval is required to download or use the code and weights. Submitting a GitHub pull request requires your own GitHub account; local use does not.
 
-## Reproduce first
+### Reproduce first
 
 1. Follow `training/trackformer_1_2/README.md` and pin the asset revision from `PUBLICATION.md`.
 2. Verify dataset/checkpoint SHA-256 values before changing anything. Keep original weights and source artifacts unchanged and write experiments into new output directories.
 3. Use `--preflight` for the archive/architecture check and `test_training_cpu.py` for the portable CPU loss/backward check. These reconstruct a writable local mmap, so use your own data copy rather than an active trainer's directory.
 4. For pressure export changes, use the existing `release_tools/test_pressure_field_export.py` checks as applicable. There is no requirement to run the full multi-hour training job for a documentation correction.
 
-## Share a change
+### Share a change
 
 Open an issue or pull request at https://github.com/yu314-coder/typhoon-predict . Explain the problem, changed behavior, exact model/data revision and relevant checks. Document new dependencies and retain third-party notices. Never commit credentials, private data or unrelated large caches. New project contributions should use the existing MIT license; third-party material must keep its own license and attribution.
 
@@ -43,16 +57,15 @@ For scientific claims, preserve issue-time causal inputs and whole-storm partiti
 
 The MIT license permits broad reuse; scientific review criteria apply to what this repository accepts or claims, not to your permission to fork or experiment independently.
 
-
 <a id="openness-md"></a>
 
-## OPENNESS.md
+## License and public access
 
-# Open access and reuse
+*Source record: `OPENNESS.md`.*
 
 TrackFormer 1.2 is publicly accessible without account approval, a download gate, a paid API or Google Drive permissions. Project code and project model weights/checkpoints are distributed under the [MIT license](../LICENSE). You may use, study, modify, retrain, redistribute, sublicense and sell copies, including commercial use, subject to retaining the required copyright and permission notice. No research-only or non-commercial restriction is added by this project. The research/safety cautions describe capability limits; they do not replace or narrow the MIT license.
 
-## What is public
+### What is public
 
 | Component | Public location |
 | --- | --- |
@@ -68,22 +81,21 @@ TrackFormer 1.2 is publicly accessible without account approval, a download gate
 
 Large arrays and optimizer checkpoints are hosted on Hugging Face and linked from GitHub, rather than duplicated in ordinary Git history. Downloads are standard public HTTPS; the asset downloader uses Python's standard library, verifies exact hashes and requires no token. Training/inference still require the documented open-source runtime dependencies. There is no hosted-service dependency in the published training launcher.
 
-## Upstream data terms
+### Upstream data terms
 
 NOAA/IBTrACS and Copernicus/ERA5 data retain their own provenance, attribution and applicable upstream terms. The project's MIT license cannot remove third-party conditions. See [the source notices](TrackFormer_1.2_Training_and_Reproducibility.pdf) and [data provenance](TrackFormer_1.2_Training_and_Reproducibility.pdf). The root `license: mit` metadata describes project software and model artifacts, not a blanket relicensing of all weather data.
 
-## What is not claimed
+### What is not claimed
 
 The frozen derived arrays and their exact hashes are public, but the original raw IBTrACS snapshot/download ID was not recorded. A complete original runtime lockfile, original process argv and earlier warm-start training history have not been recovered. The archived recipe and warm-start checkpoint make the released v173 path runnable; bitwise full retraining across devices has not been demonstrated. The report selects epoch 4, while the saved aggregate validation-loss minimum is epoch 2. Previously inspected tests and examples are development evidence, not an untouched holdout.
 
 Public availability is not a claim that every earlier 1.2 experiment or later rainfall experiment is this released model. No unavailable artifact, qualification result or score is invented to claim complete reproducibility. These remaining gaps stay visible so others can audit and improve the release.
 
-
 <a id="release-notes-trackformer-1-2-md"></a>
 
-## RELEASE_NOTES_TRACKFORMER_1_2.md
+## Release history
 
-# Trackformer 1.2 — pressure-field research model
+*Source record: `RELEASE_NOTES_TRACKFORMER_1_2.md`.*
 
 **Documentation clarification (18 October 2026):** the current [English model page](../README.md) and [Chinese research explanation](#docs-research-report-zh-md) follow the research report's released-1.2 scope, household-computer goal, day-1–5 chart and three typhoon examples. Route uses 270 storms / 1,473 starts; the JMA pressure comparison uses 40 of those storms / 134 starts / 2,637 common valid records. The report's R34 panels are observations, not model radius forecasts, and Taiwan rainfall remains separate ongoing research. This updates documentation and existing figure copies only; weights, neural source and benchmark arrays are unchanged. Earlier release history below is retained as an archive.
 
@@ -91,7 +103,7 @@ Public availability is not a claim that every earlier 1.2 experiment or later ra
 
 Trackformer 1.2 forecasts Western Pacific storm tracks, central pressure and evolving sea-level-pressure fields through +120 hours. A multiscale environmental-attention network conditions the moving pressure core; track and central pressure are read from that evolving field.
 
-## Direct detailed pressure-map output
+### Direct detailed pressure-map output
 
 The current package exports all twenty six-hour leads with:
 
@@ -113,7 +125,7 @@ The core's 20-km spacing is a learned computational reconstruction, not new nati
 
 Inference weight SHA-256: `db49f36e85a3766defc4c172746897a1f783705d1ce8e6f9dfb8e87ae1d902cb`.
 
-## Matched development results
+### Matched development results
 
 | Measure | 1.1 | 1.2 mean of 50 | DeepMind Mini, one member | Matched coverage |
 | --- | ---: | ---: | ---: | --- |
@@ -129,12 +141,11 @@ The [model announcement](https://github.com/yu314-coder/typhoon-predict) include
 
 This is a research model, not an operational warning service or a safety-critical forecast. Trackformer 1.1 remains a separate release. No historical archive, media, benchmark predictions or training run is modified by this exporter update.
 
-
 <a id="docs-automatic-forecasts-md"></a>
 
-## docs/automatic_forecasts.md
+## Automatic forecasts and the history archive
 
-# Automatic 1.2 forecast archive
+*Source record: `docs/automatic_forecasts.md`.*
 
 The existing repository runs the released Python checkpoint on **GitHub-hosted
 CPU runners**, not on a visitor's browser or the owner's Mac. Every hour at
@@ -243,7 +254,7 @@ The Weather Lab API merges these results with its existing verified archive.
 The GitHub Pages website can use the same public History API. A cache miss or
 source outage remains explicit; no future observation is substituted as forecast.
 
-## Playback and scale
+### Playback and scale
 
 The History player defaults to Western Pacific and orders storms by formation
 time (first observed record), newest first. Its issue-time slider advances in
@@ -279,12 +290,11 @@ A measured basin-field sequence used 44,311 bytes with lossless gzip: about
 Git history and existing outputs. These are single-sample storage estimates,
 not fixed quotas or guaranteed total sizes.
 
-
 <a id="docs-daily-storm-benchmark-md"></a>
 
-## docs/daily_storm_benchmark.md
+## Case selection and equal-storm scoring
 
-# Daily forecasts, equal-storm benchmark
+*Source record: `docs/daily_storm_benchmark.md`.*
 
 Status: **complete** at 2026-09-29T08:22:39Z. All **1,473 daily cases / 270 storms** finished; the SHA-256 of every saved forecast was verified. [Final equal-storm results and all 270 storm scores](../evaluation/daily_storm_final.json).
 
@@ -296,7 +306,7 @@ On 1 October, `release_tools/build_release_benchmark.py` independently rechecked
 
 The [completed WeatherNext Cyclones Mini comparison](#docs-deepmind-daily-benchmark-md) now covers exactly the same 1,473 starts / 270 storms. Mini's combined mean track error is 498.4 km, direction error 39.76°, and JMA pressure MAE 10.20 hPa on 134 shared intensity starts. Its recent-only mean track error is 288.5 km versus 477.2 km for 1.2. The [independent three-way publication audit](../evaluation/deepmind_daily/publication_audit.json) rechecks the CUDA archive, unchanged original Trackformer arrays and recomputed common-support scores; the older 1 October receipt remains the audit of the original two-model snapshot, not a hash receipt for the subsequently merged JSON. No older benchmark's DeepMind score has been transferred into this comparison.
 
-## What counts as a case and a score
+### What counts as a case and a score
 
 One case is one typhoon at one issue time on one UTC day. Choose the earliest eligible issue on that day, once per typhoon. Each forecast predicts all 20 six-hour leads, +6 through +120 h, from information at or before issue time.
 
@@ -304,7 +314,7 @@ For position error, daily score = mean of the 20 lead errors; storm score = mean
 
 Direction error, route-shape similarity, Fréchet distance and path similarity remain separate metrics. Their definitions match the [evaluation notes](#docs-trackformer-1-2-evaluation-md); direction uses only common non-stationary leads. Missing direction scores are reported, not replaced by zero. There is no invented combined weighted quality mark.
 
-## Frozen cohort
+### Frozen cohort
 
 - 270 distinct storms, 1,473 daily issue cases, selected from 523 locally eligible storms.
 - All 40 eligible recent storms beginning in 2024 or later, plus 230 historical storms selected at evenly spaced positions in the chronological 1980–1999 storm list.
@@ -315,7 +325,7 @@ Direction error, route-shape similarity, Fréchet distance and path similarity r
 
 Requiring complete five-day truth excludes short remaining lifetimes. This is a declared coverage limitation, not an all-storm operational sample. Historical cases are retrospective hindcasts from a model trained on later years; reanalysis and best-track issue states do not establish real-time data availability. This cohort has not been certified untouched across all earlier experiments.
 
-## Models and input boundaries
+### Models and input boundaries
 
 Trackformer **1.2** uses the unchanged released checkpoint and 50 independently seeded, smooth input-perturbation members. Seeds are `2043 + source_row * 100 + member_id`, with member IDs 0–49. Normalized perturbation amplitudes remain 0.025 for basin history and 0.015 for regional history. These are not learned latent samples or 50 separate trained models. Member routes and central pressures are averaged; physical fields are averaged on fixed common geographic grids. Missing native regional inputs retain the model's missing-detail mask.
 
@@ -323,20 +333,19 @@ Trackformer **1.1** uses the released causal weighted route builder with issue, 
 
 Future weather/track/pressure are used for eligibility coverage and scoring only, never inference. No retraining, coefficient tuning, new weather downloads or checkpoint substitution occurs in this run.
 
-## Pressure and failures
+### Pressure and failures
 
 For the original 1.2 run, central-pressure MAE uses valid labels and cosine-area-weighted basin MSLP MAE uses the native basin grid, daily then equally per storm. Keep pressure label coverage visible. The separate native-pressure follow-up uses a paired mask for both models at each agency's exact valid times; it does not substitute its smaller coverage into all-storm track results. Regional/core field scores need their own valid coverage and are not implied by basin-wide error. No same-cohort 1.1 basin-field score is claimed.
 
 Completed daily forecasts are saved atomically with hashes. A nonfinite forecast or source mismatch stops the run visibly rather than silently deleting the case. Resume skips completed cases without rerunning them. Partial aggregate scores include only fully completed storms, identify their counts, and must not be presented as the final 270-storm result. Final uncertainty should resample whole storms, not overlapping daily issues independently.
 
-
 <a id="docs-deepmind-daily-benchmark-md"></a>
 
-## docs/deepmind_daily_benchmark.md
+## DeepMind comparator and matched results
 
-# Completed WeatherNext Cyclones Mini daily benchmark
+*Source record: `docs/deepmind_daily_benchmark.md`.*
 
-## Model and frozen plan
+### Model and frozen plan
 
 **Complete and verified:** all **1,473 daily forecasts / 270 Western Pacific storms** finished on an **NVIDIA GeForce RTX 3070 using JAX CUDA in Windows/WSL**. The final worker audit is dated **4 October 2026, 12:55 UTC**. Publication independently rechecked all returned case hashes, physical grids, unchanged Trackformer reference arrays and exact common-support scores. No new inference was performed during this review.
 
@@ -351,7 +360,7 @@ The reference is Google's official [WeatherNext Cyclones Mini](https://github.co
 - CUDA protocol SHA-256: `91b31582f24ffdd4f2309eddb0cc68498a2c31cab7cbabaf06f43dfbff413606`.
 - Runtime: JAX/JAXlib 0.4.38, Python 3.12.3, highest float32 matmul precision, TF32 disabled.
 
-## Results
+### Results
 
 | Matched development metric | Trackformer 1.1 | Trackformer 1.2 · mean of 50 | Mini · one member | Coverage |
 | --- | ---: | ---: | ---: | --- |
@@ -366,7 +375,7 @@ The reference is Google's official [WeatherNext Cyclones Mini](https://github.co
 
 Pressure measures central-pressure intensity, not map-grid error. The lower USA curve count excludes flat/short curves; it is not zero-filled. All three models' pressure-curve case IDs were verified equal for each agency. DeepMind geographic path/Fréchet scores and whole-storm confidence intervals are not supplied by this export and remain unavailable.
 
-### Historical and recent groups
+#### Historical and recent groups
 
 | Period | Daily starts / storms | Mean track error · 1.1 / 1.2 / Mini, km | Direction error · 1.1 / 1.2 / Mini, degrees |
 | --- | --- | --- | --- |
@@ -377,7 +386,7 @@ Mini has better recent-only track scores even though 1.2 has lower position/head
 
 [Full results, period breakdowns and per-lead track errors](../evaluation/deepmind_daily/benchmark.json) · [Shared snapshot and existing 1.1/1.2 uncertainty](../evaluation/released_daily/released_daily_benchmark.json) · [Completion receipt](../evaluation/deepmind_daily/verification.json) · [Independent review](../evaluation/deepmind_daily/publication_audit.json)
 
-### Strict forecast-date partition and separate charts
+#### Strict forecast-date partition and separate charts
 
 All three README charts—total, strict `<2024` and strict `>2024`—use **`WeatherNextCyclones_Mini_<2024`**, the same official checkpoint trained through 2023, software v0.3.0, native 1° and one CUDA member. A post-2024 forecast is not a post-2024-trained model. The following proportions refer to this evaluation cohort, not the model's training dataset.
 
@@ -402,7 +411,7 @@ python release_tools/plot_model_announcement.py
 
 The helper checks the exact archive hash against the existing publication audit and every one of the 1,473 case-score JSON hashes against the frozen manifest. It rechecks identities, causal-time metadata, CUDA completion and common pressure masks, reproduces the original total and period scores, then recomputes only the UTC subsets using the unchanged equal-storm aggregation. It never rewrites the original worker export, changes a forecast array or claims a new raw-input audit. Chart sidecars identify their derivative source hash, checkpoint, period, exact values and missing-data policy.
 
-## Like-for-like scoring
+### Like-for-like scoring
 
 All three models use the frozen starts, exact future label times and original issue-relative kilometre projection. Routes are unshifted. Direction is recomputed on **common moving steps across truth and all three models**, not compared using different masks.
 
@@ -412,7 +421,7 @@ Average valid leads within an issue, days within a storm, then storms equally. P
 
 The official six-hour direct tracker uses a frozen initialized-storm continuity policy: no cyclogenesis, no dissipation pruning and no nearby-cyclone pruning. This is disclosed rather than called the operational default. Native 1° WP MSLP grids are saved in physical hPa; cyclone-head central pressure is not the basin-grid minimum.
 
-## Execution and verification
+### Execution and verification
 
 The original [Mac CPU runner and scoring definitions](../release_tools/deepmind_daily_benchmark.py) provided the frozen plan. The completed run used the separately pinned, resumable RTX 3070 CUDA package; the old CPU launch instructions are not the execution record of these results. The [frozen CUDA protocol](../evaluation/deepmind_daily/protocol.json), [2,946-file case manifest](../evaluation/deepmind_daily/case-manifest.json) and [CPU/CUDA canary](../evaluation/deepmind_daily/canary.json) identify the completed run.
 
@@ -433,17 +442,16 @@ Completed scores are also exposed by the existing [public benchmark API](https:/
 
 The returned worker's `benchmark.json` is retained byte-for-byte for its audit hashes. Its `published_to_site: false` and `integration_note` describe the handoff before import, not the current benchmark status. The completed CUDA receipt, independent publication audit and shared public snapshot above are the current completion/publication evidence; those historical worker fields do not mean the comparison is unfinished.
 
-
 <a id="docs-intensity-benchmark-md"></a>
 
-## docs/intensity_benchmark.md
+## Pressure and intensity verification
 
-# Matched daily intensity benchmark
+*Source record: `docs/intensity_benchmark.md`.*
 
 Completed GPU inference and verified aggregation on 1 October 2026 (Taipei).
 The released weights, original forecasts and original calibration are unchanged.
 
-## Same hierarchy as track
+### Same hierarchy as track
 
 The plan is the frozen 270-storm / 1,473-daily-issue track cohort. One storm on
 one UTC day is one case, at its earliest eligible issue. Forecast errors at
@@ -461,7 +469,7 @@ with future observations or relabeled as zero error. Thus the result shares
 the **method and planned cohort** of track, but does not claim the same valid
 intensity coverage. Missing future observations also remain unavailable.
 
-## Model identity and inference
+### Model identity and inference
 
 1.2 is the released checkpoint SHA-256
 `f194a23d3f91ea76ad776dfad942fabd669eeae8b3fd665815463095367e9ee0`.
@@ -481,7 +489,7 @@ Expert count/activation is preserved in each case receipt; this is not a
 future labels are loaded separately for scoring. The two systems' input
 pipelines differ: this is not an architecture-controlled ablation.
 
-## Native observation definitions
+### Native observation definitions
 
 - Central pressure: exact storm SID and valid UTC; native `USA_PRES` and
   `TOKYO_PRES` are scored separately, in hPa, on a common mask for each agency.
@@ -501,7 +509,7 @@ component, then equally across available quadrant components, then across
 days within storm and equally across storms. Coverage differs by threshold;
 all counts are printed. Observational RMW has reporting/provisional limitations.
 
-## Curve comparison, analogous to route direction and shape
+### Curve comparison, analogous to route direction and shape
 
 The released Site defaults to **central-pressure MAE**, with slight descriptive mean improvements (JMA 13.53 / 12.84 hPa; USA 12.84 / 12.55 hPa, for 1.1 / 1.2) and paired uncertainty including zero. Its secondary **similarity** view is the exact complement of the shape-error metric below: `(1 + centred cosine) / 2 = 1 − shape_error`. This is a presentation transform, not a new fit or score. JMA similarity is 0.7074 / 0.7118 on 40 storms and 134 starts; USA similarity is 0.7237 / 0.6637 on 40 storms and 131 non-flat starts. Unshifted physical hPa timelines remain visible separately. The public snapshot includes every input-eligible pressure timeline.
 
@@ -528,7 +536,7 @@ storm aggregation. Uncertainty uses 2,000 whole-storm bootstrap replicates
 with seed 4712, not overlapping issue resampling. Paired 1.2-minus-1.1
 differences and their intervals are included in the full JSON report.
 
-## Results and honest boundaries
+### Results and honest boundaries
 
 USA pressure MAE: 1.1 **12.84** vs 1.2 **12.55 hPa**. JMA pressure MAE:
 **13.53** vs **12.84 hPa**. Auxiliary wind diagnostic MAE: **16.98** vs
@@ -544,7 +552,7 @@ were required by the inherited cohort. This is not untouched generalization,
 an operational comparison or proof of no overfitting. Scientific safety and
 wind/radius definition limitations apply to all illustrated examples.
 
-## Files and reproduction
+### Files and reproduction
 
 [Verified aggregate and per-storm metrics](../evaluation/intensity/intensity_final.json)
 · [Chart verification receipt](../evaluation/intensity/verification.json)
@@ -570,16 +578,15 @@ The runner locks one process and resumes immutable completed cases. It never
 silently restarts training. Large original forecasts/raw members remain on D;
 public reports include exact source hashes and complete verified aggregates.
 
-
 <a id="docs-repository-layout-md"></a>
 
-## docs/repository_layout.md
+## Repository history and recovery
 
-# Current repository layout
+*Source record: `docs/repository_layout.md`.*
 
 The current source tree is focused on the selected pressure-field **Trackformer 1.2** release. The implementation remains at `models/trackformer_1_2_field/`; module filenames such as `v165_base.py` are required architecture dependencies, not unused legacy files. They and their source hashes have not been changed.
 
-## Cleanup on 29 September 2026
+### Cleanup on 29 September 2026
 
 Removed from the current branch:
 
@@ -591,20 +598,19 @@ Moved current benchmark figures, metrics and plot data from `paper/` into `evalu
 
 The 1.1-versus-1.2 comparison arrays, TIP diagnostic, current paper, weights, model source hashes and release tags are retained. No local research checkpoints, running benchmark, Hugging Face files or historical release assets were deleted by this source-tree cleanup.
 
-## Recovery
+### Recovery
 
 The complete pre-cleanup repository remains in [commit 459a3d014aa4794652ceba3ecdffcde0beada2cd](https://github.com/yu314-coder/typhoon-predict/tree/459a3d014aa4794652ceba3ecdffcde0beada2cd). The [Trackformer 1.1 release](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.1) remains available. This cleanup does not rewrite Git history.
 
-## Released 1.2 training
+### Released 1.2 training
 
 `training/trackformer_1_2/` contains the original training source, launch wrapper, requirements, historical preparation tools, configuration, hashes and public asset downloader. Large arrays and optimizer checkpoints live at the identical Hugging Face path and are referenced from GitHub.
 
-
 <a id="docs-research-report-zh-md"></a>
 
-## docs/research_report_zh.md
+## 中文研究說明
 
-# TrackFormer 1.2 中文研究說明
+*Source record: `docs/research_report_zh.md`.*
 
 **作品名稱：訓練AI模型探討西北太平洋氣壓系統影響臺灣附近颱風的預測評估**
 
@@ -612,13 +618,13 @@ The complete pre-cleanup repository remains in [commit 459a3d014aa4794652ceba3ec
 
 [GitHub 程式與研究紀錄](https://github.com/yu314-coder/typhoon-predict) · [Hugging Face 模型](https://huggingface.co/euler314/typhoon-predict) · [即時預測頁](https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/live) · [English overview](../README.md)
 
-## 研究動機與目標
+### 研究動機與目標
 
 - 以一般家用電腦可訓練、可執行為目標，讓個人及學生能參與天氣預測研究。
 - 建立預測西北太平洋氣壓圖的 AI 模型，再從同一預測氣壓取得颱風路徑與中心氣壓。
 - 結合不同高度的水平風，提供研究東北風、西南風與颱風周圍氣流變化的基礎。本次成果評分以路徑與氣壓為主，並非已證明季風預測改善。
 
-## 研究設備與器材
+### 研究設備與器材
 
 | 設備或工具 | 實際用途與範圍 |
 | --- | --- |
@@ -630,7 +636,7 @@ The complete pre-cleanup repository remains in [commit 459a3d014aa4794652ceba3ec
 | Matplotlib | 繪製氣壓、路徑、曲線與長條圖。 |
 | XeLaTeX、xeCJK | 中文報告排版。 |
 
-## 資料來源與分配
+### 資料來源與分配
 
 | 資料 | 模型實際使用的內容 |
 | --- | --- |
@@ -649,7 +655,7 @@ The complete pre-cleanup repository remains in [commit 459a3d014aa4794652ceba3ec
 
 同一颱風保持在同一分組；跨越分組界線的資料片段不使用。資料的平均值與變動範圍只由訓練組計算。後來取得的 2026 年資料不表示發布模型重新訓練到 2026 年。[來源與檔案檢查](TrackFormer_1.2_Training_and_Reproducibility.pdf)。
 
-## 模型如何預測與訓練
+### 模型如何預測與訓練
 
 1. 輸入起報前兩天至起報時刻的資料，每六小時一筆，共 **9 筆**，搭配當時的颱風位置、強度、先前移動與固定地形。
 2. 分別計算周圍氣壓、水平風與颱風中心附近氣壓的變化，再一起更新六小時後的狀態。
@@ -659,13 +665,13 @@ The complete pre-cleanup repository remains in [commit 459a3d014aa4794652ceba3ec
 
 模型有 21,452,595 個參數，中心氣壓計算網格為 65×65、約 20 公里。這是計算與重建間距，不是新取得的 20 公里原生觀測。兩天是本次模型固定的輸入設計，尚未以相同條件比較一天、兩天及三天，不能說兩天已被證明最佳。[完整技術輸入與輸出](../models/trackformer_1_2_field/README.md)。
 
-### 為什麼有 50 組預測
+#### 為什麼有 50 組預測
 
 報告使用**同一組模型參數**，只在正規化後的歷史天氣加入 50 組不同的小幅、平滑、平均為零的雜訊，再取平均。環境與區域資料的雜訊幅度分別為 0.025、0.015，平滑範圍分別為 5、9 格；幅度是正規化單位，並非直接加上相同數字的百帕。颱風起報位置、移動、強度、地形與有效性標記不變，原始觀測和模型參數也不修改。
 
 路徑與中心氣壓分別平均；氣壓地圖則先把各組結果放到相同經緯度，再平均。這**不是訓練 50 個模型**，也未證明 50 組是最佳數量、一定優於單次預測，或其分散程度已是可靠的不確定性範圍。
 
-## 多個颱風的比較
+### 多個颱風的比較
 
 路徑使用 **270 個颱風、1,473 次起報**，比較每六小時、未來五天的預測。先平均一次起報內各時間的有效誤差，再平均同一颱風的起報，最後讓每個颱風具有相同權重。
 
@@ -688,11 +694,11 @@ The complete pre-cleanup repository remains in [commit 459a3d014aa4794652ceba3ec
 
 這組開發評估的平均路徑及移動方向誤差較低，中心氣壓誤差則以比較模型較低。全組包含 230 個 1980–1999 年颱風及 40 個較近期颱風；歷史年份與比較模型的訓練期間重疊。只看 2025–2026 年起報的 18 個颱風、61 次起報，DeepMind 輕量版路徑誤差為 258.7 公里，TrackFormer 為 469.4 公里。已反覆查看的案例屬開發證據，不是全新、未使用的測試，不能由全組平均推論普遍優於 DeepMind。[原始完成數據與流程](#docs-deepmind-daily-benchmark-md)。
 
-## 三個颱風展示
+### 三個颱風展示
 
 三案皆以相同發布模型的 50 組預測平均展示。氣壓圖比較 +48 小時、相同座標及色階下的模型與 **NCEP 參考氣壓**，採 2.5 度共同網格；NCEP 仍為分析資料，不因圖中文字簡化而變成測站觀測。路徑與中心氣壓保留全部 +6 至 +120 小時，以 IBTrACS／日本氣象廳紀錄對照，不搬移預測低壓來配合實況。
 
-### 鳳凰（Fung-wong，2025）
+#### 鳳凰（Fung-wong，2025）
 
 起報：**2025-11-07 00 UTC**。使用保存的 Metal 結果。
 
@@ -702,7 +708,7 @@ The complete pre-cleanup repository remains in [commit 459a3d014aa4794652ceba3ec
 
 ![鳳凰IBTrACS觀測34節風圈半徑，非模型預測](report_figures/fung_wong_observed_r34.png)
 
-### 山竹（Mangkhut，2018）
+#### 山竹（Mangkhut，2018）
 
 起報：**2018-09-11 00 UTC**。使用保存的 Metal 結果；位於訓練年份內，為回溯展示。
 
@@ -712,7 +718,7 @@ The complete pre-cleanup repository remains in [commit 459a3d014aa4794652ceba3ec
 
 ![山竹IBTrACS觀測34節風圈半徑，非模型預測](report_figures/mangkhut_observed_r34.png)
 
-### 燕子（Jebi，2018）
+#### 燕子（Jebi，2018）
 
 起報：**2018-08-31 00 UTC**。相同發布權重在 CPU 執行的 50 組預測；未重新訓練，也未使用起報以後的天氣輸入。位於訓練年份內，為回溯展示。
 
@@ -724,7 +730,7 @@ The complete pre-cleanup repository remains in [commit 459a3d014aa4794652ceba3ec
 
 三張風圈圖均是 **IBTrACS 的 34 節四方向觀測半徑，不是本模型半徑預測**。左為 +48 小時四方向最大範圍，右為五日紀錄；海里乘以 1.852 換成公里，缺值保留空白。扇形不是完整風場。發布模型沒有原生風圈半徑預測頭。[圖片雜湊與來源](report_figures/provenance.json)。
 
-## 結論、成果特色與後續研究
+### 結論、成果特色與後續研究
 
 - **研究結論：**以家用電腦可訓練、可執行為核心目標，完成五日氣壓、颱風路徑及中心氣壓的整合流程，並可在一般 Mac 電腦執行預測與評估。
 - **同一套預測：**地圖、路徑與中心氣壓來自同一模型結果，可相互對照。
@@ -733,22 +739,21 @@ The complete pre-cleanup repository remains in [commit 459a3d014aa4794652ceba3ec
 - **應用：**提供個人及學生進行氣象學習、歷史颱風比較與地圖展示的研究工具。這不是取代官方警報的作業預報服務。
 - **持續研究：**結合臺灣島外風向、水氣輸送與地形，研究一般降雨和強降雨的分布，並以降雨觀測另行評估。**發布的 1.2 不包含降雨預測頭或水氣輸入**，本段不是已完成的降雨準確度成果。
 
-
 <a id="docs-showcase-archive-md"></a>
 
-## docs/showcase_archive.md
+## Forecast examples and diagnostic media
 
-# Forecast examples and diagnostics
+*Source record: `docs/showcase_archive.md`.*
 
 The [model announcement](../README.md) features the geographically registered moving-core Mangkhut (2018) forecast. Its 50-member arrays and replay/playback receipts are linked there. These are development illustrations, not representative or untouched-test evidence.
 
-## Current research-report figures
+### Current research-report figures
 
 The [Chinese report explanation](#docs-research-report-zh-md) contains the current **Fung-wong (2025), Mangkhut (2018) and Jebi (2018)** pressure-map, five-day route/central-pressure and observed-radius panels. The day-1–5 bar chart compares released 1.2 with DeepMind Mini only, using unchanged saved scores. [Figure hashes and source identities](report_figures/provenance.json).
 
 The report's radius figures are **IBTrACS observed R34 quadrant records, not model predictions**. The pressure reference remains NCEP analysis, with a common 2.5° comparison grid and no shifted forecasts. Mangkhut and Jebi are in the training years; the examples are retrospective demonstrations, not additional untouched validation. Older films and experimental radius diagnostics below keep their original provenance and should not be confused with these report figures.
 
-## Additional films
+### Additional films
 
 These earlier 50-member films retain a fixed issue-relative regional pressure patch. When the centre leaves it, only the saved coarse basin field covers that position. They use 4 hPa isobars and 23-second playback with a held ending; do not confuse them with the current moving-core Mangkhut rendering. Their original model outputs remain preserved.
 
@@ -756,7 +761,7 @@ These earlier 50-member films retain a fixed issue-relative regional pressure pa
 - [Soudelor (2015), 5 August 00 UTC](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_soudelor.mp4) · [provenance](../evaluation/release_data/soudelor_video.json)
 - [Meranti (2016), 10 September 00 UTC](https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_meranti.mp4) · [provenance](../evaluation/release_data/meranti_video.json)
 
-## Wind and structure
+### Wind and structure
 
 [Four-storm wind comparison](../evaluation/storm_structure/four_storm_wind_candidate.png) · [audit index](../evaluation/storm_structure/index.json) · [experimental structure method](#release-tools-storm-structure-diagnostics-md)
 
@@ -769,20 +774,19 @@ USA one-minute and JMA ten-minute winds are separate references. Native 1.1 RMW 
 | Mangkhut | [Plot](../evaluation/storm_structure/mangkhut_wind_radius.png) | [Record](../evaluation/storm_structure/mangkhut_structure.json) |
 | Meranti | [Plot](../evaluation/storm_structure/meranti_wind_radius.png) | [Record](../evaluation/storm_structure/meranti_structure.json) |
 
-## Full evaluation
+### Full evaluation
 
 [Daily protocol](#docs-daily-storm-benchmark-md) · [all daily scores](../evaluation/daily_storm_final.json) · [intensity/radius protocol](#docs-intensity-benchmark-md) · [native intensity results](../evaluation/intensity/intensity_final.json) · [matched pressure curves](../evaluation/released_daily/pressure_comparison.png)
 
 Route uses 1,473 starts / 270 storms; the matched native pressure comparison uses 134 starts / 40 storms. JMA pressure MAE falls from 13.53 to 12.84 hPa, with paired uncertainty including zero. JMA curve similarity is 0.7074 / 0.7118 (1.1 / 1.2), while USA curve similarity is 0.7237 / 0.6637 on 131 eligible days—a regression. A centred shape score discards level and amplitude and must be read with physical hPa timelines, not used to conceal pressure errors.
 
-
 <a id="docs-trackformer-1-2-evaluation-md"></a>
 
-## docs/trackformer_1_2_evaluation.md
+## How to interpret the evaluations
 
-# Trackformer 1.2 evaluation notes
+*Source record: `docs/trackformer_1_2_evaluation.md`.*
 
-## Completed equal-storm benchmark
+### Completed equal-storm benchmark
 
 The current comparison uses **1,473 daily forecasts across 270 Western Pacific storms**, with 20 six-hour leads from +6 through +120 h. Scores average leads within issues, daily issues within each storm, then storms equally. The completed results and all forecast SHA-256 checks are in [the final report](../evaluation/daily_storm_final.json); the [daily-storm protocol](#docs-daily-storm-benchmark-md) defines the frozen cohort and metrics.
 
@@ -803,7 +807,7 @@ The inherited shared-case eligibility excludes **1,339 starts with unavailable f
 
 The [report's day-1–5 chart](report_figures/day_1_to_5.png) shows **exact 24, 48, 72, 96 and 120 h** leads rather than daily-bin averages. Track covers 270 storms at each displayed lead. JMA pressure has 40, 40, 40, 40 and 39 storms, with 131, 133, 134, 133 and 127 common starts respectively. All-lead pressure totals and per-lead counts describe different aggregations. [Exact chart values](report_figures/day_1_to_5.json).
 
-## Completed DeepMind comparison
+### Completed DeepMind comparison
 
 Google's official **WeatherNext Cyclones Mini `<2024`**, using **WeatherNext software v0.3.0**, completed the same **1,473 daily starts / 270 storms** on an **NVIDIA GeForce RTX 3070 with CUDA**. It is a 1° model trained through 2023. Mini is one seeded member, not the full-sized WeatherNext model; 1.2 remains a 50-member mean. The common-support results are **498.37 km** mean track error, **1031.91 km** at +120 h, **39.76°** direction error and **10.20 hPa** JMA central-pressure MAE on **134 starts / 40 storms / 2,637 valid records**. Its JMA pressure-curve similarity is **0.8088**.
 
@@ -811,27 +815,27 @@ Mini's recent-only mean track error is **288.5 km** versus **477.2 km** for 1.2.
 
 That **recent-only** group includes 2024. The report-facing strict **after-2024** group is different: 2025–2026, 61 starts / 18 storms, with **258.7 km Mini versus 469.4 km 1.2**. Calendar 2024 is not part of that strict subset. Do not interchange these period scores.
 
-## Report showcases and preserved earlier records
+### Report showcases and preserved earlier records
 
 The [three report examples](#docs-research-report-zh-md) use unchanged released-1.2 weights: Fung-wong and Mangkhut are saved Metal forecasts; Jebi was run on CPU. All use 50 input-perturbed members and exact +6 to +120 h times. Mangkhut and Jebi are within the fitting years. Their R34 panels show **IBTrACS observations only**, not model radius skill. NCEP is still an analysis reference even where the figure label is simplified to “reference pressure”.
 
 Earlier release comparisons and their pressure-curve diagnostics remain in the [archived shared snapshot](../evaluation/released_daily/released_daily_benchmark.json), [full original report](../evaluation/daily_storm_final.json) and [intensity protocol](#docs-intensity-benchmark-md). They are not silently substituted for the current report's two-model table. Centred curve similarity removes level and amplitude; read it with hPa MAE, masks and original timelines rather than treating it as accurate pressure levels.
 
-## Recent pressure-line example
+### Recent pressure-line example
 
-### Fung-wong MP4: selected route-and-pressure example
+#### Fung-wong MP4: selected route-and-pressure example
 
 The [Fung-wong video](https://yu314-coder.github.io/typhoon-predict/trackformer_1_2_fung_wong.mp4) uses the unchanged saved 50-member pressure fields and mean route for case 262, issued 2025-11-07 00 UTC. It is a user-selected development example after inspection of full routes and pressure curves, not an untouched test or a representative sample. The geographic mean error is 130.9 km, the +120 h error is 142.3 km, and maximum error is 198.3 km over 20 leads. These are great-circle distances to exact observed coordinates, separate from the main benchmark's saved local-coordinate scores. The route follows the broad observed curve but is not perfectly overlapping.
 
 The pressure MAE is **7.36 hPa** against IBTrACS TOKYO_PRES (JMA best track), with 20 valid labels. Intensification and weakening still differ from observations. Fields are physical model means on fixed common grids, without shifting them onto the observed track. Native-detail history was unavailable; 0.25° regional output sampling is not native resolution. From +66 h the forecast centre leaves the regional patch: only saved coarse basin pressure is shown there, while member-mean central pressure remains the moving-core readout. No display-only core is added. Observed future routes and pressures are verification overlays only. [Data and provenance](../evaluation/release_data/fung_wong_video.json) record hashes and member policy. Reproduce with `python release_tools/build_fung_wong_video.py --work /path/to/frames` using NumPy, Matplotlib and ffmpeg with VideoToolbox on macOS; this renders saved outputs without model inference. The former interactive showcase has been removed.
 
-### Recent single-member example
+#### Recent single-member example
 
 The Surigae archive issued **2026-09-27 12 UTC** supplies real model regional MSLP fields at +6, +24 and +36 h. Isobars are drawn every 4 hPa, with selected labels every 12 hPa and one common colour scale. The magenta curve is the saved model route. Fields are neither relocated nor altered to force the map minimum onto the route. The regional map is a resampled composite and can differ slightly from central pressure sampled in the moving core.
 
 This example is one deterministic member from the released checkpoint. Inputs contain nine GFS analyses ending at 06 UTC (six hours before issue), issue-time JMA centre/central pressure, and static geography. Issue-time wind, prior motion and native regional history were unavailable and masked/zeroed. The stored +0 field is an input analysis; it is excluded from these forecast panels. The GFS transfer and input lag remain limitations. The selected leads keep the centre within the fixed 114–144°E, 11–41°N map. Names, times, member count and checkpoint/source hashes are in `evaluation/release_data/surigae_provenance.json`.
 
-## Reproduce the benchmark chart
+### Reproduce the benchmark chart
 
 ```bash
 python release_tools/plot_daily_storm_final.py
@@ -839,24 +843,23 @@ python release_tools/plot_daily_storm_final.py
 
 This plots the saved completed equal-storm results; it performs no new inference or weather retrieval. Original research arrays and reproduction tools remain preserved for provenance, but the retired smaller-cohort comparison is not presented as the current benchmark.
 
-## Validation boundary
+### Validation boundary
 
 Training used whole-storm year partitions: 2000–2021 training, 2022–2023 validation, 2024–2025 test in the original pipeline, with 13,949 / 1,041 / 1,195 windows respectively; native-pressure windows total 800 / 100 / 100. Repeatedly viewed benchmarks, TIP and calibration cases have become development evidence. Freeze a genuinely unused storm-level holdout with matched issue-time data before claiming generalization. Evaluate route, central pressure and pressure fields at every lead on common cases and masks; a lower map average alone is not a model win.
 
 The fitting sources are IBTrACS-derived storm records, NOAA PSL NCEP/NCAR basin analyses, ARCO-ERA5 regional MSLP and static ERA5 land fraction/elevation. Newer 2026 archive records are not part of the released model's gradient fitting. See [training-source documentation](TrackFormer_1.2_Training_and_Reproducibility.pdf) and [checksum-verified split receipt](../evaluation/training_data/trackformer_1_2_provenance.json).
 
-
 <a id="evaluation-readme-md"></a>
 
-## evaluation/README.md
+## Evaluation artifact catalogue
 
-# Evaluation assets
+*Source record: `evaluation/README.md`.*
 
-## Research-report view
+### Research-report view
 
 The current [report-facing summary](../README.md#results-in-the-research-report) and [Chinese explanation](#docs-research-report-zh-md) compare **TrackFormer 1.2 with DeepMind Mini**. Their [day-1–5 chart](report_figures/day_1_to_5.png) uses exact 24/48/72/96/120 h leads. Route covers **270 storms / 1,473 starts**; central pressure uses **40 of those storms / 134 starts / 2,637 common valid lead records**. The pressure subset follows frozen scoring eligibility, not a claim that the remaining storms lack all pressure observations. Source arrays and the larger historical archive below are unchanged.
 
-## Full historical archive
+### Full historical archive
 
 The current **completed three-model comparison** scores Trackformer 1.1, Trackformer 1.2 and Google's **WeatherNext Cyclones Mini `<2024` (software v0.3.0)** on **1,473 daily starts / 270 Western Pacific storms**, through +120 h. Mini's RTX 3070 CUDA run is complete and verified; Trackformer 1.2 is a mean of 50 members and Mini is one member.
 
@@ -871,16 +874,15 @@ For geographically aligned routes, compare forecasts and observations at the **s
 
 Reproduce the current three-model announcement chart from saved results with `python release_tools/plot_model_announcement.py`. This renders audited scores without new inference or weather retrieval; NumPy and Matplotlib are required. The paper is in [`../paper/`](../paper), and saved pressure arrays and preview provenance are under [`release_data/`](../evaluation/release_data).
 
-## Archived diagnostics and selected examples
+### Archived diagnostics and selected examples
 
 Older figures, the [TIP diagnostic](../evaluation/trackformer_1_2_vs_1_1_tip_metrics.json) and [showcase selection](../evaluation/trackformer_1_2_showcase_selection.json) are preserved for provenance, not presented as the current benchmark. See the [showcase archive](#docs-showcase-archive-md) for selected pressure-map films and their limitations.
 
-
 <a id="models-trackformer-1-2-field-wind-estimation-md"></a>
 
-## models/trackformer_1_2_field/WIND_ESTIMATION.md
+## Experimental wind and radius estimation
 
-# Experimental wind and circular-radius diagnostics
+*Source record: `models/trackformer_1_2_field/WIND_ESTIMATION.md`.*
 
 The frozen 1.2 weights and neural architecture are unchanged. Maximum wind is
 the existing learned auxiliary `vmax` output, in knots, not a resolved wind map.
@@ -927,18 +929,17 @@ validation or calibration is claimed by this implementation.
 References: [NOAA PaHM theory and limitations](https://noaa-ocs-modeling.github.io/PaHM/pahm_manual.pdf)
 and [Chavas, Reed and Knaff (2017)](https://doi.org/10.1038/s41467-017-01546-9).
 
-
 <a id="release-tools-storm-structure-diagnostics-md"></a>
 
-## release_tools/STORM_STRUCTURE_DIAGNOSTICS.md
+## Plotting storm-structure diagnostics
 
-# Any-storm wind and radius plots
+*Source record: `release_tools/STORM_STRUCTURE_DIAGNOSTICS.md`.*
 
 This is a local diagnostic/plotting extension. It does not change the released
 Trackformer 1.2 weights, existing pressure maps, videos, cloud archive, or Site.
 It is **not** a new validated wind/radius forecast model.
 
-## What works
+### What works
 
 - The renderer accepts any exact SID in the local Western Pacific IBTrACS file.
   The October 1 local snapshot contains 1,910 storms since 1970. This is an
@@ -953,7 +954,7 @@ It is **not** a new validated wind/radius forecast model.
   local atlas and the released WP domain. It neither downloads missing weather
   nor changes the independently authorized cloud backfill.
 
-## Candidate assumptions and official definitions
+### Candidate assumptions and official definitions
 
 IBTrACS `USA_WIND` is a 1-minute reference. USA R34/R50/R64 are maximum extents
 in the NE/SE/SW/NW quadrants, in nautical miles; multiply by 1.852 for **radius**
@@ -1000,7 +1001,7 @@ validated. The strict scorer therefore rejects wind/radius skill claims.
 Plots are exploratory reference comparisons, not a fair validated benchmark.
 All four are development examples; no unused generalization holdout is claimed.
 
-## Reusable commands
+### Reusable commands
 
 Use the existing Python environment; no installation is needed. All outputs,
 temporary files and Matplotlib caches must stay on `/Volumes/D`.
@@ -1036,7 +1037,7 @@ If unavailable, choose an actually reported issue after checking the catalogue.
 The runner refuses duplicate issues, unsafe slugs, three-hour dates, changed
 completed slugs and unsupported causal input histories.
 
-## October 1 verification
+### October 1 verification
 
 Local results: `/Volumes/D/typhoon_predict/output/all-storm-wind-radius.uSvmWY/plots`.
 Fung-Wong needed a fresh 50-member MPS replay (14.33 seconds inference). Its
@@ -1051,12 +1052,11 @@ calibration only on declared whole-storm training data, freeze a genuinely unuse
 storm cohort, validate surface-wind period/height and quadrant definitions, and
 report errors plus failed/missing coverage for identical leads through +120 h.
 
-
 <a id="training-trackformer-1-2-third-party-notices-md"></a>
 
-## training/trackformer_1_2/THIRD_PARTY_NOTICES.md
+## Dataset attribution and upstream terms
 
-# Data sources and attribution
+*Source record: `training/trackformer_1_2/THIRD_PARTY_NOTICES.md`.*
 
 The MIT license covers project code and project model artifacts; it does not replace upstream data terms.
 
@@ -1065,4 +1065,3 @@ The MIT license covers project code and project model artifacts; it does not rep
 - **Copernicus Climate Change Service (C3S), ERA5, accessed through Google's ARCO-ERA5 mirror**: native mean-sea-level-pressure patches and static land fraction/elevation. Contains modified Copernicus Climate Change Service information (2026). ERA5 hourly single-level data, doi:10.24381/cds.adbb2d47, https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels . The current dataset lists a CC-BY licence; attribution and upstream terms apply. ECMWF or the European Commission does not endorse this model. ARCO mirror and recipes: https://github.com/google-research/arco-era5 . The mirror's code licence is separate from the underlying meteorological data licence.
 
 The published arrays are transformed subsets: quantized/coarse basin grids, float16 pressure, issue-centred patches, normalized derived track features and masks. These transformations do not create new native observational resolution. No claim of endorsement by NOAA, ECMWF, C3S or Google is made.
-

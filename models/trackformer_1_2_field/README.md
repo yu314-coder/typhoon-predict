@@ -1,91 +1,134 @@
-# Trackformer 1.2 field-model inference
+# TrackFormer 1.2 · model input and output guide
 
-The released pressure-field model predicts Western Pacific storm tracks, central pressure and spatial MSLP through +120 h. This is the inference reference; see the [model announcement](../../README.md) for capabilities, the pressure-map showcase and development results.
+[Project overview](../../README.md) · [Complete training manual (PDF)](../../docs/TrackFormer_1.2_Training_and_Reproducibility.pdf) · [Protocols and reference](../../docs/REFERENCE.md)
 
-This folder contains the exact source, input contract and inference-only weights for the research model in the [main README](../../README.md). `model.py`, `baseline_model.py` and `v165_base.py` are source-identical to the selected training implementation. The weight file is distributed via the [GitHub release](https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.2) and [Hugging Face](https://huggingface.co/euler314/typhoon-predict/tree/main/models/trackformer_1_2_field), not Git.
+This guide covers **one clean forecast from the released pressure-field model**. It explains how to supply a prepared input packet, export the predicted pressure/track arrays and render them. The model does not download or construct raw-weather inputs for you. The training process is documented in the single PDF above.
 
-**Training-data cutoff:** fitting and weather normalization use **2000–2021**; validation/checkpoint selection uses **2022–2023**; the original test partition uses **2024–2025**. Inputs come from IBTrACS-derived storm records, NOAA PSL NCEP/NCAR Reanalysis basin fields, ARCO-ERA5 regional pressure and static land/elevation. Newer 2026 archive/live inputs are inference, not retraining. [Sources and exact split coverage](../../docs/TrackFormer_1.2_Training_and_Reproducibility.pdf) · [Verified training-data receipt](../../evaluation/training_data/trackformer_1_2_provenance.json).
+## 1. Set up and identify the weights
 
-Use Python with PyTorch and NumPy. The export environment used PyTorch 2.13.0; the source was evaluated on macOS MPS. Example:
+From the repository root:
 
 ```bash
-python models/trackformer_1_2_field/predict.py causal_issue_packet.npz forecast.npz --device cpu
+python -m pip install -r requirements.txt
+curl --fail --location \
+  "https://huggingface.co/euler314/typhoon-predict/resolve/main/models/trackformer_1_2_field/weights.pt" \
+  --output models/trackformer_1_2_field/weights.pt
 ```
 
-The `.npz` packet must contain exactly these arrays, with no object/pickle content:
+Use a compatible PyTorch environment with CPU, Apple MPS or NVIDIA CUDA. Matplotlib is needed only for PNG rendering. The original training environment is not fully recorded; minimum dependency versions do not establish a bitwise reproduction environment.
 
-The nine history timestamps span **−48 to 0 h**, including both endpoints. This is the release's fixed two-day input format, not evidence that two days outperforms one or three. The eight basin channels are MSLP, HGT500, U850, V850, U500, V500, U200 and V200: each u/v pair represents **both horizontal wind direction and speed**. Static coordinates, land fraction and elevation remain part of the actual input contract below. See the [plain-language Chinese report](../../docs/REFERENCE.md#docs-research-report-zh-md) for the research motivation and household-computer equipment.
+| Identity | Value |
+| --- | --- |
+| Public model | TrackFormer 1.2 |
+| Internal source checkpoint | 1.2.73, completed epoch 4 |
+| Architecture | `v173-moving-core-multiscale-attention` |
+| Inference-weight SHA-256 | `db49f36e85a3766defc4c172746897a1f783705d1ce8e6f9dfb8e87ae1d902cb` |
+| Forecast horizon | Twenty six-hour steps, +6 through +120 h |
 
-| Key | Shape | Meaning |
+`predict.py` verifies the weights against [manifest.json](manifest.json) and loads the state strictly. The three neural source modules are identical to the released training implementation. A changed checkpoint is a new candidate, not the released model.
+
+## 2. Prepare one causal issue packet
+
+Save an `.npz` containing **exactly** the following eleven keys, with no pickle/object arrays. Numeric model inputs must be finite and have the unbatched shapes shown; the wrapper adds a batch dimension. Issue/history times are Unix nanoseconds represented as integers.
+
+| Key | Shape | Value / units |
 | --- | --- | --- |
-| `global_history` | `(9, 8, 25, 33)` | Past/issue-time basin analyses in manifest channel order, normalized with manifest means/stds. |
-| `regional_history` | `(9, 1, 121, 121)` | Native MSLP patches when present, otherwise benchmark's coarse fallback; normalized using MSLP statistics. |
-| `global_static` | `(4, 25, 33)` | Latitude/90, longitude/180−1, land fraction, elevation metres/8000. |
-| `regional_static` | `(4, 121, 121)` | Same four static channels on the regional grid. |
-| `detail_available` | `(1,)` | One when native history exists, otherwise zero. |
-| `center` | `(2,)` | Issue-time latitude and longitude in degrees. |
-| `motion` | `(2,)` | Previous six-hour east/north displacement in km. |
-| `issue_intensity` | `(2,)` | Issue-time maximum wind in knots and central pressure in hPa. |
-| `issue_mask` | `(2,)` | Validity flags for issue-time wind and pressure. |
-| `issue_time_ns` | scalar | Forecast issue timestamp in Unix nanoseconds. |
-| `history_time_ns` | `(9,)` | Nine consecutive six-hour timestamps ending at issue time. |
+| `global_history` | `(9,8,25,33)` | Normalized eight-channel basin analyses at −48, −42, …, 0 h. |
+| `regional_history` | `(9,1,121,121)` | Normalized native MSLP history when available; the training loader uses zeros plus a false availability flag otherwise. |
+| `global_static` | `(4,25,33)` | Latitude/90, longitude/180−1, land fraction, elevation metres/8000. |
+| `regional_static` | `(4,121,121)` | The same geographic features on the fixed issue-centred regional grid. |
+| `detail_available` | `(1,)` | 1 for native history, 0 if absent. The model samples the basin history when this flag is false. |
+| `center` | `(2,)` | Issue-time latitude, longitude in degrees N/E. |
+| `motion` | `(2,)` | Previous six-hour displacement: east, north, in km. |
+| `issue_intensity` | `(2,)` | Issue-time maximum wind in knots; central pressure in hPa. |
+| `issue_mask` | `(2,)` | Independent validity flags for the two intensity values. Use finite storage values with explicit masks for missing intensity. |
+| `issue_time_ns` | scalar | Forecast initialization time, UTC Unix nanoseconds. |
+| `history_time_ns` | `(9,)` | Exact six-hour sequence ending at `issue_time_ns`. |
 
-Output `.npz` contains twenty exact +6, +12, …, +120-hour forecasts. Pressure arrays are physical hPa. The moving core is exported by default, not just used internally for a central-pressure number:
+**Channel order:** MSLP, HGT500, U850, V850, U500, V500, U200, V200. The u/v pairs carry wind direction and speed. Use `(physical_value − mean) / std` with the channel statistics in `manifest.json`; do not normalize a second time. Fit years for these statistics are 2000–2021.
 
-| Output | Shape | Meaning |
+**Geography:** the basin is 25 north-to-south latitudes from 60°N to 0°N and 33 longitudes from 100°E to 180°E at 2.5° spacing. The fixed 121×121 regional grid uses the manifest's 0.25° offsets around the issue-centred patch. Static coordinates must match the actual arrays, not just their shape. The moving 65×65 core is reconstructed by the model at approximately 20 km spacing.
+
+The wrapper checks exact keys, finite shapes and consecutive causal timestamps. It cannot authenticate the upstream archive or detect a mislabeled future field. Future analyses/observations and agency forecast fields/routes must never be substituted into inputs. Missing native history is not a claim of newly resolved pressure detail.
+
+## 3. Export a numerical forecast
+
+```bash
+python models/trackformer_1_2_field/predict.py \
+  causal_issue_packet.npz forecast.npz --device cpu
+```
+
+Use `--device mps` or `--device cuda` for an available accelerator. This command runs **one clean member**, with frozen weights and no optimizer updates. It does not reproduce the separately published 50-member input-perturbation mean.
+
+| Output | Shape | Interpretation |
 | --- | --- | --- |
-| `basin_mslp_hpa` | `(20,25,33)` | Unchanged coarse Western Pacific pressure fields. |
-| `basin_latitude_deg`, `basin_longitude_deg` | `(25,33)` each | Basin geography from the actual input grid. |
-| `regional_mslp_hpa` | `(20,121,121)` | Unchanged fixed issue-relative pressure composites. |
-| `regional_latitude_deg`, `regional_longitude_deg` | `(121,121)` each | Fixed regional geography. |
-| `regional_valid` | `(20,121,121)` | Original model domain-support masks; not a guarantee of moving-core detail throughout this fixed patch. |
-| `core_mslp_hpa` | `(20,65,65)` | Actual learned moving-core fields, converted from model normalization to hPa. |
-| `core_latitude_deg`, `core_longitude_deg` | `(20,65,65)` each | Original moving-frame geographic coordinates at every forecast lead. |
-| `core_valid` | `(20,65,65)` | Original moving-core coverage masks. Mask false cells even when their stored pressure is finite. |
-| `track_lat_lon`, `central_pressure_hpa`, `track_valid` | `(20,2)`, `(20,)`, `(20,)` | Unchanged associated track and bilinear core-pressure readout, with domain support. |
-| `issue_time_ns`, `valid_time_ns` | scalar, `(20,)` | UTC Unix nanoseconds for the issue and each exact forecast lead. |
-| `issue_center_lat_lon`, `member_count` | `(2,)`, scalar | Initialization location and the honest count of one clean member. |
-| `pressure_export_json` | string scalar | Export schema, units, frozen checkpoint/weight hashes, reconstruction and coverage policy. |
+| `lead_hours` | `(20,)` | 6, 12, …, 120 h. |
+| `track_lat_lon` | `(20,2)` | Pressure-associated forecast centre, latitude/longitude. |
+| `central_pressure_hpa` | `(20,)` | Bilinear pressure from the same moving field at that centre. |
+| `track_valid` | `(20,)` | Track support mask. |
+| `basin_mslp_hpa` | `(20,25,33)` | Predicted basin pressure in physical hPa. |
+| `basin_latitude_deg`, `basin_longitude_deg` | `(25,33)` each | Basin coordinates. |
+| `regional_mslp_hpa` | `(20,121,121)` | Predicted fixed issue-relative composite; detail coverage changes as the core moves. |
+| `regional_latitude_deg`, `regional_longitude_deg` | `(121,121)` each | Fixed regional coordinates. |
+| `regional_valid` | `(20,121,121)` | Geometric support; does not guarantee native-core detail across the whole patch. |
+| `core_mslp_hpa` | `(20,65,65)` | Actual predicted moving-core pressure. |
+| `core_latitude_deg`, `core_longitude_deg` | `(20,65,65)` each | Per-lead coordinates of the moving core. |
+| `core_valid` | `(20,65,65)` | Moving-core support mask. |
+| `issue_time_ns`, `valid_time_ns` | scalar, `(20,)` | Issue and exact forecast-valid timestamps. |
+| `issue_center_lat_lon`, `member_count` | `(2,)`, scalar | Initialization centre; member count is 1. |
+| `core_information_spacing_km` | scalar | Approximately 20 km computational reconstruction. |
+| `pressure_export_json` | string scalar | Schema, units, weight/checkpoint hashes, coverage and ensemble policies. |
 
-No field is shifted onto the forecast or observed route, and no central-pressure scalar is inserted into a display. The moving-core information spacing is **20 km computational reconstruction**, not new native high-resolution observations. Coordinates and masks must travel with the fields; an invalid cell is not a zero-pressure forecast. `central_pressure_hpa` is sampled from this same moving field at the associated centre, so it need not equal a discrete cell minimum or a labelled contour level.
+Pressure and coordinates must travel with their masks. Finite values outside a false support mask are not valid forecasts; zero padding is not zero physical pressure. The associated central pressure need not equal the discrete grid minimum or a drawn contour level. No forecast field is moved onto the observed route or replaced by a display vortex.
 
-### Render a pressure map directly
+### Read the saved arrays
 
-Install Matplotlib in your inference environment only if you want PNG rendering. NumPy and PyTorch suffice for the numerical export.
+```python
+import numpy as np
 
-```bash
-python models/trackformer_1_2_field/predict.py causal_issue_packet.npz forecast.npz --device cpu --pressure-map pressure_120h.png --map-lead 120 --isobar-interval 4
+with np.load("forecast.npz", allow_pickle=False) as forecast:
+    lead_index = int(np.flatnonzero(forecast["lead_hours"] == 24)[0])
+    pressure = np.where(
+        forecast["core_valid"][lead_index],
+        forecast["core_mslp_hpa"][lead_index],
+        np.nan,
+    )
+    latitude = forecast["core_latitude_deg"][lead_index]
+    longitude = forecast["core_longitude_deg"][lead_index]
 ```
 
-The optional image shows the whole Western Pacific basin and the actual moving core side by side, on one pressure colour scale: **blue low / red high**. It keeps original geography and masks unsupported core cells. To draw another saved lead without repeating inference:
+## Render a pressure map directly
+
+With Matplotlib installed in your own environment:
 
 ```bash
-python models/trackformer_1_2_field/plot_pressure.py forecast.npz pressure_24h.png --lead 24 --interval 2
+python models/trackformer_1_2_field/predict.py \
+  causal_issue_packet.npz forecast.npz --device cpu \
+  --pressure-map pressure_120h.png --map-lead 120 --isobar-interval 4
+
+# Render another saved lead without rerunning the network:
+python models/trackformer_1_2_field/plot_pressure.py \
+  forecast.npz pressure_24h.png --lead 24 --interval 2
 ```
 
-All original track, central-pressure, basin/regional and auxiliary-wind outputs retain their existing definitions. The exporter verifies the downloaded weight SHA-256 against `manifest.json`; the learned model modules, weights and forward equations are unchanged.
+The renderer shows the basin and actual moving core using one scale: blue low pressure, red high pressure. Apply per-lead geographic coordinates and masks. When the cyclone leaves the fixed regional patch, use the moving-core fields rather than extending the old patch by hand. For an ensemble, register physical member fields onto a common geographic grid before averaging; never average unaligned moving-core indices.
 
-It also exposes the existing `maximum_wind_auxiliary_kt` scalar and experimental
-pressure-derived `pressure_wind_estimate_kt`, `rmw_estimate_km` and
-`r34_estimate_km` / `r50_estimate_km` / `r64_estimate_km`. Every pressure-derived
-array has a matching `_valid` mask: zero padding where the mask is false is
-**not a zero wind or radius forecast**. `wind_estimation_json` is a JSON string
-with assumptions, member counts and unavailable reasons, not pickled objects.
-The auxiliary wind also has `maximum_wind_auxiliary_kt_valid`, a numerical/domain
-validity mask, not a claim of calibrated wind skill.
-These are uncalibrated circular-equivalent ocean estimates, not resolved
-surface winds, agency-compatible sustained winds or quadrant radii. See
-[the estimation method and validation requirements](../../docs/REFERENCE.md#models-trackformer-1-2-field-wind-estimation-md).
-No model weights, learned architecture or existing benchmark results changed.
+## Wind and radius diagnostics
 
-**Causality:** Never populate arrays from positive-lead analysis, later best track, agency forecast or future pressure field. The wrapper checks timestamp order and shapes, but cannot authenticate the upstream archive. Do not silently replace missing values with future data. This is not a raw-weather downloader or live warning service.
+`maximum_wind_auxiliary_kt` is an existing supervised scalar, accompanied by a numerical/domain `_valid` mask. That mask is not a demonstration of calibrated surface-wind skill.
 
-The published 50-member mean is a separate evaluation policy: 50 deterministic seeds perturb only normalized historical basin/regional fields with smooth zero-centred noise, then average routes, central pressures and common-grid fields. The weights are the same for every member; this is **not 50 separately trained models**. Issue-time centre, motion, intensity, masks and static geography are not perturbed. `predict.py` computes one clean forecast; do not label it a 50-member mean. Neither this member count nor the 48-hour history has been established as optimal by a matched ablation; spread is not automatically calibrated uncertainty.
+Experimental `pressure_wind_estimate_kt`, `rmw_estimate_km`, and `r34_estimate_km` / `r50_estimate_km` / `r64_estimate_km` are pressure-derived, circular-equivalent diagnostics, not a trained radius head or observed quadrant radii. Each has a matching `_valid` mask. If it is false, stored zero is padding. `wind_estimation_json` records assumptions and unavailable reasons. [Diagnostic method and validation limits](../../docs/REFERENCE.md#models-trackformer-1-2-field-wind-estimation-md).
 
-**Report's matched development evaluation:** route uses the frozen **1,473 daily starts / 270 equal-weight storms**, +6 to +120 h. Central pressure uses **40 of those 270 storms**, **134 common starts / 2,637 valid lead records**, comparing each model separately with JMA at identical valid times. This is an inherited common-scoring subset, not evidence that all other storms lack pressure observations. Missing labels and unsupported outputs are not zero-scored. TrackFormer 1.2's mean route error is **471.20 km**, +120 h error **1031.63 km**, six-hour direction error **34.96°**, and JMA central-pressure MAE **12.84 hPa**. Central-pressure error is not whole-map error. See the [report figures](../../docs/REFERENCE.md#docs-research-report-zh-md), [frozen common scores](../../evaluation/released_daily/released_daily_benchmark.json), [pressure protocol](../../docs/REFERENCE.md#docs-intensity-benchmark-md) and [detailed evaluation notes](../../docs/REFERENCE.md#docs-trackformer-1-2-evaluation-md).
+## Common problems
 
-**Completed DeepMind comparison:** Google's official **WeatherNext Cyclones Mini `<2024`**, run with **WeatherNext software v0.3.0**, completed all **1,473 daily starts / 270 storms** on an **NVIDIA GeForce RTX 3070 using CUDA**. This is the 1° Mini checkpoint trained through 2023, not the full-sized WeatherNext model. Mini uses one seeded member; TrackFormer 1.2 uses a 50-member mean. Mini's report values are **498.37 km** mean track error, **1031.91 km** at +120 h, **39.76°** direction error and **10.20 hPa** JMA central-pressure MAE on the **134 starts / 40 storms / 2,637 common valid records**. The combined cohort favours 1.2 for position and heading, but Mini has lower pressure MAE. Mini also has lower recent-only track error: **258.7 versus 469.4 km** on the strict 2025–2026 subset (61 starts / 18 storms). Different input/member policies and prior case inspection prevent general superiority, equal-compute or untouched-holdout claims. [Completed results and model identity](../../docs/REFERENCE.md#docs-deepmind-daily-benchmark-md) · [CUDA completion receipt](../../evaluation/deepmind_daily/verification.json) · [Independent publication audit](../../evaluation/deepmind_daily/publication_audit.json). No older benchmark's DeepMind scores were substituted.
+| Symptom | Check |
+| --- | --- |
+| Weight identity error | Use the exact 1.2 inference weight file, not a full optimizer checkpoint or later rainfall model. |
+| Packet-key or shape error | Supply the eleven keys above with unbatched shapes and integer timestamps. |
+| History-time error | All nine times must be six hours apart and end exactly at issue time. |
+| Native detail unavailable | Keep the explicit false flag; do not insert future pressure or claim interpolated detail as observations. |
+| Finite field looks wrong outside the basin | Apply `core_valid`, `regional_valid` and `track_valid`; inspect geography and normalization. |
+| Different from the website mean | Match checkpoint, issue time, data source and one-member versus 50-member policy first. |
+| Need rainfall | Released 1.2 has no rainfall head or humidity input. Later rainfall experiments are separate. |
 
-**Rainfall and radius scope:** ongoing Taiwan rainfall work is separate from these weights. Released 1.2 has no rainfall head or humidity input. The report's three R34 diagrams are **observed IBTrACS quadrant radii**, not native 1.2 radius forecasts. Experimental pressure-derived radius outputs described above remain separately labelled diagnostics.
-
-**Pressure-display coverage:** `regional_mslp_hpa` remains the original fixed issue-relative composite. Use the separately exported `core_mslp_hpa` and its per-lead coordinates/mask when the storm moves away from that fixed patch. Do not extend it by inventing a vortex or moving it onto a route. If the moving core leaves supported basin geography, the corresponding masked cells remain unavailable. For an ensemble, register each physical member field onto a common geographic grid **before** averaging; do not average moving-frame array indices. The Mangkhut film uses that separate 50-member policy. Older fixed-patch films retain their original data in [the showcase archive](../../docs/REFERENCE.md#docs-showcase-archive-md). The automatic History archive and its separate core recovery expose geography and coverage through [the public API](https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/history-api).
+For measured development results use the [main scorecard](../../README.md#results-in-the-research-report), [common-support benchmark](../../evaluation/deepmind_daily/benchmark.json) and [reference](../../docs/REFERENCE.md). For fitting cutoffs, batch-size evidence, losses and reproduction use the single training PDF. Research results do not establish operational warning reliability or newly resolved 20 km observations.

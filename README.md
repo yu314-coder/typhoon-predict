@@ -43,14 +43,25 @@ Pressure uses **134 starts / 40 storms / 2,637 common valid records**, a subset 
 
 ## Run a forecast
 
+Prepare a causal input packet using the [model guide](models/trackformer_1_2_field/README.md), then run from the repository root:
+
 ```bash
 python -m pip install -r requirements.txt
+curl --fail --location \
+  "https://huggingface.co/euler314/typhoon-predict/resolve/main/models/trackformer_1_2_field/weights.pt" \
+  --output models/trackformer_1_2_field/weights.pt
 python models/trackformer_1_2_field/predict.py causal_issue_packet.npz forecast.npz --device mps
 ```
 
 Download [weights.pt](https://huggingface.co/euler314/typhoon-predict/resolve/main/models/trackformer_1_2_field/weights.pt) into `models/trackformer_1_2_field/`. Use `--device cuda` or `--device cpu` as appropriate. The caller prepares the causal issue packet using the [input/output guide](models/trackformer_1_2_field/README.md). One clean run is distinct from a 50-member mean. Add `--pressure-map pressure_120h.png --map-lead 120` for an exported pressure image.
 
 Inference-weight SHA-256: `db49f36e85a3766defc4c172746897a1f783705d1ce8e6f9dfb8e87ae1d902cb`.
+
+## How the forecast is connected
+
+![Released model architecture](docs/trackformer_1_2_architecture.svg)
+
+Nine historical weather analyses initialize a basin state and a moving pressure core. Both evolve during the six-hour rollout; the reported position and central pressure are read from the same core. Exported arrays retain the matching coordinates and support masks.
 
 ## Train and inspect
 
@@ -60,7 +71,7 @@ The original training code remains in `training/trackformer_1_2/`. Exact arrays,
 
 The selected report checkpoint is epoch 4; epoch 2 has the minimum saved validation loss. Its recorded 4,384 optimizer updates are compatible with effective batch 16 under the published four-epoch sampler, while the archived notebook recipe uses batch 10. The PDF distinguishes that inference from the missing original argv/runtime and raw IBTrACS snapshot ID. No bitwise full retraining is claimed.
 
-## Repository guide
+## Find what you need
 
 | Location | Contents |
 | --- | --- |
@@ -70,8 +81,12 @@ The selected report checkpoint is epoch 4; epoch 2 has the minimum saved validat
 | `release_tools/` | Export, benchmark, plotting and publication utilities |
 | `docs/` | Training PDF, one reference document, figures and one archived documentation snapshot |
 
-## Reuse, contribution and limits
+## Open access and contribution
 
 Project code and weights use [MIT](LICENSE), including commercial use, modification and redistribution. Downloads are public and ungated. Upstream weather data retain their own attribution/terms. [Licensing and openness](docs/REFERENCE.md#openness-md) · [Contribution guide](docs/REFERENCE.md#contributing-md) · [Citation](CITATION.cff).
+
+Fork the repository or submit an issue/pull request with the exact model/data revision and relevant checks. Preserve causal inputs, masks, and matched evaluation support.
+
+## Scope and limits
 
 This is a research release, not an operational warning service. The approximately 20 km core is learned reconstruction, not new native observations. Released 1.2 has no rainfall head or humidity input; auxiliary wind and pressure-derived radius diagnostics are not validated agency-equivalent surface-wind forecasts. Follow official warnings for safety-critical decisions.
