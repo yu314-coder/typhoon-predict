@@ -1,0 +1,53 @@
+{
+  "experiment": "trackformer-1.3.2-transport-steering-20261102",
+  "files": {
+    "contracts.py": {
+      "sha256": "187ec2a3dd6e1c00277a3c03dea40d3efc6a4336f4d58f322b7254451f70f2da",
+      "bytes": 6375
+    },
+    "model.py": {
+      "sha256": "d50c5e5a7ae062154e6e2525ec334540c2301209fae65730579f7b4ac38c604c",
+      "bytes": 11602
+    },
+    "data.py": {
+      "sha256": "bcde963322f8abd5bdcd92bbfd0fbee68feef706ded8dd4f1ec9b5acc4fea08d",
+      "bytes": 5027
+    },
+    "train.py": {
+      "sha256": "161582377f27b4f72e127a77a782ccd6f42e347fc3c727495a3b8046a93cf206",
+      "bytes": 16057
+    },
+    "prepare_colab.py": {
+      "sha256": "826b2e57c8caa7f27c103a28095692ec316120db004aaa3fa3a4d98d51a92079",
+      "bytes": 3970
+    },
+    "arco_ranges.py": {
+      "sha256": "7cfb83820f2935c955d93bf5273a9d775abd7a634ba83b19083ac62efe10a5b4",
+      "bytes": 16861
+    },
+    "source_contract.py": {
+      "sha256": "5df222100b632e4ad43537ea65b91ac21772791cfdb94abf06e8f2b6ea57b2a4",
+      "bytes": 890
+    },
+    "catalog.json.gz": {
+      "sha256": "bc14fb62a9a4e3a2bda3f84e039fa45ec4fa4305ea8654acd36236b4c6b9a975",
+      "bytes": 1941722
+    },
+    "test_contracts.py": {
+      "sha256": "d8d41891bc1989476b4126dbdf3e3ec548325aa19158aae7cc524f1cc564cfca",
+      "bytes": 2343
+    },
+    "test_training.py": {
+      "sha256": "ceb2d373a61588fb7b69ce6cdd9718d53ee780b5a09d0026ef4dae835834aa78",
+      "bytes": 5519
+    },
+    "test_cohort.py": {
+      "sha256": "913546e41ca578242f112535caf0030dcd8cff01f5b2be87be2d5c434991d4e9",
+      "bytes": 1273
+    },
+    "README.md": {
+      "sha256": "c2e5749fb79f8f84c356a279ebb477dfa0e922c68a6b2f36e598a75a99356ffa",
+      "bytes": 4902
+    }
+  }
+}
