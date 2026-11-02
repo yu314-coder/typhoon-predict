@@ -36,7 +36,7 @@ from pathlib import Path
 import hashlib, json, urllib.request, subprocess, sys, os
 CODE = Path('/content/trackformer131-code')
 CODE.mkdir(parents=True, exist_ok=True)
-BASE = 'https://raw.githubusercontent.com/yu314-coder/typhoon-predict/main/training/trackformer_1_3_1/'
+BASE = 'https://raw.githubusercontent.com/yu314-coder/typhoon-predict/36804f8a54277c3a97f329baa2caf80f25bf796c/training/trackformer_1_3_1/'
 MANIFEST_SHA256 = 'PIN'
 def fetch(name):
     request = urllib.request.Request(BASE + name, headers={'User-Agent':'TrackFormer-Colab/1.3.1'})
