@@ -46,12 +46,12 @@
       "bytes": 3666
     },
     "README.md": {
-      "sha256": "094d3414200eb07b9725593262ebbb9e075441ea6f2302579ebf0967a54fcc7f",
-      "bytes": 13362
+      "sha256": "e8b86651a0a40a6b018a3f557e610cd39a0dcfac4d349ea429c82cba1cf496c0",
+      "bytes": 13396
     },
     "design.json": {
-      "sha256": "fbfccb01b41f9aef73b9e67d2b9ab625bd9d01b92d04c1cafa888f77ca4febf8",
-      "bytes": 7904
+      "sha256": "5f9c991bd53a7592879526386d369c25324dd9c9a0bbef725c442feca66351e4",
+      "bytes": 7943
     }
   }
 }

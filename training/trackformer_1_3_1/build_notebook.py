@@ -74,7 +74,6 @@ EFFECTIVE_BATCH = 4         # microbatch1, accumulated gradients
 TBPTT = 2                  # two-step backward segments, full causal forward state
 LEARNING_RATE = 2e-4
 SEED = 1312026
-ALLOW_LONG_DOWNLOAD = False # change to True only if you accept the measured >30min estimate
 DATA_DIR = Path('/content/drive/MyDrive/TrackFormer/data/131-native-31fields')
 OUTPUT_DIR = Path('/content/drive/MyDrive/TrackFormer/runs/131-native-20261102-pilot')
 def command(script, *args):
@@ -88,10 +87,25 @@ estimate = json.loads((DATA_DIR/'download-estimate.json').read_text())
 print('Measured retrieval estimate:', estimate)
 print('Estimate is approximate and excludes later training/validation.')
 ''')
-code('''# 4. Prepare the complete fixed cohort. Rerun after transient network failure.
-estimate = json.loads((DATA_DIR/'download-estimate.json').read_text())
-if estimate['remaining_minutes'] > 30 and not ALLOW_LONG_DOWNLOAD:
-    raise RuntimeError('Estimated download exceeds30minutes. Read the estimate, then set ALLOW_LONG_DOWNLOAD=True in cell2 if acceptable and rerun cells2–4. Nothing was trained.')
+code('''# 4. Prepare the complete fixed cohort; estimates are informational.
+# Existing hash-verified frames are reused after a disconnect or retry.
+import subprocess, sys
+estimate_path = DATA_DIR / 'download-estimate.json'
+if estimate_path.exists():
+    estimate = json.loads(estimate_path.read_text())
+    print(f"Estimated remaining download: {estimate.get('remaining_minutes', 0):.1f} minutes. Continuing with resumable preparation.", flush=True)
+
+def command(script, *args):
+    argv = [sys.executable, '-u', str(CODE/script), *map(str, args)]
+    with subprocess.Popen(argv, cwd=CODE, stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT, text=True, bufsize=1) as process:
+        for line in process.stdout:
+            print(line, end='', flush=True)
+        result = process.wait()
+    if result:
+        raise subprocess.CalledProcessError(result, argv)
+    return subprocess.CompletedProcess(argv, result)
+
 command('prepare_colab.py', '--data', DATA_DIR, '--train-starts', TRAIN_STARTS, '--download')
 print(json.loads((DATA_DIR/'ready.json').read_text()))
 ''')

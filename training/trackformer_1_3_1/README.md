@@ -15,9 +15,9 @@ and run its cells. CUDA qualification runs on your actual runtime before fitting
 
 The notebook downloads a hash-checked, self-contained code package and public
 ERA5 frames; it never needs access to the Mac's D drive. Only the selected
-cohort is fetched. The first two frames measure a download estimate; retrieval
-estimated above 30 minutes needs the notebook's explicit `ALLOW_LONG_DOWNLOAD`
-switch. The 31-field data are not bundled in GitHub. Existing prepared data can
+cohort is fetched. The first two frames measure a download estimate. The estimate
+is informational: preparation continues even when it exceeds30minutes, with
+live output and resumable verified frames. The31-field data are not bundled in GitHub. Existing prepared data can
 be reused by pointing `DATA_DIR` to that folder in Drive. Drive output includes
 the normalizer, checkpoint and optimizer/RNG state, progress, and validation.
 

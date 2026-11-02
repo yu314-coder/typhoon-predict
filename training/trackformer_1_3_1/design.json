@@ -73,7 +73,7 @@
     "not_implemented": ["external global branch", "explicit static terrain inputs", "moving fine core", "multi-storm association", "CUDA qualification on actual T4", "operational input adapter", "matched ablations and full811 evaluation"],
     "active_v52_policy": "Preserve worker, locks, sealed sources and data; independent experiment identity",
     "new_weather_cache_copies": 1,
-    "download_plan": "One bounded public-source frame checked locally; Colab estimates selected-cohort retrieval before explicit long-download opt-in",
+    "download_plan": "One bounded public-source frame checked locally; Colab displays an informational estimate and continues resumable selected-cohort retrieval without a time-limit abort",
     "storage_policy": "Artifacts on D; current user reserve1GiB plus bounded next write, wait rather than kill; research output kept small",
     "automation_created": false
   }
