@@ -3,11 +3,81 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import tempfile
 import unittest
 import zipfile
 
 from sync_public_model_cards import (ROOT, SYNC_FILES, DOC_SYNC_FILES, REPORT_FIGURES,
     MEDIA_REVISION, media_url, render_card)
+
+
+def verify_markdown_inventory(root, index):
+    """Keep the released1.2 consolidation snapshot and include new packages.
+
+    A new training package may have one README, explicitly listed and hashed
+    in its own package manifest. Unlisted documents still fail this check.
+    The historical consolidation receipt is not rewritten for later releases.
+    """
+    expected = set(index['final_markdown_paths'])
+    for manifest in (root/'training').glob('*/package-manifest.json'):
+        package = json.loads(manifest.read_text())
+        for name, entry in package['files'].items():
+            if not name.endswith('.md'):
+                continue
+            if name != 'README.md':
+                raise ValueError('Consolidate package documentation into README.md: '+name)
+            path = manifest.parent/name
+            if not path.is_file() or path.is_symlink():
+                raise ValueError('Missing regular package README: '+str(path))
+            data = path.read_bytes()
+            if len(data) != entry['bytes'] or hashlib.sha256(data).hexdigest() != entry['sha256']:
+                raise ValueError('Package README differs from its manifest: '+str(path))
+            expected.add(path.relative_to(root).as_posix())
+    actual = {p.relative_to(root).as_posix() for p in root.rglob('*.md') if '.git' not in p.parts}
+    if actual != expected:
+        raise ValueError(f'Markdown inventory mismatch: unlisted={sorted(actual-expected)}, missing={sorted(expected-actual)}')
+    return expected
+
+
+class MarkdownInventoryTest(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        (self.root/'README.md').write_text('Released model overview\n')
+        self.index = {'final_markdown_paths': ['README.md']}
+        self.package = self.root/'training/new_model'
+        self.package.mkdir(parents=True)
+        self.data = b'New training instructions\n'
+        (self.package/'README.md').write_bytes(self.data)
+        (self.package/'package-manifest.json').write_text(json.dumps({'files': {
+            'README.md': {'bytes': len(self.data), 'sha256': hashlib.sha256(self.data).hexdigest()}}}))
+
+    def test_declared_package_readme_extends_released_layout(self):
+        self.assertEqual(verify_markdown_inventory(self.root,self.index),
+                         {'README.md','training/new_model/README.md'})
+        self.assertEqual(self.index['final_markdown_paths'],['README.md'])
+
+    def test_unlisted_markdown_is_still_rejected(self):
+        (self.package/'extra.md').write_text('Unlisted documentation\n')
+        with self.assertRaisesRegex(ValueError,'unlisted=.*extra.md'):
+            verify_markdown_inventory(self.root,self.index)
+
+    def test_changed_or_missing_package_readme_is_rejected(self):
+        (self.package/'README.md').write_text('Unrecorded change\n')
+        with self.assertRaisesRegex(ValueError,'differs from its manifest'):
+            verify_markdown_inventory(self.root,self.index)
+        (self.package/'README.md').unlink()
+        with self.assertRaisesRegex(ValueError,'Missing regular package README'):
+            verify_markdown_inventory(self.root,self.index)
+
+    def test_manifest_cannot_whitelist_documents_outside_package(self):
+        path = self.package/'package-manifest.json'
+        manifest = json.loads(path.read_text())
+        manifest['files']['../../outside.md'] = manifest['files'].pop('README.md')
+        path.write_text(json.dumps(manifest))
+        with self.assertRaisesRegex(ValueError,'Consolidate package documentation'):
+            verify_markdown_inventory(self.root,self.index)
 
 
 class PublicModelCardsTest(unittest.TestCase):
@@ -17,9 +87,8 @@ class PublicModelCardsTest(unittest.TestCase):
         self.header='---\nlicense: mit\ncustom_preserved: yes\n---\n'
         self.index=json.loads((ROOT/'docs/archive/documentation-manifest.json').read_text())
 
-    def test_three_current_markdown_entry_points(self):
-        actual={str(p.relative_to(ROOT)) for p in ROOT.rglob('*.md') if '.git' not in p.parts}
-        self.assertEqual(actual,set(self.index['final_markdown_paths']))
+    def test_current_markdown_entry_points_are_declared(self):
+        verify_markdown_inventory(ROOT,self.index)
         self.assertLess(len(self.source.encode()),8000)
 
     def test_all_removed_documents_survive_exactly_in_archive(self):
