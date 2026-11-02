@@ -1,0 +1,3 @@
+# Keep Colab's preinstalled CUDA-compatible PyTorch; do not replace it.
+numpy>=1.26,<3
+numcodecs==0.16.5

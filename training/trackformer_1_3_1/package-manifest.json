@@ -1,0 +1,57 @@
+{
+  "experiment": "trackformer-1.3.1-native-regional-pilot-20261102",
+  "files": {
+    "contracts.py": {
+      "sha256": "12f9f772e3b2ad7db702ff75bac4015287fab91daf005766114dc6dbd4e8aef5",
+      "bytes": 6380
+    },
+    "model.py": {
+      "sha256": "9c896ed055c0327c03d83a80b00f4f305f02357f25a880d430218d729cf007cb",
+      "bytes": 8772
+    },
+    "data.py": {
+      "sha256": "c7b074b04df49c038d1e3d4341f7eed800b1312604eaddf83cb7de3d87775362",
+      "bytes": 4660
+    },
+    "train.py": {
+      "sha256": "f50a5531c3fc871555d532423065cde06bf0c8340cbc9bcef794d1fae64ee89d",
+      "bytes": 14896
+    },
+    "prepare_colab.py": {
+      "sha256": "574d462cd1f9fc8c1efdba400e317618fd167d6cf4ce149aa6d198e237b3d89f",
+      "bytes": 4808
+    },
+    "arco_ranges.py": {
+      "sha256": "7cfb83820f2935c955d93bf5273a9d775abd7a634ba83b19083ac62efe10a5b4",
+      "bytes": 16861
+    },
+    "source_contract.py": {
+      "sha256": "5df222100b632e4ad43537ea65b91ac21772791cfdb94abf06e8f2b6ea57b2a4",
+      "bytes": 890
+    },
+    "catalog.json.gz": {
+      "sha256": "bc14fb62a9a4e3a2bda3f84e039fa45ec4fa4305ea8654acd36236b4c6b9a975",
+      "bytes": 1941722
+    },
+    "requirements-colab.txt": {
+      "sha256": "eef5c9f3cd70370aea94b56e6b3244a2aa6cc02a663a9f3a62a9801e6944af0e",
+      "bytes": 105
+    },
+    "test_contracts.py": {
+      "sha256": "d8d41891bc1989476b4126dbdf3e3ec548325aa19158aae7cc524f1cc564cfca",
+      "bytes": 2343
+    },
+    "test_training.py": {
+      "sha256": "56046e6ef499f93a17b41c82e9293bdef00a615ff7db88a9282ac95780218983",
+      "bytes": 3666
+    },
+    "README.md": {
+      "sha256": "094d3414200eb07b9725593262ebbb9e075441ea6f2302579ebf0967a54fcc7f",
+      "bytes": 13362
+    },
+    "design.json": {
+      "sha256": "fbfccb01b41f9aef73b9e67d2b9ab625bd9d01b92d04c1cafa888f77ca4febf8",
+      "bytes": 7904
+    }
+  }
+}
