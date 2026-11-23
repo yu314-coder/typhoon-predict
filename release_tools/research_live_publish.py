@@ -20,6 +20,7 @@ ROOT = "/api/research-live"
 BRANCH = "trackformer-research-live-data"
 REMOTE = "https://github.com/yu314-coder/typhoon-predict.git"
 PRODUCTS = {"pressure": "1375", "temperature": "1375", "rainfall": "v59"}
+MINI_CHECKPOINT = "a1bb151457077248d70a458b1a7b19deacd2926fbcb46eee4ff2691444e3596e"
 LEADS = list(range(6, 121, 6))
 HASH = re.compile(r"[0-9a-f]{64}")
 ISO = re.compile(r"\d{4}-\d{2}-\d{2}T(?:00|06|12|18):00:00Z")
@@ -118,6 +119,16 @@ def model_specs(product):
     return grid, field, units
 
 
+def model_keys(product, models):
+    keys = [PRODUCTS[product], "gfs"]
+    mini = next((model for model in models if model["key"] == "deepmind"), None)
+    if product == "pressure" and mini is not None:
+        require(mini.get("checkpoint_sha256") == MINI_CHECKPOINT and mini.get("issue_utc"),
+                "WeatherNext comparison needs the pinned Cyclones Mini checkpoint and its original issue.")
+        keys.append("deepmind")
+    return keys
+
+
 def stage(product, catalog_path, packet_root, spool, receipt, saved_import):
     source = read(catalog_path)
     when = issue_time(source["issue_utc"])
@@ -129,15 +140,15 @@ def stage(product, catalog_path, packet_root, spool, receipt, saved_import):
         check_inputs(read(receipt), product, when)
     fields, shape, objects = [], model_specs(product), {}
     grid, field, units = shape
-    for key in (PRODUCTS[product], "gfs"):
+    for key in model_keys(product, source["models"]):
         model = next(row for row in source["models"] if row["key"] == key)
         require(model.get("issue_utc", source["issue_utc"]) == source["issue_utc"], "Mixed forecast cycles.")
         data = model.get("fields", {}).get("t2m", model) if product == "temperature" else model
         require(data["grid"] == grid and data["units"] == units and len(data["frames"]) == 20,
                 "Unexpected native field or support.")
-        candidate = key != "gfs"
-        label = "TrackFormer 1.3.75" if key == "1375" else "Rain V59" if key == "v59" else (
-            "NOAA GFS · 0.5 degree" if product == "rainfall" else "NOAA GFS")
+        candidate = key == PRODUCTS[product]
+        label = {"1375": "TrackFormer 1.3.75", "v59": "Rain V59", "deepmind": "WeatherNext Mini",
+                 "gfs": "NOAA GFS · 0.5 degree" if product == "rainfall" else "NOAA GFS"}[key]
         members = 8 if key == "v59" else 1
         require(model["members"] == members, "Unexpected forecast member count.")
         native_grid = {
@@ -146,13 +157,15 @@ def stage(product, catalog_path, packet_root, spool, receipt, saved_import):
             "rainfall": "0.25° rainfall cells",
         }[product] if candidate else ("0.5° rainfall cells · no smoothing" if product == "rainfall"
                                      else "Saved GFS field")
-        statistic = "NOAA GFS forecast · comparison only" if not candidate else {
+        statistic = f"{label} forecast · comparison only" if not candidate else {
             "pressure": "Single forecast · " + native_grid,
             "temperature": "2 m temperature · 1.3.79 fine land step inside 0–60°N, 100–180°E",
             "rainfall": "Placed map from eight drawn rain maps",
         }[product]
         entry = dict(key=key, label=label, units=units, members=members, statistic=statistic,
                      native_grid=native_grid, issue_utc=source["issue_utc"], grid=grid, field=field, frames=[])
+        if key == "deepmind":
+            entry.update(checkpoint_sha256=MINI_CHECKPOINT, native_grid="1° forecast drawn on a finer grid")
         if candidate:
             require(HASH.fullmatch(model.get("checkpoint_sha256", "")), "Missing model checkpoint hash.")
             entry["checkpoint_sha256"] = model["checkpoint_sha256"]
@@ -270,7 +283,7 @@ def publish(spool, checkout, dry_run, quiet):
         require(catalog["product"] == product and catalog["issue_utc"] == pointer["issue_utc"]
                 and catalog["leads"] == LEADS and catalog["valid_utc"] ==
                 [formatted(when + timedelta(hours=lead)) for lead in LEADS]
-                and [model["key"] for model in catalog["models"]] == [PRODUCTS[product], "gfs"],
+                and [model["key"] for model in catalog["models"]] == model_keys(product, catalog["models"]),
                 "Invalid staged catalog identity.")
         files = {catalog_file}
         if pointer["origin"] == "inference":
